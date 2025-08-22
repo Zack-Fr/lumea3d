@@ -1,5 +1,9 @@
 # Lumea - AI-Powered Interior Layout Generator
 
+[![CI Pipeline](https://github.com/Zack-Fr/Artica/actions/workflows/ci.yml/badge.svg)](https://github.com/Zack-Fr/Artica/actions/workflows/ci.yml)
+[![Code Coverage](https://github.com/Zack-Fr/Artica/actions/workflows/coverage.yml/badge.svg)](https://github.com/Zack-Fr/Artica/actions/workflows/coverage.yml)
+[![Deploy](https://github.com/Zack-Fr/Artica/actions/workflows/deploy.yml/badge.svg)](https://github.com/Zack-Fr/Artica/actions/workflows/deploy.yml)
+
 Lumea is a web-based interior layout generator that demonstrates **solver-guided spatial reasoning** with **explainability**. This MVP showcases how rule-based constraint satisfaction can reliably place furniture in a room while providing clear rationale for design decisions.
 
 ## 🎯 Project Overview
@@ -117,23 +121,57 @@ make clean         # Full cleanup
 
 **Current Phase**: Core MVP Implementation
 - ✅ Monorepo structure
-- ✅ Docker orchestration
-- 🔄 Database schema & migrations
+- ✅ Docker orchestration  
+- ✅ CI/CD pipeline setup
+- ✅ Database schema & migrations
 - 🔄 Authentication & authorization
 - 🔄 Constraint solver integration
 - ⏳ 3D visualization
 - ⏳ Collaboration features
 
+## � Development
+
+### Quick Start
+```bash
+# Clone and setup
+git clone https://github.com/Zack-Fr/Artica.git
+cd lumea
+pnpm install
+
+# Start development environment
+make up wait migrate seed
+pnpm dev
+```
+
+### CI/CD Pipeline
+- **Automated testing** on every PR
+- **Code quality checks** (linting, type checking)
+- **Docker build verification**
+- **Security scanning**
+- **Automated deployments** to staging/production
+
+For detailed development setup, see [Development Guide](.github/DEVELOPMENT.md).
+
 ## 📚 Documentation
 
+- **Development Setup**: [.github/DEVELOPMENT.md](.github/DEVELOPMENT.md)
+- **Code Quality Guidelines**: [.github/CODE_QUALITY.md](.github/CODE_QUALITY.md)
 - **API Documentation**: http://localhost:3000/docs
-- **Architecture Decision Records**: `/docs/adr/`
 - **Database Schema**: `/apps/api/prisma/schema.prisma`
-- **Component Library**: `/docs/components.md`
 
 ## 🤝 Contributing
 
 This is a bootcamp demo project focused on proving the solver-guided approach to interior design with explainable AI principles.
+
+### Contribution Workflow
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Make changes with tests
+4. Run quality checks: `pnpm lint && pnpm typecheck && pnpm test`
+5. Commit using conventional format: `feat: add new feature`
+6. Push and create a Pull Request
+
+See our [Code Quality Guidelines](.github/CODE_QUALITY.md) for detailed standards.
 
 ---
 
