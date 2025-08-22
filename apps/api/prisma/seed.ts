@@ -4,7 +4,7 @@ import * as argon2 from 'argon2';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seed...');
+  console.log('Starting database seed...');
 
   // Create demo users
   const adminPassword = await argon2.hash('admin123');
@@ -44,7 +44,7 @@ async function main() {
     },
   });
 
-  console.log('👥 Created demo users:', {
+  console.log('Created demo users:', {
     admin: admin.email,
     designer: designer.email,
     client: client.email,
@@ -61,7 +61,7 @@ async function main() {
     },
   });
 
-  console.log('📁 Created demo project:', demoProject.name);
+  console.log('Created demo project:', demoProject.name);
 
   // Create demo scene
   const demoScene = await prisma.scene.upsert({
@@ -94,7 +94,7 @@ async function main() {
     },
   });
 
-  console.log('🎨 Created demo scene:', demoScene.id);
+  console.log('Created demo scene:', demoScene.id);
 
   // Create demo placements
   const placements = [
@@ -134,7 +134,7 @@ async function main() {
     });
   }
 
-  console.log('🪑 Created demo placements');
+  console.log('Created demo placements');
 
   // Create demo compliance checks
   const complianceChecks = [
@@ -177,7 +177,7 @@ async function main() {
     });
   }
 
-  console.log('✅ Created demo compliance checks');
+  console.log('Created demo compliance checks');
 
   // Create demo feedback
   await prisma.feedback.upsert({
@@ -194,10 +194,10 @@ async function main() {
     },
   });
 
-  console.log('💬 Created demo feedback');
+  console.log('Created demo feedback');
 
-  console.log('✨ Database seed completed successfully!');
-  console.log('\n📝 Demo credentials:');
+  console.log('Database seed completed successfully!');
+  console.log('\n Demo credentials:');
   console.log('Admin: admin@lumea.com / admin123');
   console.log('Designer: designer@lumea.com / designer123');
   console.log('Client: client@lumea.com / client123');
@@ -205,7 +205,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    console.error('❌ Seed failed:', e);
+    console.error('Seed failed:', e);
     process.exit(1);
   })
   .finally(async () => {
