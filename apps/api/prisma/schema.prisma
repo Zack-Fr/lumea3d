@@ -1,0 +1,221 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums aligned with shared schemas
+enum Role {
+  GUEST
+  CLIENT
+  DESIGNER
+  ADMIN
+}
+
+enum StyleKey {
+  MODERN
+  CLASSIC
+}
+
+enum AssetKey {
+  SOFA
+  COFFEE_TABLE
+  SIDE_TABLE
+}
+
+enum GenerationStatus {
+  OK
+  FALLBACK
+  ERROR
+}
+
+// Core user management
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password_hash String
+  role         Role     @default(DESIGNER)
+  display_name String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  // User relationships
+  projects     Project[]
+  feedback     Feedback[]
+  sessions     Session[]
+  invites      Invite[]
+
+  @@map("users")
+}
+
+// Project management
+model Project {
+  id         String   @id @default(cuid())
+  name       String
+  user_id    String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relationships
+  user         User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  scenes       Scene[]
+
+  // Indexes
+  @@index([user_id])
+  @@map("projects")
+}
+
+// Scene management - immutable snapshots
+model Scene {
+  id         String           @id @default(cuid())
+  project_id String
+  version    Int              @default(1)
+  room_w_cm  Int              @default(500)
+  room_h_cm  Int              @default(400)
+  style      StyleKey         @default(MODERN)
+  seed       Int?
+  solver_ms  Int?
+  status     GenerationStatus @default(OK)
+  created_at DateTime         @default(now())
+
+  // Relationships
+  project            Project             @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  placements         Placement[]
+  compliance_checks  ComplianceCheck[]
+  feedback           Feedback[]
+  placement_adjustments PlacementAdjustment[]
+
+  // Rationale JSON storage
+  rationale Json?
+
+  // Indexes
+  @@index([project_id])
+  @@index([created_at])
+  @@map("scenes")
+}
+
+// Asset placements in scenes
+model Placement {
+  id           String   @id @default(cuid())
+  scene_id     String
+  asset_key    AssetKey
+  x_cm         Int
+  y_cm         Int
+  rotation_deg Int      @default(0)
+  created_at   DateTime @default(now())
+
+  // Relationships
+  scene                 Scene                 @relation(fields: [scene_id], references: [id], onDelete: Cascade)
+  placement_adjustments PlacementAdjustment[]
+
+  // Indexes
+  @@index([scene_id])
+  @@map("placements")
+}
+
+// Rule compliance tracking
+model ComplianceCheck {
+  id       String  @id @default(cuid())
+  scene_id String
+  rule_key String
+  passed   Boolean
+  message  String
+
+  // Relationships
+  scene Scene @relation(fields: [scene_id], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([scene_id])
+  @@index([rule_key])
+  @@map("compliance_checks")
+}
+
+// User feedback on scenes
+model Feedback {
+  id         String   @id @default(cuid())
+  scene_id   String
+  user_id    String
+  rating     Int      // 1-5 scale
+  tags       String[] // Array of string tags
+  comment    String?
+  is_private Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  // Relationships
+  scene Scene @relation(fields: [scene_id], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([scene_id])
+  @@index([user_id])
+  @@index([rating])
+  @@map("feedback")
+}
+
+// Collaboration sessions
+model Session {
+  id         String    @id @default(cuid())
+  project_id String
+  user_id    String
+  token      String    @unique
+  expires_at DateTime?
+  created_at DateTime  @default(now())
+
+  // Relationships
+  user    User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  invites Invite[]
+
+  // Indexes
+  @@index([token])
+  @@index([user_id])
+  @@map("sessions")
+}
+
+// Session invitations
+model Invite {
+  id         String    @id @default(cuid())
+  session_id String
+  user_id    String
+  token      String    @unique
+  expires_at DateTime?
+  used_at    DateTime?
+  created_at DateTime  @default(now())
+
+  // Relationships
+  session Session @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([token])
+  @@index([session_id])
+  @@map("invites")
+}
+
+// Manual placement adjustments (post-generation nudging)
+model PlacementAdjustment {
+  id           String   @id @default(cuid())
+  scene_id     String
+  placement_id String
+  old_x_cm     Int
+  old_y_cm     Int
+  new_x_cm     Int
+  new_y_cm     Int
+  old_rotation Int
+  new_rotation Int
+  created_at   DateTime @default(now())
+
+  // Relationships
+  scene     Scene     @relation(fields: [scene_id], references: [id], onDelete: Cascade)
+  placement Placement @relation(fields: [placement_id], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([scene_id])
+  @@index([placement_id])
+  @@map("placement_adjustments")
+}
