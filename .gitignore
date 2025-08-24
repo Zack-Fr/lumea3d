@@ -58,3 +58,6 @@ docker-compose.override.yml
 # Prisma
 .env
 prisma/migrations/*/migration.sql.backup
+
+#Marketing Folder
+apps/web/src/marketing/
