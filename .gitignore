@@ -61,3 +61,6 @@ prisma/migrations/*/migration.sql.backup
 
 #Marketing Folder
 apps/web/src/marketing/
+
+#Agents Folder
+apps/web/src/marketing/agentDocs
