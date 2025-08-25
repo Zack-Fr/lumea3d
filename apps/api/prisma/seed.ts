@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import * as argon2 from 'argon2';
+import { AssetKey, PrismaClient } from '@prisma/client';
+import { hash as argon2Hash, verify as argon2Verify } from '@node-rs/argon2';
 
 const prisma = new PrismaClient();
 
@@ -7,9 +7,9 @@ async function main() {
   console.log('Starting database seed...');
 
   // Create demo users
-  const adminPassword = await argon2.hash('admin123');
-  const designerPassword = await argon2.hash('designer123');
-  const clientPassword = await argon2.hash('client123');
+  const adminPassword = await argon2Hash('admin123');
+  const designerPassword = await argon2Hash('designer123');
+  const clientPassword = await argon2Hash('client123');
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@lumea.com' },
@@ -49,7 +49,7 @@ async function main() {
     designer: designer.email,
     client: client.email,
   });
-
+  
   // Create demo project
   const demoProject = await prisma.project.upsert({
     where: { id: 'demo-project' },
@@ -60,9 +60,9 @@ async function main() {
       user_id: designer.id,
     },
   });
-
+  
   console.log('Created demo project:', demoProject.name);
-
+  
   // Create demo scene
   const demoScene = await prisma.scene.upsert({
     where: { id: 'demo-scene' },
@@ -93,11 +93,19 @@ async function main() {
       },
     },
   });
-
+  
   console.log('Created demo scene:', demoScene.id);
-
+  
+  //Type demo project
+  type PlacementSeedInput = {
+    scene_id: string;
+    asset_key: AssetKey;
+    x_cm: number;
+    y_cm: number;
+    rotation_deg: number;
+  };
   // Create demo placements
-  const placements = [
+  const placements: PlacementSeedInput[] = [
     {
       scene_id: demoScene.id,
       asset_key: 'SOFA',
@@ -122,6 +130,8 @@ async function main() {
   ];
 
   for (const placement of placements) {
+    const { scene_id, ...rest } = placement;
+
     await prisma.placement.upsert({
       where: {
         id: `demo-placement-${placement.asset_key.toLowerCase()}`,
@@ -129,7 +139,12 @@ async function main() {
       update: {},
       create: {
         id: `demo-placement-${placement.asset_key.toLowerCase()}`,
-        ...placement,
+        scene: {
+          connect: {
+            id: scene_id,
+          },
+        },
+        ...rest,
       },
     });
   }
