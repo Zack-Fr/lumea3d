@@ -22,10 +22,10 @@ export default function Navbar() {
         <CtaLink to={ROUTES.dashboard()} variant="custom" className={`${s.button} ${s.ghost}`}>
           Try Demo
         </CtaLink>
-        <CtaLink to="/login" variant="custom" className={`${s.button} ${s.ghost}`}>
+        <CtaLink to={ROUTES.login()} variant="custom" className={`${s.button} ${s.ghost}`}>
           Login
         </CtaLink>
-        <CtaLink to="/signup" variant="custom" className={`${s.button} ${s.primary}`}>
+        <CtaLink to={ROUTES.signup()} variant="custom" className={`${s.button} ${s.primary}`}>
           Sign Up
         </CtaLink>
 
