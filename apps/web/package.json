@@ -13,6 +13,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "motion": "^11.14.4",
+    "lucide-react": "^0.473.0",
     "@lumea/shared": "workspace:*",
     "@tanstack/react-query": "^4.32.0",
     "@headlessui/react": "^1.7.17",
@@ -22,7 +24,7 @@
     "react-router-dom": "^6.15.0",
     "@react-three/fiber": "^8.13.5",
     "@react-three/drei": "^9.79.0",
-    "three": "^0.155.0",
+    "three": "^0.159.0",
     "socket.io-client": "^4.7.2",
     "zustand": "^4.4.1",
     "zod": "^3.22.4"
