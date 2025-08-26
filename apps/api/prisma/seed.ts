@@ -16,9 +16,9 @@ async function main() {
     update: {},
     create: {
       email: 'admin@lumea.com',
-      password_hash: adminPassword,
+      passwordHash: adminPassword,
       role: 'ADMIN',
-      display_name: 'Admin User',
+      displayName: 'Admin User',
     },
   });
 
@@ -27,9 +27,9 @@ async function main() {
     update: {},
     create: {
       email: 'designer@lumea.com',
-      password_hash: designerPassword,
+      passwordHash: designerPassword,
       role: 'DESIGNER',
-      display_name: 'Demo Designer',
+      displayName: 'Demo Designer',
     },
   });
 
@@ -38,9 +38,9 @@ async function main() {
     update: {},
     create: {
       email: 'client@lumea.com',
-      password_hash: clientPassword,
+      passwordHash: clientPassword,
       role: 'CLIENT',
-      display_name: 'Demo Client',
+      displayName: 'Demo Client',
     },
   });
 

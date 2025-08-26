@@ -39,11 +39,12 @@ enum GenerationStatus {
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
-  password_hash String
+  passwordHash String   @map("password_hash")
+  displayName String?  @map("display_name")
   role         Role     @default(DESIGNER)
-  display_name String?
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // User relationships
   projects     Project[]

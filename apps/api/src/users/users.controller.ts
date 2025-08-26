@@ -34,7 +34,7 @@ import {
 } from './users.service';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { Role } from '@lumea/shared';
+import { RoleEnum } from '@lumea/shared';
 
 /**
  * Users Controller
@@ -48,7 +48,7 @@ export class UsersController {
   /**
    * Create a new user (Admin only)
    */
-  @Auth(Role.ADMIN)
+  @Auth(RoleEnum.ADMIN)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new user (Admin only)' })
@@ -84,7 +84,7 @@ export class UsersController {
   /**
    * Get all users with pagination and filtering (Admin only)
    */
-  @Auth(Role.ADMIN)
+  @Auth(RoleEnum.ADMIN)
   @Get()
   @ApiOperation({ summary: 'Get all users with pagination and filtering (Admin only)' })
   @ApiResponse({
@@ -98,15 +98,15 @@ export class UsersController {
   })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10)' })
-  @ApiQuery({ name: 'role', required: false, enum: Role, description: 'Filter by role' })
+  @ApiQuery({ name: 'role', required: false, enum: RoleEnum, description: 'Filter by role' })
   @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by name or email' })
   @ApiQuery({ name: 'isActive', required: false, type: Boolean, description: 'Filter by active status' })
   async getUsers(
-    @Query('page', new ValidationPipe({ transform: true, optional: true })) page?: number,
-    @Query('limit', new ValidationPipe({ transform: true, optional: true })) limit?: number,
-    @Query('role') role?: Role,
+    @Query('page', new ValidationPipe({ transform: true })) page?: number,
+    @Query('limit', new ValidationPipe({ transform: true })) limit?: number,
+    @Query('role') role?: RoleEnum,
     @Query('search') search?: string,
-    @Query('isActive', new ValidationPipe({ transform: true, optional: true })) isActive?: boolean,
+    @Query('isActive', new ValidationPipe({ transform: true })) isActive?: boolean,
   ): Promise<UserListResponse> {
     const query: GetUsersQuery = { page, limit, role, search, isActive };
     return this.usersService.getUsers(query);
@@ -205,7 +205,7 @@ export class UsersController {
   /**
    * Get user statistics (Admin only)
    */
-  @Auth(Role.ADMIN)
+  @Auth(RoleEnum.ADMIN)
   @Get('stats')
   @ApiOperation({ summary: 'Get user statistics (Admin only)' })
   @ApiResponse({
@@ -246,7 +246,7 @@ export class UsersController {
     @CurrentUser() currentUser: UserResponse,
   ): Promise<UserResponse> {
     // Users can only view their own profile unless they're admin
-    if (userId !== currentUser.id && currentUser.role !== Role.ADMIN) {
+    if (userId !== currentUser.id && currentUser.role !== RoleEnum.ADMIN) {
       throw new Error('Access denied');
     }
     return this.usersService.getUserById(userId);
@@ -255,7 +255,7 @@ export class UsersController {
   /**
    * Update user by ID (Admin only)
    */
-  @Auth(Role.ADMIN)
+  @Auth(RoleEnum.ADMIN)
   @Put(':id')
   @ApiOperation({ summary: 'Update user by ID (Admin only)' })
   @ApiResponse({
@@ -298,7 +298,7 @@ export class UsersController {
   /**
    * Delete user by ID (Admin only)
    */
-  @Auth(Role.ADMIN)
+  @Auth(RoleEnum.ADMIN)
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete user by ID (Admin only)' })

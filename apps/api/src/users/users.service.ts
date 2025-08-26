@@ -6,20 +6,20 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role } from '@lumea/shared';
-import * as argon2 from 'argon2';
+import { RoleEnum } from '@lumea/shared';
+import { hash as argon2Hash, verify as argon2Verify } from '@node-rs/argon2';
 
 export interface CreateUserDto {
   email: string;
   password: string;
-  name: string;
-  role?: Role;
+  displayName: string;
+  role?: RoleEnum;
 }
 
 export interface UpdateUserDto {
   email?: string;
-  name?: string;
-  role?: Role;
+  displayName?: string;
+  role?: RoleEnum;
   isActive?: boolean;
 }
 
@@ -31,8 +31,8 @@ export interface ChangePasswordDto {
 export interface UserResponse {
   id: string;
   email: string;
-  name: string;
-  role: Role;
+  displayName: string;
+  role: RoleEnum;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -48,7 +48,7 @@ export interface UserListResponse {
 export interface GetUsersQuery {
   page?: number;
   limit?: number;
-  role?: Role;
+  role?: RoleEnum;
   search?: string;
   isActive?: boolean;
 }
@@ -65,7 +65,7 @@ export class UsersService {
    * Create a new user (Admin only)
    */
   async createUser(createUserDto: CreateUserDto): Promise<UserResponse> {
-    const { email, password, name, role = Role.CLIENT } = createUserDto;
+    const { email, password, displayName, role = RoleEnum.CLIENT } = createUserDto;
 
     // Check if user already exists
     const existingUser = await this.prismaService.user.findUnique({
@@ -77,20 +77,20 @@ export class UsersService {
     }
 
     // Hash the password
-    const hashedPassword = await argon2.hash(password);
+    const hashedPassword = await argon2Hash(password);
 
     // Create the user
     const user = await this.prismaService.user.create({
       data: {
         email,
-        password: hashedPassword,
-        name,
-        role,
+        passwordHash: hashedPassword,
+        displayName,
+        role: role as any,
       },
       select: {
         id: true,
         email: true,
-        name: true,
+        displayName: true,
         role: true,
         isActive: true,
         createdAt: true,
@@ -98,7 +98,7 @@ export class UsersService {
       },
     });
 
-    return user;
+    return user as UserResponse;
   }
 
   /**
@@ -128,7 +128,7 @@ export class UsersService {
     
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
+        { displayName: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
       ];
     }
@@ -140,7 +140,7 @@ export class UsersService {
         select: {
           id: true,
           email: true,
-          name: true,
+          displayName: true,
           role: true,
           isActive: true,
           createdAt: true,
@@ -154,7 +154,7 @@ export class UsersService {
     ]);
 
     return {
-      users,
+      users: users as UserResponse[],
       total,
       page,
       limit,
@@ -170,7 +170,7 @@ export class UsersService {
       select: {
         id: true,
         email: true,
-        name: true,
+        displayName: true,
         role: true,
         isActive: true,
         createdAt: true,
@@ -182,7 +182,7 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    return user;
+    return user as UserResponse;
   }
 
   /**
@@ -192,7 +192,7 @@ export class UsersService {
     userId: string,
     updateUserDto: UpdateUserDto,
     currentUserId: string,
-    currentUserRole: Role,
+    currentUserRole: RoleEnum,
   ): Promise<UserResponse> {
     // Check if user exists
     const existingUser = await this.prismaService.user.findUnique({
@@ -205,7 +205,7 @@ export class UsersService {
 
     // Authorization check
     const isOwnProfile = userId === currentUserId;
-    const isAdmin = currentUserRole === Role.ADMIN;
+    const isAdmin = currentUserRole === RoleEnum.ADMIN;
 
     if (!isOwnProfile && !isAdmin) {
       throw new ForbiddenException('You can only update your own profile');
@@ -239,7 +239,7 @@ export class UsersService {
       select: {
         id: true,
         email: true,
-        name: true,
+        displayName: true,
         role: true,
         isActive: true,
         createdAt: true,
@@ -247,7 +247,7 @@ export class UsersService {
       },
     });
 
-    return updatedUser;
+    return updatedUser as UserResponse;
   }
 
   /**
@@ -264,7 +264,7 @@ export class UsersService {
       where: { id: userId },
       select: {
         id: true,
-        password: true,
+        passwordHash: true,
       },
     });
 
@@ -273,18 +273,18 @@ export class UsersService {
     }
 
     // Verify current password
-    const isCurrentPasswordValid = await argon2.verify(user.password, currentPassword);
+    const isCurrentPasswordValid = await argon2Verify(user.passwordHash, currentPassword);
     if (!isCurrentPasswordValid) {
       throw new BadRequestException('Current password is incorrect');
     }
 
     // Hash new password
-    const hashedNewPassword = await argon2.hash(newPassword);
+    const hashedNewPassword = await argon2Hash(newPassword);
 
     // Update password
     await this.prismaService.user.update({
       where: { id: userId },
-      data: { password: hashedNewPassword },
+      data: { passwordHash: hashedNewPassword },
     });
 
     return { message: 'Password changed successfully' };
@@ -332,7 +332,7 @@ export class UsersService {
     const roleDistribution = roleStats.reduce((acc, stat) => {
       acc[stat.role] = stat._count.role;
       return acc;
-    }, {} as Record<Role, number>);
+    }, {} as Record<RoleEnum, number>);
 
     return {
       totalUsers,

@@ -6,15 +6,16 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import * as argon2 from 'argon2';
+import { hash as argon2Hash, verify as argon2Verify } from '@node-rs/argon2';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role } from '@lumea/shared';
+import { RoleEnum } from '@lumea/shared';
+import {Role as PrismaRole} from '@prisma/client';
 
 export interface RegisterDto {
   email: string;
   password: string;
-  name: string;
-  role?: Role;
+  displayName: string;
+  role?: RoleEnum;
 }
 
 export interface LoginDto {
@@ -30,8 +31,8 @@ export interface AuthTokens {
 export interface UserResponse {
   id: string;
   email: string;
-  name: string;
-  role: Role;
+  displayName: string;
+  role: RoleEnum;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -49,11 +50,13 @@ export class AuthService {
     private configService: ConfigService,
   ) {}
 
+  
+
   /**
    * Register a new user
    */
   async register(registerDto: RegisterDto): Promise<AuthTokens> {
-    const { email, password, name, role = Role.CLIENT } = registerDto;
+    const { email, password, displayName, role = RoleEnum.CLIENT } = registerDto;
 
     // Check if user already exists
     const existingUser = await this.prismaService.user.findUnique({
@@ -65,20 +68,20 @@ export class AuthService {
     }
 
     // Hash the password
-    const hashedPassword = await argon2.hash(password);
+    const hashedPassword = await argon2Hash(password);
 
-    // Create the user
+    // Create the user - role values now match between shared and Prisma
     const user = await this.prismaService.user.create({
       data: {
         email,
-        password: hashedPassword,
-        name,
-        role,
+        passwordHash: hashedPassword,
+        displayName,
+        role: role as PrismaRole,
       },
       select: {
         id: true,
         email: true,
-        name: true,
+        displayName: true,
         role: true,
         isActive: true,
         createdAt: true,
@@ -86,8 +89,8 @@ export class AuthService {
       },
     });
 
-    // Generate tokens
-    return this.generateTokens(user);
+    // Generate tokens directly - no mapping needed
+    return this.generateTokens(user as UserResponse);
   }
 
   /**
@@ -113,8 +116,8 @@ export class AuthService {
       select: {
         id: true,
         email: true,
-        name: true,
-        password: true,
+        displayName: true,
+        passwordHash: true,
         role: true,
         isActive: true,
         createdAt: true,
@@ -127,14 +130,14 @@ export class AuthService {
     }
 
     // Verify password
-    const isPasswordValid = await argon2.verify(user.password, password);
+    const isPasswordValid = await argon2Verify(user.passwordHash, password);
     if (!isPasswordValid) {
       return null;
     }
 
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    // Remove password from response - roles are now canonical
+    const { passwordHash: _, ...userWithoutPassword } = user;
+    return userWithoutPassword as UserResponse;
   }
 
   /**
@@ -151,7 +154,7 @@ export class AuthService {
         select: {
           id: true,
           email: true,
-          name: true,
+          displayName: true,
           role: true,
           isActive: true,
           createdAt: true,
@@ -163,7 +166,7 @@ export class AuthService {
         throw new UnauthorizedException('User not found or inactive');
       }
 
-      return this.generateTokens(user);
+      return this.generateTokens(user as UserResponse);
     } catch (error) {
       throw new UnauthorizedException('Invalid refresh token');
     }
@@ -178,7 +181,7 @@ export class AuthService {
       select: {
         id: true,
         email: true,
-        name: true,
+        displayName: true,
         role: true,
         isActive: true,
         createdAt: true,
@@ -190,7 +193,7 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
-    return user;
+    return user as UserResponse;
   }
 
   /**
@@ -219,4 +222,5 @@ export class AuthService {
       refreshToken,
     };
   }
+  
 }

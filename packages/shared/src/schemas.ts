@@ -1,7 +1,17 @@
 import { z } from 'zod';
-
-// Enums and base types
-export const Role = z.enum(['guest', 'designer', 'admin', 'client']);
+/**
+ * Canonical Role enum used across the monorepo.
+ * Values match Prisma enum values (uppercase) so we have one source of truth.
+ */
+export enum RoleEnum {
+  GUEST = 'GUEST',
+  CLIENT = 'CLIENT',
+  DESIGNER = 'DESIGNER',
+  ADMIN = 'ADMIN',
+}
+// runtime zod validator (use as RoleSchema)
+export const Role = z.nativeEnum(RoleEnum);
+// TS type for convenience (import as `type Role`)
 export type Role = z.infer<typeof Role>;
 
 export const StyleKey = z.enum(['modern', 'classic']);
@@ -11,7 +21,7 @@ export type StyleKey = z.infer<typeof StyleKey>;
 export const RegisterBody = z.object({
   email: z.string().email(),
   password: z.string().min(8),
-  role: Role.optional().default('designer'),
+  role: Role.optional().default(RoleEnum.CLIENT),
 });
 export type RegisterBody = z.infer<typeof RegisterBody>;
 
