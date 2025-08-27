@@ -11,6 +11,8 @@ import { ROLES_KEY } from '../decorators/auth.decorator';
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
+/* The `canActivate` method in the `RolesGuard` class is responsible for checking if the authenticated
+user has the required role(s) to access a specific route or resource. */
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<RoleEnum[]>(ROLES_KEY, [
       context.getHandler(),

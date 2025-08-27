@@ -15,10 +15,9 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { AuthService, RegisterDto, LoginDto, AuthTokens, UserResponse } from './auth.service';
-import { LocalAuthGuard } from './guards/local-auth.guard';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { CurrentUser } from './decorators/current-user.decorator';
-import { Public } from './decorators/auth.decorator';
+import { JwtAuthGuard } from './shared/guards/jwt-auth.guard';
+import { CurrentUser } from './shared/decorators/current-user.decorator';
+import { Public } from './shared/decorators/auth.decorator';
 
 class RefreshTokenDto {
   refreshToken: string;
@@ -69,7 +68,7 @@ export class AuthController {
    * Login with email and password
    */
   @Public()
-  @UseGuards(LocalAuthGuard)
+  // @UseGuards(LocalAuthGuard)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })

@@ -7,7 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { hash as argon2Hash, verify as argon2Verify } from '@node-rs/argon2';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { RoleEnum } from '@lumea/shared';
 import {Role as PrismaRole} from '@prisma/client';
 

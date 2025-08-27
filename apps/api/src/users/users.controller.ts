@@ -32,8 +32,8 @@ import {
   UserListResponse,
   GetUsersQuery
 } from './users.service';
-import { Auth } from '../auth/decorators/auth.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Auth } from '../auth/shared/decorators/auth.decorator';
+import { CurrentUser } from '../auth/shared/decorators/current-user.decorator';
 import { RoleEnum } from '@lumea/shared';
 
 /**

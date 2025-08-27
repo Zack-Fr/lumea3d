@@ -5,7 +5,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { RoleEnum } from '@lumea/shared';
 import { hash as argon2Hash, verify as argon2Verify } from '@node-rs/argon2';
 
