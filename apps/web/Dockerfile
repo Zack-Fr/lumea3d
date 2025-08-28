@@ -8,7 +8,7 @@ WORKDIR /app
 
 # Copy workspace configuration
 COPY pnpm-workspace.yaml ./
-COPY package.json . /
+COPY package.json ./
 
 # Copy shared package
 COPY packages/shared ./packages/shared
@@ -20,10 +20,11 @@ COPY pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Copy Web source code
-COPY . ./apps/web/
+COPY apps/web ./apps/web/
 
 # Build shared package first
 RUN pnpm --filter @lumea/shared build
+# RUN pnpm --filter @lumea/web... build
 
 # Build arguments
 ARG VITE_API_URL
