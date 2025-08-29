@@ -5,6 +5,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { StorageModule } from './storage/storage.module';
+import { ProcessingModule } from './processing/processing.module';
 
 @Module({
   imports: [
@@ -31,6 +32,9 @@ import { StorageModule } from './storage/storage.module';
     
     // Storage module for S3/MinIO integration
     StorageModule,
+    
+    // Processing module for 3D asset optimization
+    ProcessingModule,
   ],
   controllers: [],
   providers: [],
