@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { StorageModule } from './storage/storage.module';
 import { ProcessingModule } from './processing/processing.module';
+import { AssetsModule } from './assets/assets.module';
 
 @Module({
   imports: [
@@ -35,6 +36,9 @@ import { ProcessingModule } from './processing/processing.module';
     
     // Processing module for 3D asset optimization
     ProcessingModule,
+    
+    // Assets module for upload/download management
+    AssetsModule,
   ],
   controllers: [],
   providers: [],
