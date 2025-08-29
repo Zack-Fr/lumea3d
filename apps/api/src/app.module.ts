@@ -4,6 +4,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -27,6 +28,9 @@ import { UsersModule } from './users/users.module';
     
     // Users management module
     UsersModule,
+    
+    // Storage module for S3/MinIO integration
+    StorageModule,
   ],
   controllers: [],
   providers: [],

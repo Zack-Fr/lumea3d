@@ -29,12 +29,21 @@ services:
       SOLVER_URL: http://solver:8000
       NODE_ENV: ${NODE_ENV:-development}
       PORT: ${API_PORT:-3000}
+      # Storage configuration
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-minio}
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-http://minio:9000}
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      STORAGE_BUCKET_NAME: ${STORAGE_BUCKET_NAME:-lumea-assets}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-minioadmin}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-minioadmin123}
     ports:
       - "${API_PORT:-3000}:3000"
     depends_on:
       db:
         condition: service_healthy
       solver:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
@@ -58,6 +67,39 @@ services:
       timeout: 10s
       retries: 3
 
+  minio:
+    image: minio/minio:latest
+    container_name: lumea-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: lumea-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set minio http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin123};
+      mc mb minio/lumea-assets --ignore-existing;
+      mc policy set public minio/lumea-assets;
+      echo 'MinIO bucket lumea-assets created and configured';
+      exit 0;
+      "
+
   web:
     build: 
       context: ..
@@ -79,6 +121,8 @@ services:
 
 volumes:
   pgdata:
+    driver: local
+  minio_data:
     driver: local
 
 networks:
