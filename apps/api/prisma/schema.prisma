@@ -35,6 +35,21 @@ enum GenerationStatus {
   ERROR
 }
 
+// 3D Asset processing status
+enum AssetStatus {
+  UPLOADED
+  PROCESSING
+  READY
+  FAILED
+}
+
+// 3D Asset license types
+enum AssetLicense {
+  CC0
+  ROYALTY_FREE
+  PROPRIETARY
+}
+
 // Core user management
 model User {
   id           String   @id @default(cuid())
@@ -51,6 +66,7 @@ model User {
   feedback     Feedback[]
   sessions     Session[]
   invites      Invite[]
+  assets       Asset[]
 
   @@map("users")
 }
@@ -66,6 +82,8 @@ model Project {
   // Relationships
   user         User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
   scenes       Scene[]
+  categories3d ProjectCategory3D[]
+  scenes3d     Scene3D[]
 
   // Indexes
   @@index([user_id])
@@ -219,4 +237,146 @@ model PlacementAdjustment {
   @@index([scene_id])
   @@index([placement_id])
   @@map("placement_adjustments")
+}
+
+// ============================================================================
+// 3D MODELS - New modular viewer system (side-by-side with 2D models above)
+// ============================================================================
+
+// 3D Asset management - uploaded GLB files with processing pipeline
+model Asset {
+  id           String      @id @default(cuid())
+  uploader_id  String
+  original_name String
+  mime_type    String
+  file_size    Int
+  status       AssetStatus @default(UPLOADED)
+  
+  // Processing results
+  original_url  String?
+  meshopt_url   String?
+  draco_url     String?
+  navmesh_url   String?
+  report_json   Json?
+  error_message String?
+  
+  // Metadata
+  license      AssetLicense? @default(PROPRIETARY)
+  created_at   DateTime      @default(now()) @map("created_at")
+  updated_at   DateTime      @updatedAt @map("updated_at")
+  processed_at DateTime?     @map("processed_at")
+
+  // Relationships
+  uploader    User                @relation(fields: [uploader_id], references: [id], onDelete: Cascade)
+  categories  ProjectCategory3D[]
+  navmesh_scenes Scene3D[]
+
+  // Indexes
+  @@index([uploader_id])
+  @@index([status])
+  @@index([created_at])
+  @@map("assets")
+}
+
+// 3D Categories per project - link assets to projects with category metadata
+model ProjectCategory3D {
+  id          String  @id @default(cuid())
+  project_id  String
+  asset_id    String
+  category_key String // e.g., "furniture", "decor", "lighting"
+  
+  // Category configuration flags
+  instancing  Boolean @default(false)
+  draco       Boolean @default(true)
+  meshopt     Boolean @default(true)
+  ktx2        Boolean @default(true)
+  
+  created_at  DateTime @default(now()) @map("created_at")
+
+  // Relationships
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  asset   Asset   @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+  
+  // A project can have each asset only once per category
+  @@unique([project_id, asset_id, category_key])
+  @@index([project_id])
+  @@index([category_key])
+  @@map("project_categories_3d")
+}
+
+// 3D Scene management with version tracking for realtime deltas
+model Scene3D {
+  id          String  @id @default(cuid())
+  project_id  String
+  name        String
+  version     Int     @default(1) // For optimistic locking and realtime deltas
+  
+  // Scene properties (matches SceneManifestV2)
+  scale       Float?  @default(1.0)
+  exposure    Float?  @default(1.0)
+  env_hdri_url String?
+  env_intensity Float? @default(1.0)
+  
+  // Spawn point
+  spawn_position_x Float   @default(0.0)
+  spawn_position_y Float   @default(1.7) // Eye level
+  spawn_position_z Float   @default(5.0)
+  spawn_yaw_deg    Float   @default(0.0)
+  
+  // Navmesh reference
+  navmesh_asset_id String?
+  
+  created_at  DateTime @default(now()) @map("created_at")
+  updated_at  DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  project      Project       @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  navmesh_asset Asset?       @relation(fields: [navmesh_asset_id], references: [id], onDelete: SetNull)
+  items        SceneItem3D[]
+
+  // Indexes
+  @@index([project_id])
+  @@index([created_at])
+  @@index([version])
+  @@map("scenes_3d")
+}
+
+// 3D Scene items - positioned/scaled/rotated objects in scenes
+model SceneItem3D {
+  id          String @id @default(cuid())
+  scene_id    String
+  category_key String // References ProjectCategory3D.category_key
+  model       String? // Optional model identifier within category
+  
+  // Transform (matches SceneManifestV2 item.transform)
+  position_x     Float @default(0.0)
+  position_y     Float @default(0.0)
+  position_z     Float @default(0.0)
+  rotation_x     Float @default(0.0) // Euler angles
+  rotation_y     Float @default(0.0)
+  rotation_z     Float @default(0.0)
+  scale_x        Float @default(1.0)
+  scale_y        Float @default(1.0)
+  scale_z        Float @default(1.0)
+  
+  // Material configuration
+  material_variant   String?
+  material_overrides Json?
+  
+  // Item behavior
+  selectable Boolean @default(true)
+  locked     Boolean @default(false)
+  
+  // Metadata
+  meta       Json?
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  scene Scene3D @relation(fields: [scene_id], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([scene_id])
+  @@index([category_key])
+  @@map("scene_items_3d")
 }
