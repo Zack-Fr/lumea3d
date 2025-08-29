@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { BullModule } from '@nestjs/bull';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -21,6 +22,15 @@ import { AssetsModule } from './assets/assets.module';
       ttl: 60000, // 1 minute
       limit: 60, // 60 requests per minute per IP
     }]),
+    
+    // Job queue for background processing
+    BullModule.forRoot({
+      redis: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT) || 6379,
+        password: process.env.REDIS_PASSWORD,
+      },
+    }),
     
     // Database module
     PrismaModule,

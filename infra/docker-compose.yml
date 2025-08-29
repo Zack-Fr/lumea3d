@@ -36,6 +36,10 @@ services:
       STORAGE_BUCKET_NAME: ${STORAGE_BUCKET_NAME:-lumea-assets}
       STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-minioadmin}
       STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-minioadmin123}
+      # Redis configuration for job queue
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
       - "${API_PORT:-3000}:3000"
     depends_on:
@@ -44,6 +48,8 @@ services:
       solver:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
@@ -119,10 +125,27 @@ services:
       timeout: 10s
       retries: 3
 
+  redis:
+    image: redis:7-alpine
+    container_name: lumea-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
 volumes:
   pgdata:
     driver: local
   minio_data:
+    driver: local
+  redis_data:
     driver: local
 
 networks:

@@ -405,19 +405,21 @@ export class ProcessingService {
    * Download asset from storage to local file
    */
   private async downloadAssetToFile(objectKey: string, filePath: string): Promise<void> {
-    // This would be implemented using the storage service to download the file
-    // For now, this is a placeholder
-    this.logger.log(`Downloading ${objectKey} to ${filePath}`);
-    // TODO: Implement actual download logic using StorageService
+    await this.storageService.downloadAssetToFile(objectKey, filePath);
   }
 
   /**
    * Upload file to storage
    */
   private async uploadFileToStorage(filePath: string, objectKey: string): Promise<void> {
-    // This would be implemented using the storage service to upload the file
-    // For now, this is a placeholder
-    this.logger.log(`Uploading ${filePath} to ${objectKey}`);
-    // TODO: Implement actual upload logic using StorageService
+    // Determine content type based on file extension
+    let contentType = 'application/octet-stream';
+    if (objectKey.endsWith('.glb')) {
+      contentType = 'model/gltf-binary';
+    } else if (objectKey.endsWith('.ktx2')) {
+      contentType = 'image/ktx2';
+    }
+    
+    await this.storageService.uploadFileToStorage(filePath, objectKey, contentType);
   }
 }

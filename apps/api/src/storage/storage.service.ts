@@ -169,4 +169,82 @@ export class StorageService {
       };
     }
   }
+
+  /**
+   * Download an asset from storage to a local file path
+   */
+  async downloadAssetToFile(objectKey: string, localFilePath: string): Promise<void> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucketName,
+      Key: objectKey,
+    });
+
+    try {
+      const response = await this.s3Client.send(command);
+      
+      if (!response.Body) {
+        throw new Error('No body in S3 response');
+      }
+
+      // Convert stream to buffer and write to file
+      const chunks: Buffer[] = [];
+      const stream = response.Body as any;
+      
+      for await (const chunk of stream) {
+        chunks.push(chunk);
+      }
+      
+      const buffer = Buffer.concat(chunks);
+      const fs = await import('fs/promises');
+      await fs.writeFile(localFilePath, buffer);
+      
+      this.logger.log(`Downloaded ${objectKey} to ${localFilePath}`);
+    } catch (error) {
+      this.logger.error(`Failed to download ${objectKey}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload a local file to storage
+   */
+  async uploadFileToStorage(localFilePath: string, objectKey: string, contentType?: string): Promise<void> {
+    try {
+      const fs = await import('fs/promises');
+      const fileBuffer = await fs.readFile(localFilePath);
+      
+      const command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: objectKey,
+        Body: fileBuffer,
+        ContentType: contentType,
+      });
+
+      await this.s3Client.send(command);
+      this.logger.log(`Uploaded ${localFilePath} to ${objectKey}`);
+    } catch (error) {
+      this.logger.error(`Failed to upload ${objectKey}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if an object exists in storage
+   */
+  async objectExists(objectKey: string): Promise<boolean> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: objectKey,
+      });
+
+      await this.s3Client.send(command);
+      return true;
+    } catch (error: any) {
+      if (error.name === 'NoSuchKey' || error.$metadata?.httpStatusCode === 404) {
+        return false;
+      }
+      throw error;
+    }
+  }
 }
