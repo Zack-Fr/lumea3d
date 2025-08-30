@@ -17,6 +17,23 @@ export type Role = z.infer<typeof Role>;
 export const StyleKey = z.enum(['modern', 'classic']);
 export type StyleKey = z.infer<typeof StyleKey>;
 
+// 3D Asset enums (matching Prisma)
+export enum AssetStatus {
+  UPLOADED = 'UPLOADED',
+  PROCESSING = 'PROCESSING',
+  READY = 'READY',
+  FAILED = 'FAILED',
+}
+
+export enum AssetLicense {
+  CC0 = 'CC0',
+  ROYALTY_FREE = 'ROYALTY_FREE',
+  PROPRIETARY = 'PROPRIETARY',
+}
+
+// 3D Vec3 type
+export type Vec3 = [number, number, number];
+
 // Auth schemas
 export const RegisterBody = z.object({
   email: z.string().email(),
@@ -169,3 +186,146 @@ export interface ActionGenerateEvent {
 export interface GuestFollowEvent {
   follow: boolean;
 }
+
+// ============================================================================
+// 3D VIEWER TYPES - Scene Manifest V2 and Realtime Deltas
+// ============================================================================
+
+// SceneManifestV2 interface (matches the brief specification)
+export interface SceneManifestV2 {
+  version: 2;
+  scale?: number;
+  exposure?: number;
+  env?: { hdri_url?: string; intensity?: number };
+  spawn: { position: Vec3; yaw_deg: number };
+  navmesh_url: string;
+
+  categories: Record<string, {
+    glb_url?: string;
+    encodings?: { meshopt_url?: string; draco_url?: string };
+    instancing?: boolean;
+    draco?: boolean;
+    meshopt?: boolean;
+    ktx2?: boolean;
+    license?: 'cc0' | 'royalty-free' | 'proprietary';
+  }>;
+
+  items: Array<{
+    id: string;
+    category: string;
+    model?: string;
+    transform: { position: Vec3; rotation_euler: Vec3; scale: Vec3 };
+    material?: { variant?: string; overrides?: Record<string, unknown> };
+    selectable?: boolean;
+    locked?: boolean;
+    meta?: Record<string, string>;
+  }>;
+}
+
+// Realtime delta operations
+export type DeltaOp =
+  | { op: 'upsert_item'; item: { id: string; category: string; model?: string; transform: { position: Vec3; rotation_euler: Vec3; scale: Vec3 }; material?: { variant?: string; overrides?: Record<string, unknown> }; selectable?: boolean; locked?: boolean; meta?: Record<string, string> } }
+  | { op: 'remove_item'; id: string }
+  | { op: 'update_item'; id: string; transform?: { position?: Vec3; rotation_euler?: Vec3; scale?: Vec3 }; material?: { variant?: string; overrides?: Record<string, unknown> }; selectable?: boolean; locked?: boolean; meta?: Record<string, string> }
+  | { op: 'scene_props'; exposure?: number; env?: { hdri_url?: string; intensity?: number }; spawn?: { position: Vec3; yaw_deg: number } }
+  | { op: 'category_add'; key: string; category: { encodings?: { meshopt_url?: string; draco_url?: string }; instancing?: boolean; meshopt?: boolean; draco?: boolean; ktx2?: boolean; license?: string } }
+  | { op: 'category_remove'; key: string };
+
+// Realtime events
+export interface SceneDelta {
+  sceneId: string;
+  v: number;            // scene.version after applying ops
+  ts: number;           // server epoch ms
+  ops: DeltaOp[];
+  actor: { id: string; role: 'designer' | 'admin' | 'client' | 'guest' };
+  reqId?: string;       // echoes REST write idempotency key
+}
+
+export interface SceneInit { 
+  sceneId: string; 
+  v: number; 
+  manifest: SceneManifestV2; 
+}
+
+export interface SceneError { 
+  code: string; 
+  message: string; 
+  details?: unknown; 
+}
+
+// 3D API request/response schemas
+export const AssetUploadResponse = z.object({
+  asset_id: z.string(),
+  kind: z.string(),
+  status: z.nativeEnum(AssetStatus),
+  urls: z.object({
+    original_url: z.string().optional(),
+    meshopt_url: z.string().optional(),
+    draco_url: z.string().optional(),
+  }).optional(),
+});
+export type AssetUploadResponse = z.infer<typeof AssetUploadResponse>;
+
+export const CreateCategory3DBody = z.object({
+  asset_id: z.string(),
+  category_key: z.string(),
+  instancing: z.boolean().optional().default(false),
+  draco: z.boolean().optional().default(true),
+  meshopt: z.boolean().optional().default(true),
+  ktx2: z.boolean().optional().default(true),
+});
+export type CreateCategory3DBody = z.infer<typeof CreateCategory3DBody>;
+
+export const CreateScene3DBody = z.object({
+  name: z.string().min(1).max(100),
+  scale: z.number().optional().default(1.0),
+  exposure: z.number().optional().default(1.0),
+  env_hdri_url: z.string().optional(),
+  env_intensity: z.number().optional().default(1.0),
+  spawn_position: z.tuple([z.number(), z.number(), z.number()]).optional().default([0, 1.7, 5]),
+  spawn_yaw_deg: z.number().optional().default(0),
+  navmesh_asset_id: z.string().optional(),
+});
+export type CreateScene3DBody = z.infer<typeof CreateScene3DBody>;
+
+export const PatchSceneItems3DBody = z.object({
+  ops: z.array(z.union([
+    z.object({ op: z.literal('upsert_item'), item: z.object({
+      id: z.string(),
+      category_key: z.string(),
+      model: z.string().optional(),
+      position: z.tuple([z.number(), z.number(), z.number()]),
+      rotation_euler: z.tuple([z.number(), z.number(), z.number()]),
+      scale: z.tuple([z.number(), z.number(), z.number()]).optional().default([1, 1, 1]),
+      material_variant: z.string().optional(),
+      material_overrides: z.record(z.unknown()).optional(),
+      selectable: z.boolean().optional().default(true),
+      locked: z.boolean().optional().default(false),
+      meta: z.record(z.string()).optional(),
+    }) }),
+    z.object({ op: z.literal('remove_item'), id: z.string() }),
+    z.object({ op: z.literal('update_item'), id: z.string(), 
+      position: z.tuple([z.number(), z.number(), z.number()]).optional(),
+      rotation_euler: z.tuple([z.number(), z.number(), z.number()]).optional(),
+      scale: z.tuple([z.number(), z.number(), z.number()]).optional(),
+      material_variant: z.string().optional(),
+      material_overrides: z.record(z.unknown()).optional(),
+      selectable: z.boolean().optional(),
+      locked: z.boolean().optional(),
+      meta: z.record(z.string()).optional(),
+    }),
+  ])).max(128), // Max 128 ops per delta as per brief
+  version: z.number().int().optional(), // For optimistic locking
+});
+export type PatchSceneItems3DBody = z.infer<typeof PatchSceneItems3DBody>;
+
+export const PatchSceneProps3DBody = z.object({
+  scale: z.number().optional(),
+  exposure: z.number().optional(),
+  env_hdri_url: z.string().optional(),
+  env_intensity: z.number().optional(),
+  spawn_position: z.tuple([z.number(), z.number(), z.number()]).optional(),
+  spawn_yaw_deg: z.number().optional(),
+  version: z.number().int().optional(), // For optimistic locking
+});
+export type PatchSceneProps3DBody = z.infer<typeof PatchSceneProps3DBody>;

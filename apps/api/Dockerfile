@@ -1,6 +1,25 @@
 # API Dockerfile
 FROM node:22-bullseye-slim
 
+# Install system dependencies for 3D processing
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    build-essential \
+    cmake \
+    git \
+    unzip \
+    libgl1-mesa-dev \
+    libglu1-mesa-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install KTX-Software for toktx tool
+RUN wget -O ktx.tar.gz https://github.com/KhronosGroup/KTX-Software/releases/download/v4.3.2/KTX-Software-4.3.2-Linux-x86_64.tar.gz \
+    && tar -xzf ktx.tar.gz \
+    && cp KTX-Software-4.3.2-Linux-x86_64/bin/toktx /usr/local/bin/ \
+    && chmod +x /usr/local/bin/toktx \
+    && rm -rf ktx.tar.gz KTX-Software-4.3.2-Linux-x86_64
+
 # Install pnpm
 RUN npm install -g pnpm@10
 

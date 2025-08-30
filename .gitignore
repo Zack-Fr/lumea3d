@@ -64,3 +64,4 @@ prisma/migrations/*/migration.sql.backup
 
 #Agents Folder
 apps/web/agentDocs
+apps/api/agentDocs
