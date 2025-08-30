@@ -5,7 +5,7 @@ import { RequireAuth, GuestOnly } from "@/components/ProtectedRoute";
 import Layout from "@/app/layout";
 import LandingPage from "@/pages/LandingPage";
 import AuthPage from "@/pages/AuthPage/AuthPage";
-import DashboardPage from "@/pages/DashboardPage";
+import DashboardPage from "@/pages/DashboardPage/DashboardPage";
 // import ProjectPage from "@/pages/ProjectPage";
 // import PreviewPage from "@/pages/PreviewPage";
 
