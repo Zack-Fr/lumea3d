@@ -24,7 +24,8 @@ import {
   AssetQueryDto,
   GenerateDownloadUrlDto,
 } from './dto/assets.dto';
-
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Assets')
 @Controller('assets')
 @UseGuards(JwtAuthGuard)
 export class AssetsController {

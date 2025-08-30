@@ -380,3 +380,10 @@ model SceneItem3D {
   @@index([category_key])
   @@map("scene_items_3d")
 }
+
+generator erd {
+  provider  = "prisma-erd-generator"
+  output = "./generated/erd/ERD.png"
+  mmdcPath  = "./node_modules/.bin/"
+  puppeteerConfig = "./puppeteer-config.json"
+}
