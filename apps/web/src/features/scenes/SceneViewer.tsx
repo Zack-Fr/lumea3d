@@ -8,6 +8,8 @@ import { ViewerSidebar, type ViewerControls } from './ViewerSidebar';
 import { SceneHelpers } from './SceneHelpers';
 import { FPSTracker } from './FPSTracker';
 import { useViewerControls } from './useViewerControls';
+import { FPSControls } from './FPSControls';
+import { ControlsInstructions } from './ControlsInstructions';
 
 interface SceneGraphProps {
   manifest: SceneManifestV2;
@@ -26,6 +28,12 @@ function SceneGraph({ manifest, controls, onFPSUpdate }: SceneGraphProps) {
   
   return (
     <>
+      {/* FPS Controls for first-person navigation */}
+      <FPSControls 
+        controls={controls}
+        spawnPosition={manifest.spawn.position}
+      />
+      
       {/* FPS Tracker */}
       <FPSTracker onFPSUpdate={onFPSUpdate} controls={controls} />
       
@@ -76,9 +84,14 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
   const spawnPosition = manifest.spawn.position;
   const { controls, updateControls } = useViewerControls();
   const [currentFPS, setCurrentFPS] = useState(0);
+  const [showInstructions, setShowInstructions] = useState(true);
 
   const handleFPSUpdate = useCallback((fps: number) => {
     setCurrentFPS(fps);
+  }, []);
+  
+  const dismissInstructions = useCallback(() => {
+    setShowInstructions(false);
   }, []);
   
   return (
@@ -112,6 +125,12 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
         controls={controls}
         onControlsChange={updateControls}
         fps={currentFPS}
+      />
+      
+      {/* Controls Instructions Overlay */}
+      <ControlsInstructions
+        isVisible={showInstructions}
+        onDismiss={dismissInstructions}
       />
     </div>
   );
