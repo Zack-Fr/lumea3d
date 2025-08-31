@@ -4,12 +4,16 @@ import { generatePath } from "react-router-dom";
 export const PATHS = {
   landing: "/",
   app: "/app",
-  dashboard: "dashboard",
+  // user
   guest: "guest",
   login: "/login",
   signup: "/signup",
+  dashboard: "dashboard",
+  // projects
   project: "projects/:id",
+  projectNew: "projects/new",
   preview: "preview/:token",
+  // marketing
   how: "/#how",
 } as const;
 
@@ -19,10 +23,14 @@ export const ROUTES = {
   guest: () => `${PATHS.app}/${PATHS.guest}`,
   login: () => PATHS.login,
   signup: () => PATHS.signup,
+
   project: (id: string) =>
     `${PATHS.app}/${generatePath(PATHS.project, { id: encodeURIComponent(id) })}`,
+  projectNew: () => `${PATHS.app}/${PATHS.projectNew}`,
+
   preview: (token: string) =>
     `${PATHS.app}/${generatePath(PATHS.preview, { token: encodeURIComponent(token) })}`,
+
   how: () => PATHS.how,
 } as const;
 

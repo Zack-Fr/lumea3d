@@ -6,7 +6,7 @@ import { Button } from "../../components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/Card";
 import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/Avatar";
 import { Badge } from "../../components/ui/Badge";
-import { PATHS } from "@/app/paths";
+import { PATHS, ROUTES } from "@/app/paths";
 import { useAuth } from "../../providers/AuthProvider";
 import s from "./Dashboard.module.css";
 
@@ -156,14 +156,14 @@ export default function Dashboard() {
                 <Sparkles className="text-yellow-400" />
                 Your Projects
               </h2>
-              <Button onClick={() => navigate(PATHS.landing)} className="bg-yellow-400 text-black">
+              <Button onClick={() => navigate(ROUTES.projectNew())} className="bg-yellow-400 text-black">
                 <Plus className="w-4 h-4 mr-2" />
                 New Project
               </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {projects.map((project) => (
-                <Card key={project.id} className={s.card}>
+                <Card key={project.id} className={s.card} onClick={() => navigate(ROUTES.project(String(project.id)))}>
                   <div className="rounded-md overflow-hidden mb-2">
                     <ImageWithFallback src={project.thumbnail} alt={project.name} className="w-full h-40 object-cover" />
                   </div>
