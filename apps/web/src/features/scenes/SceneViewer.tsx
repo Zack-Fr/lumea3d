@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { Environment, Stats } from '@react-three/drei';
-import { Suspense, useState, useCallback } from 'react';
+import { Suspense, useState, useCallback, useEffect } from 'react';
 import type { SceneManifestV2 } from '@lumea/shared';
 import { CategoryRenderer } from './CategoryRenderer';
 import { GLBPreloader, useSceneMetrics } from './GLBPreloader';
@@ -8,6 +8,24 @@ import { ViewerSidebar, type ViewerControls } from './ViewerSidebar';
 import { SceneHelpers } from './SceneHelpers';
 import { FPSTracker } from './FPSTracker';
 import { useViewerControls } from './useViewerControls';
+import { FPSControls } from './FPSControls';
+import { ControlsInstructions } from './ControlsInstructions';
+import { SelectionProvider } from './SelectionContext';
+import { ClickSelection } from './ClickSelection';
+import { TransformGizmos } from './TransformGizmos';
+import { SelectionHighlight } from './SelectionHighlight';
+import { TransformControlsPanel } from './TransformControlsPanel';
+import { TransformKeyboardControls } from './TransformKeyboardControls';
+import { AssetManagementPanel } from './AssetManagementPanel';
+import { useLODSystem } from './useLODSystem';
+import { usePerformanceMonitor } from './usePerformanceMonitor';
+import { PerformanceDisplay } from './PerformanceDisplay';
+import { AdvancedFrustumCulling } from './FrustumCulling';
+import { ScenePersistenceProvider } from './ScenePersistenceContext';
+import { ScenePersistenceStatus } from './ScenePersistenceStatus';
+import { useSceneHistory } from './useSceneHistory';
+import { useSceneKeyboardShortcuts, createSceneEditorShortcuts } from './useSceneKeyboardShortcuts';
+import { SceneShortcutsHelp, useSceneShortcutsHelp } from './SceneShortcutsHelp';
 
 interface SceneGraphProps {
   manifest: SceneManifestV2;
@@ -19,6 +37,27 @@ function SceneGraph({ manifest, controls, onFPSUpdate }: SceneGraphProps) {
   const categories = Object.entries(manifest.categories);
   useSceneMetrics(manifest); // Use metrics for logging
   
+  // Performance optimization hooks
+  const { stats } = usePerformanceMonitor({
+    enabled: controls.showFPS,
+    updateInterval: 1000,
+    onStatsUpdate: (stats) => {
+      onFPSUpdate(stats.fps);
+    }
+  });
+
+  const lodSystem = useLODSystem({
+    enabled: true,
+    adaptToPerformance: true,
+    targetFPS: 60,
+    debugMode: false
+  });
+
+  // Track performance for LOD system
+  useEffect(() => {
+    lodSystem.trackPerformance(stats.fps);
+  }, [stats.fps, lodSystem]);
+  
   console.log('🏗️ SceneGraph rendering with categories:', categories.map(([key]) => ({
     key,
     itemCount: manifest.items.filter(item => item.category === key).length
@@ -26,6 +65,21 @@ function SceneGraph({ manifest, controls, onFPSUpdate }: SceneGraphProps) {
   
   return (
     <>
+      {/* Performance Optimization Systems */}
+      <AdvancedFrustumCulling 
+        enabled={true}
+        maxDistance={500}
+        useLODCulling={true}
+        debugMode={false}
+        updateInterval={100}
+      />
+      
+      {/* FPS Controls for first-person navigation */}
+      <FPSControls 
+        controls={controls}
+        spawnPosition={manifest.spawn.position}
+      />
+      
       {/* FPS Tracker */}
       <FPSTracker onFPSUpdate={onFPSUpdate} controls={controls} />
       
@@ -37,6 +91,11 @@ function SceneGraph({ manifest, controls, onFPSUpdate }: SceneGraphProps) {
         controls={controls} 
         navmeshUrl={manifest.navmesh_url} 
       />
+      
+      {/* Selection and Transform System */}
+      <ClickSelection enabled={true} />
+      <TransformGizmos enabled={true} />
+      <SelectionHighlight />
       
       {/* Environment lighting with exposure control */}
       {manifest.env?.hdri_url && (
@@ -76,12 +135,75 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
   const spawnPosition = manifest.spawn.position;
   const { controls, updateControls } = useViewerControls();
   const [currentFPS, setCurrentFPS] = useState(0);
+  const [showInstructions, setShowInstructions] = useState(true);
+  const [showAssetManagement, setShowAssetManagement] = useState(false);
+
+  // Performance monitoring for the overall viewer
+  const { stats } = usePerformanceMonitor({
+    enabled: true,
+    updateInterval: 1000,
+    onStatsUpdate: (stats) => {
+      setCurrentFPS(stats.fps);
+    }
+  });
+
+  // Scene history management
+  const sceneHistory = useSceneHistory({
+    maxHistorySize: 50,
+    onUndo: (_manifest) => {
+      console.log('↶ SceneViewer: Undo applied');
+      // Future: Apply manifest changes to scene
+    },
+    onRedo: (_manifest) => {
+      console.log('↷ SceneViewer: Redo applied');
+      // Future: Apply manifest changes to scene
+    }
+  });
+
+  // Shortcuts help system
+  const shortcutsHelp = useSceneShortcutsHelp();
+
+  // Create keyboard shortcuts
+  const shortcuts = createSceneEditorShortcuts({
+    onUndo: sceneHistory.undo,
+    onRedo: sceneHistory.redo,
+    onSave: () => console.log('💾 Manual save triggered'),
+    onToggleGrid: () => updateControls({ showGrid: !controls.showGrid }),
+    onDeselectAll: () => console.log('🔲 Deselect all'),
+    onDelete: () => console.log('🗑️ Delete selected'),
+    onDuplicate: () => console.log('📋 Duplicate selected')
+  });
+
+  // Add help shortcut
+  shortcuts.push({
+    key: '?',
+    action: shortcutsHelp.toggle,
+    description: 'Show/hide keyboard shortcuts help',
+    category: 'Help'
+  });
+
+  // Enable keyboard shortcuts
+  useSceneKeyboardShortcuts({
+    shortcuts,
+    enabled: true,
+    preventDefault: true
+  });
 
   const handleFPSUpdate = useCallback((fps: number) => {
     setCurrentFPS(fps);
   }, []);
   
-  return (
+  const dismissInstructions = useCallback(() => {
+    setShowInstructions(false);
+  }, []);
+
+  const handleAssetImportComplete = useCallback((assetId: string) => {
+    console.log('✅ SceneViewer: Asset import completed:', assetId);
+    // Future: Refresh scene manifest or add asset to scene
+  }, []);
+
+  // Scene viewer content
+  const sceneViewerContent = (
     <div className="relative h-screen w-full">
       {/* 3D Canvas */}
       <Canvas
@@ -112,7 +234,66 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
         controls={controls}
         onControlsChange={updateControls}
         fps={currentFPS}
+        onAssetImportComplete={handleAssetImportComplete}
+      />
+      
+      {/* Asset Management Panel */}
+      <AssetManagementPanel
+        isVisible={showAssetManagement}
+        onToggleVisibility={() => setShowAssetManagement(!showAssetManagement)}
+        onAssetSelected={(asset) => console.log('Asset selected:', asset)}
+      />
+      
+      {/* Transform Controls Panel (appears when object selected) */}
+      <TransformControlsPanel />
+      
+      {/* Keyboard Controls for Transform */}
+      <TransformKeyboardControls />
+      
+      {/* Controls Instructions Overlay */}
+      <ControlsInstructions
+        isVisible={showInstructions}
+        onDismiss={dismissInstructions}
+      />
+
+      {/* Performance Display */}
+      <PerformanceDisplay
+        stats={stats}
+        visible={controls.showFPS}
+        position="top-right"
+        compact={false}
+      />
+
+      {/* Scene Persistence Status */}
+      <ScenePersistenceStatus
+        position="bottom-left"
+        compact={true}
+      />
+
+      {/* Keyboard Shortcuts Help */}
+      <SceneShortcutsHelp
+        shortcuts={shortcuts}
+        isVisible={shortcutsHelp.isVisible}
+        onClose={shortcutsHelp.hide}
       />
     </div>
+  );
+
+  // Mock user data for scene persistence (in real app, get from auth context)
+  const userId = 'user-123';
+  const userRole = 'designer';
+  const sceneId = 'scene-demo'; // In real app, extract from URL params
+
+  return (
+    <SelectionProvider>
+      <ScenePersistenceProvider
+        initialManifest={manifest}
+        sceneId={sceneId}
+        userId={userId}
+        userRole={userRole}
+      >
+        {sceneViewerContent}
+      </ScenePersistenceProvider>
+    </SelectionProvider>
   );
 }
