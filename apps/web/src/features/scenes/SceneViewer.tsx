@@ -10,6 +10,12 @@ import { FPSTracker } from './FPSTracker';
 import { useViewerControls } from './useViewerControls';
 import { FPSControls } from './FPSControls';
 import { ControlsInstructions } from './ControlsInstructions';
+import { SelectionProvider } from './SelectionContext';
+import { ClickSelection } from './ClickSelection';
+import { TransformGizmos } from './TransformGizmos';
+import { SelectionHighlight } from './SelectionHighlight';
+import { TransformControlsPanel } from './TransformControlsPanel';
+import { TransformKeyboardControls } from './TransformKeyboardControls';
 
 interface SceneGraphProps {
   manifest: SceneManifestV2;
@@ -45,6 +51,11 @@ function SceneGraph({ manifest, controls, onFPSUpdate }: SceneGraphProps) {
         controls={controls} 
         navmeshUrl={manifest.navmesh_url} 
       />
+      
+      {/* Selection and Transform System */}
+      <ClickSelection enabled={true} />
+      <TransformGizmos enabled={true} />
+      <SelectionHighlight />
       
       {/* Environment lighting with exposure control */}
       {manifest.env?.hdri_url && (
@@ -95,43 +106,51 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
   }, []);
   
   return (
-    <div className="relative h-screen w-full">
-      {/* 3D Canvas */}
-      <Canvas
-        camera={{ 
-          position: spawnPosition, 
-          fov: 60 
-        }}
-        gl={{ 
-          antialias: true, 
-          powerPreference: 'high-performance' 
-        }}
-      >
-        {/* Background */}
-        <color attach="background" args={['#0b0b0b']} />
-        
-        {/* Scene content */}
-        <Suspense fallback={null}>
-          <SceneGraph 
-            manifest={manifest} 
-            controls={controls}
-            onFPSUpdate={handleFPSUpdate}
-          />
-        </Suspense>
-      </Canvas>
+    <SelectionProvider>
+      <div className="relative h-screen w-full">
+        {/* 3D Canvas */}
+        <Canvas
+          camera={{ 
+            position: spawnPosition, 
+            fov: 60 
+          }}
+          gl={{ 
+            antialias: true, 
+            powerPreference: 'high-performance' 
+          }}
+        >
+          {/* Background */}
+          <color attach="background" args={['#0b0b0b']} />
+          
+          {/* Scene content */}
+          <Suspense fallback={null}>
+            <SceneGraph 
+              manifest={manifest} 
+              controls={controls}
+              onFPSUpdate={handleFPSUpdate}
+            />
+          </Suspense>
+        </Canvas>
 
-      {/* Sidebar Controls */}
-      <ViewerSidebar
-        controls={controls}
-        onControlsChange={updateControls}
-        fps={currentFPS}
-      />
-      
-      {/* Controls Instructions Overlay */}
-      <ControlsInstructions
-        isVisible={showInstructions}
-        onDismiss={dismissInstructions}
-      />
-    </div>
+        {/* Sidebar Controls */}
+        <ViewerSidebar
+          controls={controls}
+          onControlsChange={updateControls}
+          fps={currentFPS}
+        />
+        
+        {/* Transform Controls Panel (appears when object selected) */}
+        <TransformControlsPanel />
+        
+        {/* Keyboard Controls for Transform */}
+        <TransformKeyboardControls />
+        
+        {/* Controls Instructions Overlay */}
+        <ControlsInstructions
+          isVisible={showInstructions}
+          onDismiss={dismissInstructions}
+        />
+      </div>
+    </SelectionProvider>
   );
 }
