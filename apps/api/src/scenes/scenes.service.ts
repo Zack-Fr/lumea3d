@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, ConflictException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ValidationService } from '../shared/services/validation.service';
 import { CreateSceneDto } from './dto/create-scene.dto';
 import { UpdateSceneDto } from './dto/update-scene.dto';
 import { CreateSceneItemDto } from './dto/create-scene-item.dto';
@@ -22,6 +23,7 @@ export interface SceneWithItems extends Scene3D {
 export class ScenesService {
   constructor(
     private prisma: PrismaService,
+    private validationService: ValidationService,
     @Inject(forwardRef(() => 'ScenesGateway'))
     private scenesGateway?: any,
   ) {}
@@ -224,6 +226,12 @@ export class ScenesService {
 
     if (!category || category.asset.status !== 'READY') {
       throw new NotFoundException('Category not found in project or asset not ready');
+    }
+
+    // Validate scene constraints before adding item
+    const validationResult = await this.validationService.validateSceneConstraints(sceneId);
+    if (!validationResult.isValid) {
+      throw new ConflictException(`Scene validation failed: ${validationResult.errors.join(', ')}`);
     }
 
     // Create the scene item

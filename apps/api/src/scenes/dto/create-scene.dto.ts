@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNumber, IsOptional, IsUrl, Min, Max } from 'class-validator';
+import { IsValidPosition, IsValidExposure } from '../../shared/decorators/transform-validation.decorator';
 
 export class CreateSceneDto {
   @ApiProperty({
@@ -27,14 +28,12 @@ export class CreateSceneDto {
   @ApiProperty({
     description: 'Scene exposure level',
     example: 1.0,
-    minimum: 0.1,
-    maximum: 5.0,
+    minimum: -10,
+    maximum: 10,
     required: false,
   })
   @IsOptional()
-  @IsNumber()
-  @Min(0.1)
-  @Max(5.0)
+  @IsValidExposure()
   exposure?: number;
 
   @ApiProperty({
@@ -65,7 +64,7 @@ export class CreateSceneDto {
     required: false,
   })
   @IsOptional()
-  @IsNumber()
+  @IsValidPosition()
   spawnPositionX?: number;
 
   @ApiProperty({
@@ -74,7 +73,7 @@ export class CreateSceneDto {
     required: false,
   })
   @IsOptional()
-  @IsNumber()
+  @IsValidPosition()
   spawnPositionY?: number;
 
   @ApiProperty({
@@ -83,7 +82,7 @@ export class CreateSceneDto {
     required: false,
   })
   @IsOptional()
-  @IsNumber()
+  @IsValidPosition()
   spawnPositionZ?: number;
 
   @ApiProperty({
