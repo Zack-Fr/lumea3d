@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { Environment, Stats } from '@react-three/drei';
-import { Suspense, useState, useCallback } from 'react';
+import { Suspense, useState, useCallback, useEffect } from 'react';
 import type { SceneManifestV2 } from '@lumea/shared';
 import { CategoryRenderer } from './CategoryRenderer';
 import { GLBPreloader, useSceneMetrics } from './GLBPreloader';
@@ -17,6 +17,10 @@ import { SelectionHighlight } from './SelectionHighlight';
 import { TransformControlsPanel } from './TransformControlsPanel';
 import { TransformKeyboardControls } from './TransformKeyboardControls';
 import { AssetManagementPanel } from './AssetManagementPanel';
+import { useLODSystem } from './useLODSystem';
+import { usePerformanceMonitor } from './usePerformanceMonitor';
+import { PerformanceDisplay } from './PerformanceDisplay';
+import { AdvancedFrustumCulling } from './FrustumCulling';
 
 interface SceneGraphProps {
   manifest: SceneManifestV2;
@@ -28,6 +32,27 @@ function SceneGraph({ manifest, controls, onFPSUpdate }: SceneGraphProps) {
   const categories = Object.entries(manifest.categories);
   useSceneMetrics(manifest); // Use metrics for logging
   
+  // Performance optimization hooks
+  const { stats } = usePerformanceMonitor({
+    enabled: controls.showFPS,
+    updateInterval: 1000,
+    onStatsUpdate: (stats) => {
+      onFPSUpdate(stats.fps);
+    }
+  });
+
+  const lodSystem = useLODSystem({
+    enabled: true,
+    adaptToPerformance: true,
+    targetFPS: 60,
+    debugMode: false
+  });
+
+  // Track performance for LOD system
+  useEffect(() => {
+    lodSystem.trackPerformance(stats.fps);
+  }, [stats.fps, lodSystem]);
+  
   console.log('🏗️ SceneGraph rendering with categories:', categories.map(([key]) => ({
     key,
     itemCount: manifest.items.filter(item => item.category === key).length
@@ -35,6 +60,15 @@ function SceneGraph({ manifest, controls, onFPSUpdate }: SceneGraphProps) {
   
   return (
     <>
+      {/* Performance Optimization Systems */}
+      <AdvancedFrustumCulling 
+        enabled={true}
+        maxDistance={500}
+        useLODCulling={true}
+        debugMode={false}
+        updateInterval={100}
+      />
+      
       {/* FPS Controls for first-person navigation */}
       <FPSControls 
         controls={controls}
@@ -98,6 +132,15 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
   const [currentFPS, setCurrentFPS] = useState(0);
   const [showInstructions, setShowInstructions] = useState(true);
   const [showAssetManagement, setShowAssetManagement] = useState(false);
+
+  // Performance monitoring for the overall viewer
+  const { stats } = usePerformanceMonitor({
+    enabled: true,
+    updateInterval: 1000,
+    onStatsUpdate: (stats) => {
+      setCurrentFPS(stats.fps);
+    }
+  });
 
   const handleFPSUpdate = useCallback((fps: number) => {
     setCurrentFPS(fps);
@@ -164,6 +207,14 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
         <ControlsInstructions
           isVisible={showInstructions}
           onDismiss={dismissInstructions}
+        />
+
+        {/* Performance Display */}
+        <PerformanceDisplay
+          stats={stats}
+          visible={controls.showFPS}
+          position="top-right"
+          compact={false}
         />
       </div>
     </SelectionProvider>

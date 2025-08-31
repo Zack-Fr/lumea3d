@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { X, Upload, Package, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { AssetStatus, AssetLicense } from '@lumea/shared';
-import { assetsApi } from '../../services/assetsApi';
 
 interface AssetImportModalProps {
     isOpen: boolean;
