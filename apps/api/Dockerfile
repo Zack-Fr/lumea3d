@@ -14,12 +14,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install KTX-Software for toktx tool
-RUN wget -O ktx.tar.gz https://github.com/KhronosGroup/KTX-Software/releases/download/v4.3.2/KTX-Software-4.3.2-Linux-x86_64.tar.gz \
-    && tar -xzf ktx.tar.gz \
-    && cp KTX-Software-4.3.2-Linux-x86_64/bin/toktx /usr/local/bin/ \
-    && chmod +x /usr/local/bin/toktx \
-    && rm -rf ktx.tar.gz KTX-Software-4.3.2-Linux-x86_64
-
+# Example: FROM debian:bookworm or ubuntu:22.04
+RUN apt-get update && apt-get install -y wget ca-certificates \
+ && wget -O /tmp/ktx.deb https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.0/KTX-Software-4.4.0-Linux-x86_64.deb \
+ && apt-get install -y /tmp/ktx.deb \
+ && rm -f /tmp/ktx.deb
 # Install pnpm
 RUN npm install -g pnpm@10
 
