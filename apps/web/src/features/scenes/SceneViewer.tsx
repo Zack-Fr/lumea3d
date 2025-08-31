@@ -1,19 +1,9 @@
 import { Canvas } from '@react-three/fiber';
-import { Environment, Stats, useGLTF } from '@react-three/drei';
+import { Environment, Stats } from '@react-three/drei';
 import { Suspense } from 'react';
 import type { SceneManifestV2 } from '@lumea/shared';
-import { pickCategoryUrl } from './useSceneAssets';
-
-interface CategoryProps {
-  url: string;
-}
-
-function Category({ url }: CategoryProps) {
-  console.log('🎨 Loading category GLB:', url);
-  const gltf = useGLTF(url);
-  console.log('✅ Category GLB loaded:', url, gltf);
-  return <primitive object={gltf.scene} />;
-}
+import { CategoryRenderer } from './CategoryRenderer';
+import { GLBPreloader, useSceneMetrics } from './GLBPreloader';
 
 interface SceneGraphProps {
   manifest: SceneManifestV2;
@@ -21,32 +11,33 @@ interface SceneGraphProps {
 
 function SceneGraph({ manifest }: SceneGraphProps) {
   const categories = Object.entries(manifest.categories);
+  useSceneMetrics(manifest); // Use metrics for logging
   
-  console.log('🏗️ SceneGraph rendering with categories:', categories.map(([key, cat]) => ({
+  console.log('🏗️ SceneGraph rendering with categories:', categories.map(([key]) => ({
     key,
-    url: pickCategoryUrl(cat)
+    itemCount: manifest.items.filter(item => item.category === key).length
   })));
   
   return (
     <>
+      {/* Preload GLBs for better performance */}
+      <GLBPreloader manifest={manifest} />
+      
       {/* Environment lighting */}
       {manifest.env?.hdri_url && (
         <Environment files={manifest.env.hdri_url} />
       )}
       
-      {/* Load category GLBs */}
-      {categories.map(([key, category]) => (
-        <group key={key} name={`category-${key}`}>
-          <Suspense fallback={null}>
-            <Category url={pickCategoryUrl(category)} />
-          </Suspense>
-        </group>
+      {/* Render categories with their items */}
+      {categories.map(([categoryKey, category]) => (
+        <Suspense key={categoryKey} fallback={null}>
+          <CategoryRenderer
+            categoryKey={categoryKey}
+            category={category}
+            items={manifest.items}
+          />
+        </Suspense>
       ))}
-      
-      {/* TODO: Item transforms and instancing 
-          - Find named node by item.model (if provided) in the category scene
-          - Clone or instance; apply item.transform
-      */}
       
       {/* Performance stats */}
       <Stats />

@@ -1,11 +1,55 @@
-import type { SceneManifestV2 } from '@lumea/shared'
+import type { SceneManifestV2 } from '@lumea/shared';
 
-export function pickCategoryUrl(category: SceneManifestV2['categories'][string]) {
-  // Prefer meshopt, fallback to draco, then glb_url
-  return category.encodings?.meshopt_url ?? 
-         category.encodings?.draco_url ?? 
-         category.glb_url!
+/**
+ * Picks the best available URL for a category based on supported encodings
+ * Priority: meshopt > draco > base GLB
+ */
+export function pickCategoryUrl(category: SceneManifestV2['categories'][string]): string {
+  // Priority order: meshopt (preferred), draco (fallback), base GLB
+  if (category.meshopt && category.encodings?.meshopt_url) {
+    console.log('🎯 Using Meshopt encoding for category');
+    return category.encodings.meshopt_url;
+  }
+  
+  if (category.draco && category.encodings?.draco_url) {
+    console.log('🎯 Using Draco encoding for category');
+    return category.encodings.draco_url;
+  }
+  
+  console.log('🎯 Using base GLB for category');
+  return category.glb_url || '';
 }
 
-// We'll configure the loaders in the Canvas component
-// drei's useGLTF automatically handles Draco and Meshopt decoding
+/**
+ * Preloads assets for better performance with many items
+ */
+export function preloadCategoryAssets(categories: SceneManifestV2['categories']) {
+  Object.entries(categories).forEach(([key, category]) => {
+    const url = pickCategoryUrl(category);
+    console.log(`📦 Preloading category "${key}": ${url}`);
+    // The actual preloading is handled by useGLTF.preload in GLBPreloader
+  });
+}
+
+/**
+ * Utility to get all unique model names from a category's items
+ */
+export function getCategoryModels(categoryKey: string, items: SceneManifestV2['items']): string[] {
+  const categoryItems = items.filter(item => item.category === categoryKey);
+  const modelNames = [...new Set(categoryItems.map(item => item.model).filter(Boolean))];
+  return modelNames as string[];
+}
+
+/**
+ * Performance utility: Group items by model for potential instancing
+ */
+export function groupItemsByModel(items: SceneManifestV2['items']): Record<string, typeof items> {
+  return items.reduce((groups, item) => {
+    const modelKey = item.model || 'fallback';
+    if (!groups[modelKey]) {
+      groups[modelKey] = [];
+    }
+    groups[modelKey].push(item);
+    return groups;
+  }, {} as Record<string, typeof items>);
+}
