@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsArray, IsOptional, IsEnum, IsBoolean } from 'class-validator';
+import { IsString, IsArray, IsOptional, IsEnum, IsBoolean, IsInt, Min, Max } from 'class-validator';
+import { IsValidCategoryKey } from '../../shared/decorators/transform-validation.decorator';
 
 export enum AssetVariant {
   ORIGINAL = 'original',
@@ -27,6 +28,9 @@ export class DownloadAssetDto {
     required: false,
   })
   @IsOptional()
+  @IsInt()
+  @Min(60) // 1 minute minimum
+  @Max(86400) // 24 hours maximum
   cacheDuration?: number;
 
   @ApiProperty({
@@ -47,6 +51,7 @@ export class BatchDownloadDto {
   })
   @IsArray()
   @IsString({ each: true })
+  @IsValidCategoryKey({ each: true })
   categoryKeys: string[];
 
   @ApiProperty({
@@ -67,6 +72,9 @@ export class BatchDownloadDto {
     required: false,
   })
   @IsOptional()
+  @IsInt()
+  @Min(60) // 1 minute minimum
+  @Max(86400) // 24 hours maximum
   cacheDuration?: number;
 
   @ApiProperty({

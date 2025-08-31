@@ -1,5 +1,6 @@
 import { IsString, IsNumber, IsOptional, IsEnum, IsObject, IsInt, Min, Max, IsNotEmpty } from 'class-validator';
 import { AssetStatus, AssetLicense } from '@prisma/client';
+import { IsValid3DAssetType, IsValidAssetSize, IsValidCategoryKey } from '../../shared/decorators/transform-validation.decorator';
 
 export class AssetUploadUrlDto {
   @IsString()
@@ -8,15 +9,17 @@ export class AssetUploadUrlDto {
 
   @IsString()
   @IsNotEmpty()
+  @IsValid3DAssetType()
   contentType: string;
 
   @IsInt()
   @Min(1)
-  @Max(100 * 1024 * 1024) // 100MB
+  @IsValidAssetSize(100) // 100MB max
   fileSize: number;
 
   @IsString()
   @IsNotEmpty()
+  @IsValidCategoryKey()
   category: string;
 
   @IsOptional()
@@ -31,6 +34,7 @@ export class CreateAssetDto {
 
   @IsString()
   @IsNotEmpty()
+  @IsValid3DAssetType()
   mimeType: string;
 
   @IsInt()
@@ -99,6 +103,7 @@ export class UpdateAssetDto {
 export class AssetQueryDto {
   @IsOptional()
   @IsString()
+  @IsValidCategoryKey()
   category?: string;
 
   @IsOptional()
@@ -108,6 +113,7 @@ export class AssetQueryDto {
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Max(100) // Reasonable pagination limit
   limit?: number;
 
   @IsOptional()

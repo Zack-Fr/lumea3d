@@ -6,6 +6,7 @@ import { ScenesGateway } from './scenes.gateway';
 import { ScenesSSEController } from './scenes-sse.controller';
 import { DownloadService } from './download.service';
 import { DownloadController } from './download.controller';
+import { ValidationService } from '../shared/services/validation.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
 import { StorageModule } from '../storage/storage.module';
@@ -21,6 +22,7 @@ import { StorageModule } from '../storage/storage.module';
   providers: [
     ScenesService,
     DownloadService,
+    ValidationService,
     {
       provide: 'ScenesGateway',
       useClass: ScenesGateway,

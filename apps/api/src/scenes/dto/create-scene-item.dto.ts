@@ -1,12 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNumber, IsOptional, IsBoolean, Min, Max } from 'class-validator';
+import { 
+  IsValidPosition, 
+  IsValidRotation, 
+  IsValidScale, 
+  IsValidCategoryKey 
+} from '../../shared/decorators/transform-validation.decorator';
 
 export class CreateSceneItemDto {
   @ApiProperty({
     description: 'Category key referencing project assets',
     example: 'chairs',
   })
-  @IsString()
+  @IsValidCategoryKey()
   categoryKey: string;
 
   @ApiProperty({
@@ -24,7 +30,7 @@ export class CreateSceneItemDto {
     required: false,
   })
   @IsOptional()
-  @IsNumber()
+  @IsValidPosition()
   positionX?: number;
 
   @ApiProperty({
@@ -33,7 +39,7 @@ export class CreateSceneItemDto {
     required: false,
   })
   @IsOptional()
-  @IsNumber()
+  @IsValidPosition()
   positionY?: number;
 
   @ApiProperty({
@@ -42,7 +48,7 @@ export class CreateSceneItemDto {
     required: false,
   })
   @IsOptional()
-  @IsNumber()
+  @IsValidPosition()
   positionZ?: number;
 
   @ApiProperty({
@@ -53,9 +59,7 @@ export class CreateSceneItemDto {
     required: false,
   })
   @IsOptional()
-  @IsNumber()
-  @Min(-180)
-  @Max(180)
+  @IsValidRotation()
   rotationX?: number;
 
   @ApiProperty({
@@ -66,9 +70,7 @@ export class CreateSceneItemDto {
     required: false,
   })
   @IsOptional()
-  @IsNumber()
-  @Min(-180)
-  @Max(180)
+  @IsValidRotation()
   rotationY?: number;
 
   @ApiProperty({
@@ -79,48 +81,40 @@ export class CreateSceneItemDto {
     required: false,
   })
   @IsOptional()
-  @IsNumber()
-  @Min(-180)
-  @Max(180)
+  @IsValidRotation()
   rotationZ?: number;
 
   @ApiProperty({
     description: 'Scale X factor',
     example: 1.0,
-    minimum: 0.1,
-    maximum: 10.0,
+    minimum: 0.01,
+    maximum: 100,
     required: false,
   })
   @IsOptional()
-  @IsNumber()
-  @Min(0.1)
-  @Max(10.0)
+  @IsValidScale()
   scaleX?: number;
 
   @ApiProperty({
     description: 'Scale Y factor',
     example: 1.0,
-    minimum: 0.1,
-    maximum: 10.0,
+    minimum: 0.01,
+    maximum: 100,
     required: false,
   })
   @IsOptional()
-  @IsNumber()
-  @Min(0.1)
-  @Max(10.0)
+  @IsValidScale()
   scaleY?: number;
 
   @ApiProperty({
     description: 'Scale Z factor',
     example: 1.0,
-    minimum: 0.1,
-    maximum: 10.0,
+    minimum: 0.01,
+    maximum: 100,
     required: false,
   })
   @IsOptional()
-  @IsNumber()
-  @Min(0.1)
-  @Max(10.0)
+  @IsValidScale()
   scaleZ?: number;
 
   @ApiProperty({
