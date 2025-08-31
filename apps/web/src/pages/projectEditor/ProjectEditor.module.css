@@ -1,0 +1,78 @@
+.editorRoot {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--glass-bg-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 1.5rem;
+  border-bottom: 1px solid var(--glass-border-light);
+  background: var(--glass-bg);
+}
+
+.topLeft, .topRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebarLeft, .sidebarRight {
+  width: 320px;
+  background: var(--glass-bg);
+  border-right: 1px solid var(--glass-border-light);
+}
+
+.viewport {
+  flex: 1;
+  position: relative;
+  background: linear-gradient(to bottom right, var(--glass-bg-primary), var(--glass-bg-secondary));
+  outline: none;
+}
+
+.achievementToast {
+  position: absolute;
+  top: 80px;
+  right: 32px;
+  z-index: 50;
+  padding: 1rem;
+  background: var(--glass-yellow-light);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.iconXs { width: 1rem; height: 1rem; }
+.iconSm { width: 1.25rem; height: 1.25rem; }
+
+.liveBadge {
+  background: rgba(255, 214, 10, 0.2);
+  border: 1px solid rgba(255, 214, 10, 0.3);
+  color: var(--glass-yellow);
+}
+
+.progressSm {
+  width: 128px;
+}
+
+.closeBtn {
+  height: 24px;
+  width: 24px;
+  padding: 0;
+}
+
+.aiAssistBtn {
+  background: var(--glass-yellow);
+  color: var(--glass-black);
+}
