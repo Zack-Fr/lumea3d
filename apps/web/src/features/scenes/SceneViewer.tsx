@@ -16,6 +16,7 @@ import { TransformGizmos } from './TransformGizmos';
 import { SelectionHighlight } from './SelectionHighlight';
 import { TransformControlsPanel } from './TransformControlsPanel';
 import { TransformKeyboardControls } from './TransformKeyboardControls';
+import { AssetManagementPanel } from './AssetManagementPanel';
 
 interface SceneGraphProps {
   manifest: SceneManifestV2;
@@ -96,6 +97,7 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
   const { controls, updateControls } = useViewerControls();
   const [currentFPS, setCurrentFPS] = useState(0);
   const [showInstructions, setShowInstructions] = useState(true);
+  const [showAssetManagement, setShowAssetManagement] = useState(false);
 
   const handleFPSUpdate = useCallback((fps: number) => {
     setCurrentFPS(fps);
@@ -103,6 +105,11 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
   
   const dismissInstructions = useCallback(() => {
     setShowInstructions(false);
+  }, []);
+
+  const handleAssetImportComplete = useCallback((assetId: string) => {
+    console.log('✅ SceneViewer: Asset import completed:', assetId);
+    // Future: Refresh scene manifest or add asset to scene
   }, []);
   
   return (
@@ -137,6 +144,14 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
           controls={controls}
           onControlsChange={updateControls}
           fps={currentFPS}
+          onAssetImportComplete={handleAssetImportComplete}
+        />
+        
+        {/* Asset Management Panel */}
+        <AssetManagementPanel
+          isVisible={showAssetManagement}
+          onToggleVisibility={() => setShowAssetManagement(!showAssetManagement)}
+          onAssetSelected={(asset) => console.log('Asset selected:', asset)}
         />
         
         {/* Transform Controls Panel (appears when object selected) */}

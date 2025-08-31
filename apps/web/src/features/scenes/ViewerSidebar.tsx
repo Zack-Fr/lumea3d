@@ -10,6 +10,7 @@ import {
   Eye,
   EyeOff 
 } from 'lucide-react';
+import { AssetImportButton } from './AssetImportButton';
 
 export interface ViewerControls {
   showGrid: boolean;
@@ -24,9 +25,15 @@ interface ViewerSidebarProps {
   controls: ViewerControls;
   onControlsChange: (controls: Partial<ViewerControls>) => void;
   fps?: number;
+  onAssetImportComplete?: (assetId: string) => void;
 }
 
-export function ViewerSidebar({ controls, onControlsChange, fps = 0 }: ViewerSidebarProps) {
+export function ViewerSidebar({ 
+  controls, 
+  onControlsChange, 
+  fps = 0,
+  onAssetImportComplete 
+}: ViewerSidebarProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const handleToggle = useCallback((key: keyof ViewerControls) => {
@@ -175,6 +182,12 @@ export function ViewerSidebar({ controls, onControlsChange, fps = 0 }: ViewerSid
                 }`}
               />
             </div>
+
+            {/* Asset Import Button */}
+            <AssetImportButton 
+              variant="sidebar" 
+              onImportComplete={onAssetImportComplete}
+            />
 
             {/* FPS Display */}
             {controls.showFPS && (
