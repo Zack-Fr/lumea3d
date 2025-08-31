@@ -2,7 +2,6 @@
   "name": "@lumea/shared",
   "version": "0.0.1",
   "description": "Shared types, schemas, and utilities for Lumea",
-  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
