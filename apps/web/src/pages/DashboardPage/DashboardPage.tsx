@@ -80,8 +80,6 @@ export default function Dashboard() {
   // filter state is currently unused in the original file; keep it ready for future use
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [filter] = useState<"all" | string>("all");
-  // Prevent TypeScript unused variable warning
-  void filter;
 
   return (
     <div className={s.container}>
