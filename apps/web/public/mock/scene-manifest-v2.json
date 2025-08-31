@@ -13,10 +13,10 @@
   "navmesh_url": "/mock/navmesh.glb",
   "categories": {
     "furniture": {
-      "glb_url": "/mock/furniture.glb",
+      "glb_url": "https://models.readyplayer.me/64bfa15e0e72c63a187c6dce.glb",
       "encodings": {
-        "meshopt_url": "/mock/furniture_meshopt.glb",
-        "draco_url": "/mock/furniture_draco.glb"
+        "meshopt_url": "https://models.readyplayer.me/64bfa15e0e72c63a187c6dce.glb",
+        "draco_url": "https://models.readyplayer.me/64bfa15e0e72c63a187c6dce.glb"
       },
       "instancing": true,
       "meshopt": true,
@@ -25,9 +25,9 @@
       "license": "cc0"
     },
     "lighting": {
-      "glb_url": "/mock/lighting.glb",
+      "glb_url": "https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/fox-v2/model.gltf",
       "encodings": {
-        "meshopt_url": "/mock/lighting_meshopt.glb"
+        "meshopt_url": "https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/fox-v2/model.gltf"
       },
       "instancing": false,
       "meshopt": true,

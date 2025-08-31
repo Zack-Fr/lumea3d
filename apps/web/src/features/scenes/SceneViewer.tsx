@@ -9,7 +9,9 @@ interface CategoryProps {
 }
 
 function Category({ url }: CategoryProps) {
+  console.log('🎨 Loading category GLB:', url);
   const gltf = useGLTF(url);
+  console.log('✅ Category GLB loaded:', url, gltf);
   return <primitive object={gltf.scene} />;
 }
 
@@ -19,6 +21,11 @@ interface SceneGraphProps {
 
 function SceneGraph({ manifest }: SceneGraphProps) {
   const categories = Object.entries(manifest.categories);
+  
+  console.log('🏗️ SceneGraph rendering with categories:', categories.map(([key, cat]) => ({
+    key,
+    url: pickCategoryUrl(cat)
+  })));
   
   return (
     <>
