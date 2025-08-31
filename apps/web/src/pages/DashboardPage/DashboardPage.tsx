@@ -79,7 +79,7 @@ export default function Dashboard() {
   const { logout } = useAuth();
   // filter state is currently unused in the original file; keep it ready for future use
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [filter] = useState<"all" | string>("all");
+  // const [filter] = useState<"all" | string>("all");
 
   return (
     <div className={s.container}>
