@@ -1,6 +1,7 @@
-import { Suspense } from 'react';
+import { Suspense, useMemo } from 'react';
 import type { SceneManifestV2 } from '@lumea/shared';
 import { SceneItem } from './SceneItem';
+import { InstancedObject, useInstancedRenderer } from './InstancedRenderer';
 import { pickCategoryUrl } from './useSceneAssets';
 
 interface CategoryRendererProps {
@@ -15,10 +16,33 @@ export function CategoryRenderer({ categoryKey, category, items }: CategoryRende
   // Filter items that belong to this category
   const categoryItems = items.filter(item => item.category === categoryKey);
   
+  // Group items by model for instancing
+  const itemGroups = useMemo(() => {
+    const groups = new Map<string, typeof categoryItems>();
+    
+    categoryItems.forEach(item => {
+      const model = item.model;
+      if (!model) return; // Skip items without model
+      
+      if (!groups.has(model)) {
+        groups.set(model, []);
+      }
+      groups.get(model)!.push(item);
+    });
+    
+    return groups;
+  }, [categoryItems]);
+
+  // Determine which models should use instancing (more than 1 instance)
+  const { instanceGroups } = useInstancedRenderer(categoryItems, categoryUrl);
+  const shouldUseInstancing = instanceGroups.size > 0;
+  
   console.log(`🏗️ CategoryRenderer "${categoryKey}":`, {
     url: categoryUrl,
     itemCount: categoryItems.length,
-    items: categoryItems.map(item => ({ id: item.id, model: item.model }))
+    uniqueModels: itemGroups.size,
+    instanceGroupsCount: instanceGroups.size,
+    useInstancing: shouldUseInstancing
   });
   
   if (categoryItems.length === 0) {
@@ -28,15 +52,35 @@ export function CategoryRenderer({ categoryKey, category, items }: CategoryRende
   
   return (
     <group name={`category-${categoryKey}`}>
-      {categoryItems.map((item) => (
-        <Suspense key={item.id} fallback={null}>
-          <SceneItem
-            item={item}
-            categoryUrl={categoryUrl}
-            categoryKey={categoryKey}
-          />
-        </Suspense>
-      ))}
+      {shouldUseInstancing ? (
+        // Use instanced rendering for repeated objects
+        Array.from(instanceGroups.entries()).map(([model, groupItems], index) => (
+          <Suspense key={`instanced-${model}-${index}`} fallback={null}>
+            <InstancedObject
+              glbUrl={`${categoryUrl}${model}`}
+              items={groupItems.map((item: any) => ({
+                id: item.id,
+                position: item.transform.position,
+                rotation: item.transform.rotation_euler,
+                scale: item.transform.scale
+              }))}
+              frustumCulling={true}
+              maxInstances={1000}
+            />
+          </Suspense>
+        ))
+      ) : (
+        // Use individual rendering for unique objects
+        categoryItems.map((item) => (
+          <Suspense key={item.id} fallback={null}>
+            <SceneItem
+              item={item}
+              categoryUrl={categoryUrl}
+              categoryKey={categoryKey}
+            />
+          </Suspense>
+        ))
+      )}
     </group>
   );
 }

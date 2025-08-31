@@ -4,9 +4,9 @@ import { PATHS } from "@/app/paths";
 import { RequireAuth, GuestOnly } from "@/components/ProtectedRoute";
 import Layout from "@/app/layout";
 import LandingPage from "@/pages/LandingPage";
-import AuthPage from "@/pages/AuthPage/AuthPage";
-import DashboardPage from "@/pages/DashboardPage/DashboardPage";
-// import ProjectPage from "@/pages/ProjectPage";
+import AuthPage from "@/pages/auth/AuthPage";
+import DashboardPage from "@/pages/dashboard/DashboardPage";
+import ProjectEditor from "@/pages/projectEditor/ProjectEditorPage";
 // import PreviewPage from "@/pages/PreviewPage";
 
 // 404(need to change)
@@ -45,7 +45,8 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to={PATHS.dashboard} replace /> },
           { path: PATHS.dashboard, element: <DashboardPage /> },               // "/app/dashboard"
-          // { path: PATHS.project, element: <ProjectPage /> },                   // "/app/projects/:id"
+          { path: PATHS.projectNew, element: <ProjectEditor /> },             // "/app/projects/new"
+          { path: PATHS.project, element: <ProjectEditor /> },                // "/app/projects/:id"
           // { path: PATHS.preview, element: <PreviewPage /> },                   // "/app/preview/:token"
         ],
       },

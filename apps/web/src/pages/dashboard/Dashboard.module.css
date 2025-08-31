@@ -6,11 +6,16 @@
 }
 
 /* Layout */
-.container {
-  min-height: 100vh;
-  display: flex;
+.container{
+  display:flex;
+  gap:16px;
+  padding:20px;
   background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.12));
+  border-radius:12px;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
+
 
 .sidebar {
   width: var(--dashboard-sidebar-width);
