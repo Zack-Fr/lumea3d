@@ -1,0 +1,74 @@
+{
+  "version": 2,
+  "scale": 1.0,
+  "exposure": 1.0,
+  "env": {
+    "hdri_url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_03_1k.hdr",
+    "intensity": 1.0
+  },
+  "spawn": {
+    "position": [0, 1.6, 5],
+    "yaw_deg": 0
+  },
+  "navmesh_url": "/mock/navmesh.glb",
+  "categories": {
+    "furniture": {
+      "glb_url": "https://models.readyplayer.me/64bfa15e0e72c63a187c6dce.glb",
+      "encodings": {
+        "meshopt_url": "https://models.readyplayer.me/64bfa15e0e72c63a187c6dce.glb",
+        "draco_url": "https://models.readyplayer.me/64bfa15e0e72c63a187c6dce.glb"
+      },
+      "instancing": true,
+      "meshopt": true,
+      "draco": true,
+      "ktx2": true,
+      "license": "cc0"
+    },
+    "lighting": {
+      "glb_url": "https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/fox-v2/model.gltf",
+      "encodings": {
+        "meshopt_url": "https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/fox-v2/model.gltf"
+      },
+      "instancing": false,
+      "meshopt": true,
+      "license": "royalty-free"
+    }
+  },
+  "items": [
+    {
+      "id": "chair-1",
+      "category": "furniture",
+      "model": "Chair_Modern",
+      "transform": {
+        "position": [2, 0, 0],
+        "rotation_euler": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "material": {
+        "variant": "default"
+      },
+      "selectable": true,
+      "locked": false,
+      "meta": {
+        "name": "Modern Chair",
+        "description": "A sleek modern chair"
+      }
+    },
+    {
+      "id": "lamp-1",
+      "category": "lighting",
+      "model": "FloorLamp_01",
+      "transform": {
+        "position": [-2, 0, 0],
+        "rotation_euler": [0, 45, 0],
+        "scale": [1, 1, 1]
+      },
+      "selectable": true,
+      "locked": false,
+      "meta": {
+        "name": "Floor Lamp",
+        "description": "Modern floor lamp"
+      }
+    }
+  ]
+}
