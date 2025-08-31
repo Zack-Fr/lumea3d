@@ -21,6 +21,11 @@ import { useLODSystem } from './useLODSystem';
 import { usePerformanceMonitor } from './usePerformanceMonitor';
 import { PerformanceDisplay } from './PerformanceDisplay';
 import { AdvancedFrustumCulling } from './FrustumCulling';
+import { ScenePersistenceProvider } from './ScenePersistenceContext';
+import { ScenePersistenceStatus } from './ScenePersistenceStatus';
+import { useSceneHistory } from './useSceneHistory';
+import { useSceneKeyboardShortcuts, createSceneEditorShortcuts } from './useSceneKeyboardShortcuts';
+import { SceneShortcutsHelp, useSceneShortcutsHelp } from './SceneShortcutsHelp';
 
 interface SceneGraphProps {
   manifest: SceneManifestV2;
@@ -142,6 +147,48 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
     }
   });
 
+  // Scene history management
+  const sceneHistory = useSceneHistory({
+    maxHistorySize: 50,
+    onUndo: (_manifest) => {
+      console.log('↶ SceneViewer: Undo applied');
+      // Future: Apply manifest changes to scene
+    },
+    onRedo: (_manifest) => {
+      console.log('↷ SceneViewer: Redo applied');
+      // Future: Apply manifest changes to scene
+    }
+  });
+
+  // Shortcuts help system
+  const shortcutsHelp = useSceneShortcutsHelp();
+
+  // Create keyboard shortcuts
+  const shortcuts = createSceneEditorShortcuts({
+    onUndo: sceneHistory.undo,
+    onRedo: sceneHistory.redo,
+    onSave: () => console.log('💾 Manual save triggered'),
+    onToggleGrid: () => updateControls({ showGrid: !controls.showGrid }),
+    onDeselectAll: () => console.log('🔲 Deselect all'),
+    onDelete: () => console.log('🗑️ Delete selected'),
+    onDuplicate: () => console.log('📋 Duplicate selected')
+  });
+
+  // Add help shortcut
+  shortcuts.push({
+    key: '?',
+    action: shortcutsHelp.toggle,
+    description: 'Show/hide keyboard shortcuts help',
+    category: 'Help'
+  });
+
+  // Enable keyboard shortcuts
+  useSceneKeyboardShortcuts({
+    shortcuts,
+    enabled: true,
+    preventDefault: true
+  });
+
   const handleFPSUpdate = useCallback((fps: number) => {
     setCurrentFPS(fps);
   }, []);
@@ -154,69 +201,99 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
     console.log('✅ SceneViewer: Asset import completed:', assetId);
     // Future: Refresh scene manifest or add asset to scene
   }, []);
-  
+
+  // Scene viewer content
+  const sceneViewerContent = (
+    <div className="relative h-screen w-full">
+      {/* 3D Canvas */}
+      <Canvas
+        camera={{ 
+          position: spawnPosition, 
+          fov: 60 
+        }}
+        gl={{ 
+          antialias: true, 
+          powerPreference: 'high-performance' 
+        }}
+      >
+        {/* Background */}
+        <color attach="background" args={['#0b0b0b']} />
+        
+        {/* Scene content */}
+        <Suspense fallback={null}>
+          <SceneGraph 
+            manifest={manifest} 
+            controls={controls}
+            onFPSUpdate={handleFPSUpdate}
+          />
+        </Suspense>
+      </Canvas>
+
+      {/* Sidebar Controls */}
+      <ViewerSidebar
+        controls={controls}
+        onControlsChange={updateControls}
+        fps={currentFPS}
+        onAssetImportComplete={handleAssetImportComplete}
+      />
+      
+      {/* Asset Management Panel */}
+      <AssetManagementPanel
+        isVisible={showAssetManagement}
+        onToggleVisibility={() => setShowAssetManagement(!showAssetManagement)}
+        onAssetSelected={(asset) => console.log('Asset selected:', asset)}
+      />
+      
+      {/* Transform Controls Panel (appears when object selected) */}
+      <TransformControlsPanel />
+      
+      {/* Keyboard Controls for Transform */}
+      <TransformKeyboardControls />
+      
+      {/* Controls Instructions Overlay */}
+      <ControlsInstructions
+        isVisible={showInstructions}
+        onDismiss={dismissInstructions}
+      />
+
+      {/* Performance Display */}
+      <PerformanceDisplay
+        stats={stats}
+        visible={controls.showFPS}
+        position="top-right"
+        compact={false}
+      />
+
+      {/* Scene Persistence Status */}
+      <ScenePersistenceStatus
+        position="bottom-left"
+        compact={true}
+      />
+
+      {/* Keyboard Shortcuts Help */}
+      <SceneShortcutsHelp
+        shortcuts={shortcuts}
+        isVisible={shortcutsHelp.isVisible}
+        onClose={shortcutsHelp.hide}
+      />
+    </div>
+  );
+
+  // Mock user data for scene persistence (in real app, get from auth context)
+  const userId = 'user-123';
+  const userRole = 'designer';
+  const sceneId = 'scene-demo'; // In real app, extract from URL params
+
   return (
     <SelectionProvider>
-      <div className="relative h-screen w-full">
-        {/* 3D Canvas */}
-        <Canvas
-          camera={{ 
-            position: spawnPosition, 
-            fov: 60 
-          }}
-          gl={{ 
-            antialias: true, 
-            powerPreference: 'high-performance' 
-          }}
-        >
-          {/* Background */}
-          <color attach="background" args={['#0b0b0b']} />
-          
-          {/* Scene content */}
-          <Suspense fallback={null}>
-            <SceneGraph 
-              manifest={manifest} 
-              controls={controls}
-              onFPSUpdate={handleFPSUpdate}
-            />
-          </Suspense>
-        </Canvas>
-
-        {/* Sidebar Controls */}
-        <ViewerSidebar
-          controls={controls}
-          onControlsChange={updateControls}
-          fps={currentFPS}
-          onAssetImportComplete={handleAssetImportComplete}
-        />
-        
-        {/* Asset Management Panel */}
-        <AssetManagementPanel
-          isVisible={showAssetManagement}
-          onToggleVisibility={() => setShowAssetManagement(!showAssetManagement)}
-          onAssetSelected={(asset) => console.log('Asset selected:', asset)}
-        />
-        
-        {/* Transform Controls Panel (appears when object selected) */}
-        <TransformControlsPanel />
-        
-        {/* Keyboard Controls for Transform */}
-        <TransformKeyboardControls />
-        
-        {/* Controls Instructions Overlay */}
-        <ControlsInstructions
-          isVisible={showInstructions}
-          onDismiss={dismissInstructions}
-        />
-
-        {/* Performance Display */}
-        <PerformanceDisplay
-          stats={stats}
-          visible={controls.showFPS}
-          position="top-right"
-          compact={false}
-        />
-      </div>
+      <ScenePersistenceProvider
+        initialManifest={manifest}
+        sceneId={sceneId}
+        userId={userId}
+        userRole={userRole}
+      >
+        {sceneViewerContent}
+      </ScenePersistenceProvider>
     </SelectionProvider>
   );
 }
