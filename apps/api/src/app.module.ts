@@ -8,6 +8,7 @@ import { UsersModule } from './users/users.module';
 import { StorageModule } from './storage/storage.module';
 import { ProcessingModule } from './processing/processing.module';
 import { AssetsModule } from './assets/assets.module';
+import { ScenesModule } from './scenes/scenes.module';
 
 @Module({
   imports: [
@@ -49,6 +50,9 @@ import { AssetsModule } from './assets/assets.module';
     
     // Assets module for upload/download management
     AssetsModule,
+    
+    // Scenes module for 3D scene management
+    ScenesModule,
   ],
   controllers: [],
   providers: [],
