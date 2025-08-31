@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, ConflictException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateSceneDto } from './dto/create-scene.dto';
 import { UpdateSceneDto } from './dto/update-scene.dto';
@@ -20,7 +20,11 @@ export interface SceneWithItems extends Scene3D {
 
 @Injectable()
 export class ScenesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => 'ScenesGateway'))
+    private scenesGateway?: any,
+  ) {}
 
   /**
    * Create a new 3D scene
@@ -251,6 +255,14 @@ export class ScenesService {
       data: { version: { increment: 1 } },
     });
 
+    // Notify realtime clients
+    this.notifySceneUpdate(sceneId, {
+      type: 'add',
+      target: 'item',
+      id: item.id,
+      data: item,
+    });
+
     return item;
   }
 
@@ -309,6 +321,14 @@ export class ScenesService {
       data: { version: { increment: 1 } },
     });
 
+    // Notify realtime clients
+    this.notifySceneUpdate(sceneId, {
+      type: 'update',
+      target: 'item',
+      id: itemId,
+      data: updatedItem,
+    });
+
     return updatedItem;
   }
 
@@ -345,6 +365,14 @@ export class ScenesService {
     await this.prisma.scene3D.update({
       where: { id: sceneId },
       data: { version: { increment: 1 } },
+    });
+
+    // Notify realtime clients
+    this.notifySceneUpdate(sceneId, {
+      type: 'remove',
+      target: 'item',
+      id: itemId,
+      data: null,
     });
   }
 
@@ -474,5 +502,18 @@ export class ScenesService {
   async getVersion(projectId: string, sceneId: string, userId: string): Promise<number> {
     const scene = await this.findOne(projectId, sceneId, userId);
     return scene.version;
+  }
+
+  /**
+   * Notify realtime clients of scene updates
+   */
+  private notifySceneUpdate(sceneId: string, operation: any) {
+    if (this.scenesGateway?.notifySceneUpdate) {
+      this.scenesGateway.notifySceneUpdate(sceneId, {
+        ...operation,
+        userId: 'system',
+        timestamp: Date.now(),
+      });
+    }
   }
 }
