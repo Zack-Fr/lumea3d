@@ -6,6 +6,7 @@ import Layout from "@/app/layout";
 import LandingPage from "@/pages/LandingPage";
 import AuthPage from "@/pages/AuthPage/AuthPage";
 import DashboardPage from "@/pages/DashboardPage/DashboardPage";
+import ViewerPage from "@/features/scenes/ViewerPage";
 // import ProjectPage from "@/pages/ProjectPage";
 // import PreviewPage from "@/pages/PreviewPage";
 
@@ -45,6 +46,7 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to={PATHS.dashboard} replace /> },
           { path: PATHS.dashboard, element: <DashboardPage /> },               // "/app/dashboard"
+          { path: PATHS.viewer, element: <ViewerPage /> },                     // "/app/projects/:projectId/scenes/:sceneId/viewer"
           // { path: PATHS.project, element: <ProjectPage /> },                   // "/app/projects/:id"
           // { path: PATHS.preview, element: <PreviewPage /> },                   // "/app/preview/:token"
         ],
