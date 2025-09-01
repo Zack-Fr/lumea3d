@@ -156,7 +156,7 @@ export default function Dashboard() {
                 <Sparkles className="text-yellow-400" />
                 Your Projects
               </h2>
-              <Button onClick={() => navigate(ROUTES.projectNew())} className="bg-yellow-400 text-black">
+              <Button onClick={() => navigate(ROUTES.projectNew('new'))} className="bg-yellow-400 text-black">
                 <Plus className="w-4 h-4 mr-2" />
                 New Project
               </Button>

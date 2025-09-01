@@ -13,10 +13,10 @@
   "navmesh_url": "/mock/navmesh.glb",
   "categories": {
     "furniture": {
-      "glb_url": "https://models.readyplayer.me/64bfa15e0e72c63a187c6dce.glb",
+      "glb_url": "https://threejs.org/examples/models/gltf/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
       "encodings": {
-        "meshopt_url": "https://models.readyplayer.me/64bfa15e0e72c63a187c6dce.glb",
-        "draco_url": "https://models.readyplayer.me/64bfa15e0e72c63a187c6dce.glb"
+        "meshopt_url": "https://threejs.org/examples/models/gltf/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
+        "draco_url": "https://threejs.org/examples/models/gltf/DamagedHelmet/glTF-Binary/DamagedHelmet.glb"
       },
       "instancing": true,
       "meshopt": true,
@@ -25,9 +25,9 @@
       "license": "cc0"
     },
     "lighting": {
-      "glb_url": "https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/fox-v2/model.gltf",
+      "glb_url": "https://threejs.org/examples/models/gltf/Flamingo.glb",
       "encodings": {
-        "meshopt_url": "https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/fox-v2/model.gltf"
+        "meshopt_url": "https://threejs.org/examples/models/gltf/Flamingo.glb"
       },
       "instancing": false,
       "meshopt": true,

@@ -22,13 +22,9 @@ const gamificationData = { level: 3, xp: 120, nextLevelXp: 200, streak: 5 };
 
 export default function ProjectEditor() {
   const [selectedTool, setSelectedTool] = useState("models");
-  const [selectedAsset, setSelectedAsset] = useState<number | null>(null);
-  const [cameraMode, setCameraMode] = useState("orbit");
   const [showProperties, setShowProperties] = useState(true);
   const [showGamification, setShowGamification] = useState(true);
   const [isWASDActive, setIsWASDActive] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [lightingMode, setLightingMode] = useState("day");
   const [renderMode] = useState("realistic");
   const viewportRef = useRef<HTMLDivElement>(null);
   const [movement, setMovement] = useState({ forward: false, backward: false, left: false, right: false });
@@ -140,8 +136,8 @@ export default function ProjectEditor() {
               <CardContent>
                 <h3>Properties</h3>
                 <div>
-                  <p>Camera: {cameraMode}</p>
-                  <p>Lighting: {lightingMode}</p>
+                  <p>Camera: orbit</p>
+                  <p>Lighting: day</p>
                   <p>Render: {renderMode}</p>
                 </div>
               </CardContent>

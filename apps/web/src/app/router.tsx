@@ -7,6 +7,7 @@ import LandingPage from "@/pages/LandingPage";
 import AuthPage from "@/pages/auth/AuthPage";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
 import ProjectEditor from "@/pages/projectEditor/ProjectEditorPage";
+import ViewerPage from "@/pages/viewer/ViewerPage";
 // import PreviewPage from "@/pages/PreviewPage";
 
 // 404(need to change)
@@ -25,6 +26,9 @@ function NotFound() {
 const router = createBrowserRouter([
   // Public landing
   { path: PATHS.landing, element: <LandingPage /> },
+
+  // Public viewer (for development/demos)
+  { path: "/viewer/:sceneId", element: <ViewerPage /> },
 
   // Auth routes: visible only to guests; authenticated users are redirected away by GuestOnly
   {
@@ -48,6 +52,7 @@ const router = createBrowserRouter([
           { path: PATHS.projectNew, element: <ProjectEditor /> },             // "/app/projects/new"
           { path: PATHS.project, element: <ProjectEditor /> },                // "/app/projects/:id"
           // { path: PATHS.preview, element: <PreviewPage /> },                   // "/app/preview/:token"
+          { path: PATHS.viewer, element: <ViewerPage /> },                    // "/app/viewer/:sceneId"
         ],
       },
     ],
