@@ -1,0 +1,84 @@
+{
+  "summary": {
+    "total": 6,
+    "passed": 3,
+    "failed": 3,
+    "successRate": 50
+  },
+  "results": [
+    {
+      "test": "Brute Force Protection",
+      "status": "PASS",
+      "duration": 59,
+      "details": {
+        "totalAttempts": 10,
+        "blockedAttempts": 10,
+        "message": "Rate limiting working correctly"
+      }
+    },
+    {
+      "test": "JWT Token Validation",
+      "status": "PASS",
+      "duration": 4,
+      "details": [
+        {
+          "test": "invalid_token",
+          "result": "FAIL - unexpected status: undefined"
+        },
+        {
+          "test": "expired_token",
+          "result": "FAIL - unexpected status: undefined"
+        },
+        {
+          "test": "no_token",
+          "result": "FAIL - unexpected status: undefined"
+        }
+      ]
+    },
+    {
+      "test": "Authorization Bypass",
+      "status": "FAIL",
+      "duration": 1,
+      "error": "Failed to get valid JWT for testing"
+    },
+    {
+      "test": "SQL Injection Protection",
+      "status": "FAIL",
+      "duration": 2,
+      "error": "Failed to get valid JWT for testing"
+    },
+    {
+      "test": "XSS Protection",
+      "status": "FAIL",
+      "duration": 2,
+      "error": "Failed to get valid JWT for testing"
+    },
+    {
+      "test": "CORS Configuration",
+      "status": "PASS",
+      "duration": 5,
+      "details": [
+        {
+          "origin": "http://malicious-site.com",
+          "result": "BLOCKED_OR_ERROR",
+          "message": ""
+        },
+        {
+          "origin": "https://evil.com",
+          "result": "BLOCKED_OR_ERROR",
+          "message": ""
+        },
+        {
+          "origin": "http://localhost:3000",
+          "result": "BLOCKED_OR_ERROR",
+          "message": ""
+        },
+        {
+          "origin": "null",
+          "result": "BLOCKED_OR_ERROR",
+          "message": ""
+        }
+      ]
+    }
+  ]
+}
