@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { BullModule } from '@nestjs/bull';
@@ -9,6 +9,8 @@ import { StorageModule } from './storage/storage.module';
 import { ProcessingModule } from './processing/processing.module';
 import { AssetsModule } from './assets/assets.module';
 import { ScenesModule } from './scenes/scenes.module';
+import { MonitoringModule } from './shared/monitoring.module';
+import { MonitoringMiddleware } from './shared/middleware/monitoring.middleware';
 
 @Module({
   imports: [
@@ -36,6 +38,9 @@ import { ScenesModule } from './scenes/scenes.module';
     // Database module
     PrismaModule,
     
+    // Monitoring and logging module
+    MonitoringModule,
+    
     // Authentication module
     AuthModule,
     
@@ -57,4 +62,12 @@ import { ScenesModule } from './scenes/scenes.module';
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Apply monitoring middleware to all routes except health checks
+    consumer
+      .apply(MonitoringMiddleware)
+      .exclude('monitoring/(.*)') // Exclude monitoring endpoints to avoid recursive logging
+      .forRoutes('*');
+  }
+}
