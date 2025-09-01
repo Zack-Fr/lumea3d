@@ -20,10 +20,14 @@
     "@nestjs/cli": "^10.4.9",
     "@typescript-eslint/eslint-plugin": "^8.41.0",
     "@typescript-eslint/parser": "^8.41.0",
+    "artillery": "^2.0.24",
+    "autocannon": "^8.0.0",
     "eslint": "^9.34.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
+    "node-fetch": "^3.3.2",
     "prettier": "^3.6.2",
+    "socket.io-client": "^4.7.2",
     "typescript": "^5.9.2"
   },
   "engines": {

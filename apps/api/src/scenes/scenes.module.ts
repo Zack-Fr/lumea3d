@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScenesService } from './scenes.service';
 import { ScenesController } from './scenes.controller';
 import { ScenesGateway } from './scenes.gateway';
@@ -16,7 +17,14 @@ import { StorageModule } from '../storage/storage.module';
     PrismaModule,
     StorageModule,
     forwardRef(() => AuthModule),
-    JwtModule.register({}), // Required for WsJwtGuard
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: '1h' },
+      }),
+      inject: [ConfigService],
+    }),
   ],
   controllers: [ScenesController, ScenesSSEController, DownloadController],
   providers: [

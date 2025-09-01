@@ -3,9 +3,13 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { GlobalExceptionFilter } from './shared/filters/global-exception.filter';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  // Configure Socket.IO adapter
+  app.useWebSocketAdapter(new IoAdapter(app));
   
   // Global exception filter for consistent error handling
   app.useGlobalFilters(new GlobalExceptionFilter());
