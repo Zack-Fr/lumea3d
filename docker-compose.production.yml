@@ -1,0 +1,162 @@
+version: '3.8'
+
+services:
+  # Production PostgreSQL Database
+  postgres_prod:
+    image: postgres:15-alpine
+    container_name: lumea_postgres_prod
+    environment:
+      POSTGRES_USER: lumea_user
+      POSTGRES_PASSWORD: lumea_password
+      POSTGRES_DB: lumea_production
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lumea_user -d lumea_production"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - lumea_prod_network
+
+  # Production Redis Cache
+  redis_prod:
+    image: redis:7-alpine
+    container_name: lumea_redis_prod
+    ports:
+      - "6380:6379"  # Different port to avoid conflicts
+    volumes:
+      - redis_prod_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - lumea_prod_network
+
+  # Production MinIO Object Storage
+  minio_prod:
+    image: minio/minio:latest
+    container_name: lumea_minio_prod
+    ports:
+      - "9001:9000"  # Different port to avoid conflicts
+      - "9091:9090"  # Console port
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_prod_data:/data
+    command: server /data --console-address ":9090"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - lumea_prod_network
+
+  # Production API Server
+  api_prod:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: production
+    container_name: lumea_api_prod
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://lumea_user:lumea_password@postgres_prod:5432/lumea_production?schema=public
+      REDIS_URL: redis://redis_prod:6379
+      STORAGE_ENDPOINT: minio_prod
+      STORAGE_PORT: 9000
+      JWT_SECRET: super-secure-production-secret-key-that-should-be-changed-in-real-production
+      ALLOWED_ORIGINS: https://app.lumea.com,https://admin.lumea.com
+      PORT: 3001
+    ports:
+      - "3002:3001"  # Different port to avoid conflicts
+    depends_on:
+      postgres_prod:
+        condition: service_healthy
+      redis_prod:
+        condition: service_healthy
+      minio_prod:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - lumea_prod_network
+    volumes:
+      - ./logs:/app/logs
+
+  # Production Web Frontend
+  web_prod:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: production
+    container_name: lumea_web_prod
+    environment:
+      NODE_ENV: production
+      VITE_API_URL: http://localhost:3002
+    ports:
+      - "3001:80"  # Nginx serves on port 80 inside container
+    depends_on:
+      - api_prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - lumea_prod_network
+
+  # Production Nginx Load Balancer
+  nginx_prod:
+    image: nginx:alpine
+    container_name: lumea_nginx_prod
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ./nginx/prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - api_prod
+      - web_prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - lumea_prod_network
+
+volumes:
+  postgres_prod_data:
+    driver: local
+  redis_prod_data:
+    driver: local
+  minio_prod_data:
+    driver: local
+
+networks:
+  lumea_prod_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

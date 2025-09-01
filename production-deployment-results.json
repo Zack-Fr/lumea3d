@@ -1,0 +1,67 @@
+{
+  "summary": {
+    "total": 6,
+    "passed": 3,
+    "failed": 3,
+    "successRate": 50
+  },
+  "results": [
+    {
+      "name": "Container Health Checks",
+      "status": "FAIL",
+      "duration": 52,
+      "error": "Health check failures: API, Nginx"
+    },
+    {
+      "name": "Database Migration Validation",
+      "status": "FAIL",
+      "duration": 2,
+      "error": "Database connection failed: "
+    },
+    {
+      "name": "Production Environment Configuration",
+      "status": "PASS",
+      "duration": 4,
+      "result": {
+        "api_accessible": false,
+        "api_error": "",
+        "nginx_accessible": false,
+        "nginx_error": ""
+      }
+    },
+    {
+      "name": "Load Balancer Configuration",
+      "status": "FAIL",
+      "duration": 18,
+      "error": "Too many failed requests: 10/10"
+    },
+    {
+      "name": "Production Rate Limiting",
+      "status": "PASS",
+      "duration": 17,
+      "result": {
+        "total_requests": 20,
+        "successful_requests": 0,
+        "rate_limited_requests": 0,
+        "duration_ms": 17,
+        "rate_limiting_active": false
+      }
+    },
+    {
+      "name": "SSL/TLS Configuration",
+      "status": "PASS",
+      "duration": 30,
+      "result": {
+        "https_accessible": false,
+        "ssl_configured": false,
+        "error": ""
+      }
+    }
+  ],
+  "timestamp": "2025-09-01T14:17:57.253Z",
+  "environment": {
+    "api_url": "http://localhost:3002",
+    "web_url": "http://localhost:3001",
+    "nginx_url": "http://localhost:8080"
+  }
+}

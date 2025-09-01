@@ -1,5 +1,7 @@
-# Web Dockerfile
-FROM node:22-alpine
+# Web Dockerfile - Multi-stage build for production optimization
+
+# Build stage
+FROM node:22-alpine AS builder
 
 # Install pnpm
 RUN npm install -g pnpm@10
@@ -24,23 +26,58 @@ COPY apps/web ./apps/web/
 
 # Build shared package first
 RUN pnpm --filter @lumea/shared build
-# RUN pnpm --filter @lumea/web... build
 
 # Build arguments
-ARG VITE_API_URL
+ARG VITE_API_URL=http://localhost:3001
 ENV VITE_API_URL=$VITE_API_URL
 
 # Build application
 WORKDIR /app/apps/web
 RUN pnpm build
 
-# Install serve for production
-RUN npm install -g serve
+# Development stage
+FROM node:22-alpine AS development
+
+RUN npm install -g pnpm@10
+
+WORKDIR /app
+
+COPY --from=builder /app ./
+
+WORKDIR /app/apps/web
 
 EXPOSE 5173
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:5173 || exit 1
 
-CMD ["serve", "-s", "dist", "-l", "5173"]
+CMD ["pnpm", "dev", "--host", "0.0.0.0"]
+
+# Production stage with Nginx
+FROM nginx:alpine AS production
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Copy built assets from builder stage
+COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
+
+# Copy custom nginx configuration
+COPY apps/web/nginx.conf /etc/nginx/nginx.conf
+
+# Create logs directory
+RUN mkdir -p /var/log/nginx
+
+# Set proper permissions
+RUN chown -R nginx:nginx /usr/share/nginx/html \
+    && chown -R nginx:nginx /var/log/nginx
+
+# Expose port 80
+EXPOSE 80
+
+# Health check for production
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:80/health || exit 1
+
+# Start Nginx
+CMD ["nginx", "-g", "daemon off;"]
