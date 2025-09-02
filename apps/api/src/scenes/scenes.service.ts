@@ -80,7 +80,7 @@ export class ScenesService {
   async findAll(projectId: string, userId: string): Promise<SceneWithItems[]> {
     // Verify project ownership
     const project = await this.prisma.project.findFirst({
-      where: { id: projectId, user_id: userId },
+      where: { id: projectId, userId: userId },
     });
 
     if (!project) {
@@ -88,22 +88,22 @@ export class ScenesService {
     }
 
     return this.prisma.scene3D.findMany({
-      where: { project_id: projectId },
+      where: { projectId: projectId },
       include: {
         items: {
-          orderBy: { created_at: 'asc' },
+          orderBy: { createdAt: 'asc' },
         },
-        navmesh_asset: {
+        navmeshAsset: {
           select: {
             id: true,
-            original_name: true,
-            meshopt_url: true,
-            draco_url: true,
-            navmesh_url: true,
+            originalName: true,
+            meshoptUrl: true,
+            dracoUrl: true,
+            navmeshUrl: true,
           },
         },
       },
-      orderBy: { created_at: 'desc' },
+      orderBy: { createdAt: 'desc' },
     }) as Promise<SceneWithItems[]>;
   }
 
@@ -114,19 +114,19 @@ export class ScenesService {
     const scene = await this.prisma.scene3D.findFirst({
       where: {
         id: sceneId,
-        project: { id: projectId, user_id: userId },
+        project: { id: projectId, userId: userId },
       },
       include: {
         items: {
-          orderBy: { created_at: 'asc' },
+          orderBy: { createdAt: 'asc' },
         },
-        navmesh_asset: {
+        navmeshAsset: {
           select: {
             id: true,
-            original_name: true,
-            meshopt_url: true,
-            draco_url: true,
-            navmesh_url: true,
+            originalName: true,
+            meshoptUrl: true,
+            dracoUrl: true,
+            navmeshUrl: true,
           },
         },
       },
@@ -163,8 +163,8 @@ export class ScenesService {
       const navmeshAsset = await this.prisma.asset.findFirst({
         where: {
           id: updateSceneDto.navmeshAssetId,
-          uploader_id: userId,
-          mime_type: 'model/gltf-binary',
+          uploaderId: userId,
+          mimeType: 'model/gltf-binary',
           status: 'READY',
         },
       });
@@ -179,13 +179,13 @@ export class ScenesService {
       data: {
         ...updateSceneDto,
         version: { increment: 1 }, // Increment version for optimistic locking
-        env_hdri_url: updateSceneDto.envHdriUrl,
-        env_intensity: updateSceneDto.envIntensity,
-        spawn_position_x: updateSceneDto.spawnPositionX,
-        spawn_position_y: updateSceneDto.spawnPositionY,
-        spawn_position_z: updateSceneDto.spawnPositionZ,
-        spawn_yaw_deg: updateSceneDto.spawnYawDeg,
-        navmesh_asset_id: updateSceneDto.navmeshAssetId,
+        envHdriUrl: updateSceneDto.envHdriUrl,
+        envIntensity: updateSceneDto.envIntensity,
+        spawnPositionX: updateSceneDto.spawnPositionX,
+        spawnPositionY: updateSceneDto.spawnPositionY,
+        spawnPositionZ: updateSceneDto.spawnPositionZ,
+        spawnYawDeg: updateSceneDto.spawnYawDeg,
+        navmeshAssetId: updateSceneDto.navmeshAssetId,
       },
     });
   }
@@ -216,8 +216,8 @@ export class ScenesService {
     // Verify category exists in project
     const category = await this.prisma.projectCategory3D.findFirst({
       where: {
-        project_id: projectId,
-        category_key: createSceneItemDto.categoryKey,
+        projectId: projectId,
+        categoryKey: createSceneItemDto.categoryKey,
       },
       include: {
         asset: true,
@@ -237,20 +237,20 @@ export class ScenesService {
     // Create the scene item
     const item = await this.prisma.sceneItem3D.create({
       data: {
-        scene_id: sceneId,
-        category_key: createSceneItemDto.categoryKey,
+        sceneId: sceneId,
+        categoryKey: createSceneItemDto.categoryKey,
         model: createSceneItemDto.model,
-        position_x: createSceneItemDto.positionX ?? 0.0,
-        position_y: createSceneItemDto.positionY ?? 0.0,
-        position_z: createSceneItemDto.positionZ ?? 0.0,
-        rotation_x: createSceneItemDto.rotationX ?? 0.0,
-        rotation_y: createSceneItemDto.rotationY ?? 0.0,
-        rotation_z: createSceneItemDto.rotationZ ?? 0.0,
-        scale_x: createSceneItemDto.scaleX ?? 1.0,
-        scale_y: createSceneItemDto.scaleY ?? 1.0,
-        scale_z: createSceneItemDto.scaleZ ?? 1.0,
-        material_variant: createSceneItemDto.materialVariant,
-        material_overrides: createSceneItemDto.materialOverrides,
+        positionX: createSceneItemDto.positionX ?? 0.0,
+        positionY: createSceneItemDto.positionY ?? 0.0,
+        positionZ: createSceneItemDto.positionZ ?? 0.0,
+        rotationX: createSceneItemDto.rotationX ?? 0.0,
+        rotationY: createSceneItemDto.rotationY ?? 0.0,
+        rotationZ: createSceneItemDto.rotationZ ?? 0.0,
+        scaleX: createSceneItemDto.scaleX ?? 1.0,
+        scaleY: createSceneItemDto.scaleY ?? 1.0,
+        scaleZ: createSceneItemDto.scaleZ ?? 1.0,
+        materialVariant: createSceneItemDto.materialVariant,
+        materialOverrides: createSceneItemDto.materialOverrides,
         selectable: createSceneItemDto.selectable ?? true,
         locked: createSceneItemDto.locked ?? false,
         meta: createSceneItemDto.meta,
@@ -289,7 +289,7 @@ export class ScenesService {
 
     // Verify item exists in scene
     const item = await this.prisma.sceneItem3D.findFirst({
-      where: { id: itemId, scene_id: sceneId },
+      where: { id: itemId, sceneId: sceneId },
     });
 
     if (!item) {
@@ -306,17 +306,17 @@ export class ScenesService {
       where: { id: itemId },
       data: {
         model: updateSceneItemDto.model,
-        position_x: updateSceneItemDto.positionX,
-        position_y: updateSceneItemDto.positionY,
-        position_z: updateSceneItemDto.positionZ,
-        rotation_x: updateSceneItemDto.rotationX,
-        rotation_y: updateSceneItemDto.rotationY,
-        rotation_z: updateSceneItemDto.rotationZ,
-        scale_x: updateSceneItemDto.scaleX,
-        scale_y: updateSceneItemDto.scaleY,
-        scale_z: updateSceneItemDto.scaleZ,
-        material_variant: updateSceneItemDto.materialVariant,
-        material_overrides: updateSceneItemDto.materialOverrides,
+        positionX: updateSceneItemDto.positionX,
+        positionY: updateSceneItemDto.positionY,
+        positionZ: updateSceneItemDto.positionZ,
+        rotationX: updateSceneItemDto.rotationX,
+        rotationY: updateSceneItemDto.rotationY,
+        rotationZ: updateSceneItemDto.rotationZ,
+        scaleX: updateSceneItemDto.scaleX,
+        scaleY: updateSceneItemDto.scaleY,
+        scaleZ: updateSceneItemDto.scaleZ,
+        materialVariant: updateSceneItemDto.materialVariant,
+        materialOverrides: updateSceneItemDto.materialOverrides,
         selectable: updateSceneItemDto.selectable,
         locked: updateSceneItemDto.locked,
         meta: updateSceneItemDto.meta,
@@ -354,7 +354,7 @@ export class ScenesService {
 
     // Verify item exists and is not locked
     const item = await this.prisma.sceneItem3D.findFirst({
-      where: { id: itemId, scene_id: sceneId },
+      where: { id: itemId, sceneId: sceneId },
     });
 
     if (!item) {
@@ -395,19 +395,19 @@ export class ScenesService {
     const scene = await this.findOne(projectId, sceneId, userId);
 
     // Get all categories referenced by scene items
-    const categoryKeys = [...new Set(scene.items.map(item => item.category_key))];
+    const categoryKeys = [...new Set(scene.items.map(item => item.categoryKey))];
     const categories = await this.prisma.projectCategory3D.findMany({
       where: {
-        project_id: projectId,
-        category_key: { in: categoryKeys },
+        projectId: projectId,
+        categoryKey: { in: categoryKeys },
       },
       include: {
         asset: {
           select: {
             id: true,
-            meshopt_url: true,
-            draco_url: true,
-            original_url: true,
+            meshoptUrl: true,
+            dracoUrl: true,
+            originalUrl: true,
           },
         },
       },
@@ -416,12 +416,12 @@ export class ScenesService {
     // Build categories map for manifest
     const categoriesMap: Record<string, any> = {};
     for (const category of categories) {
-      categoriesMap[category.category_key] = {
+      categoriesMap[category.categoryKey] = {
         assetId: category.asset.id,
         variants: {
-          original: category.asset.original_url,
-          meshopt: category.asset.meshopt_url,
-          draco: category.asset.draco_url,
+          original: category.asset.originalUrl,
+          meshopt: category.asset.meshoptUrl,
+          draco: category.asset.dracoUrl,
         },
       };
     }
@@ -433,42 +433,42 @@ export class ScenesService {
         version: scene.version,
         scale: scene.scale || undefined,
         exposure: scene.exposure || undefined,
-        envHdriUrl: scene.env_hdri_url || undefined,
-        envIntensity: scene.env_intensity || undefined,
+        envHdriUrl: scene.envHdriUrl || undefined,
+        envIntensity: scene.envIntensity || undefined,
         spawnPoint: {
           position: {
-            x: scene.spawn_position_x,
-            y: scene.spawn_position_y,
-            z: scene.spawn_position_z,
+            x: scene.spawnPositionX,
+            y: scene.spawnPositionY,
+            z: scene.spawnPositionZ,
           },
-          yawDeg: scene.spawn_yaw_deg,
+          yawDeg: scene.spawnYawDeg,
         },
-        navmeshAssetId: scene.navmesh_asset_id || undefined,
+        navmeshAssetId: scene.navmeshAssetId || undefined,
       },
       items: scene.items.map(item => ({
         id: item.id,
-        categoryKey: item.category_key,
+        categoryKey: item.categoryKey,
         model: item.model || undefined,
         transform: {
           position: {
-            x: item.position_x,
-            y: item.position_y,
-            z: item.position_z,
+            x: item.positionX,
+            y: item.positionY,
+            z: item.positionZ,
           },
           rotation: {
-            x: item.rotation_x,
-            y: item.rotation_y,
-            z: item.rotation_z,
+            x: item.rotationX,
+            y: item.rotationY,
+            z: item.rotationZ,
           },
           scale: {
-            x: item.scale_x,
-            y: item.scale_y,
-            z: item.scale_z,
+            x: item.scaleX,
+            y: item.scaleY,
+            z: item.scaleZ,
           },
         },
-        material: item.material_variant || item.material_overrides ? {
-          variant: item.material_variant || undefined,
-          overrides: item.material_overrides as Record<string, any> || undefined,
+        material: item.materialVariant || item.materialOverrides ? {
+          variant: item.materialVariant || undefined,
+          overrides: item.materialOverrides as Record<string, any> || undefined,
         } : undefined,
         behavior: {
           selectable: item.selectable,

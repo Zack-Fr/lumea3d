@@ -37,7 +37,7 @@ export class DownloadService {
     const asset = await this.prisma.asset.findFirst({
       where: {
         id: assetId,
-        uploader_id: userId,
+        uploaderId: userId,
         status: 'READY',
       },
     });
@@ -63,21 +63,21 @@ export class DownloadService {
     const downloadUrl = presignedResult.downloadUrl;
 
     // Generate ETag for caching
-    const etag = this.generateETag(asset.id, variant, asset.updated_at);
+    const etag = this.generateETag(asset.id, variant, asset.updatedAt);
 
     // Build response
     const downloadInfo: AssetDownloadInfo = {
       assetId: asset.id,
       categoryKey: 'unknown', // Will be set by caller if needed
-      filename: asset.original_name,
+      filename: asset.originalName,
       downloadUrl,
       variant,
-      fileSize: asset.file_size,
-      contentType: asset.mime_type,
+      fileSize: asset.fileSize,
+      contentType: asset.mimeType,
       cacheHeaders: {
         'Cache-Control': `public, max-age=${cacheDuration}`,
         ETag: etag,
-        'Last-Modified': asset.updated_at.toUTCString(),
+        'Last-Modified': asset.updatedAt.toUTCString(),
       },
       expiresAt: new Date(Date.now() + cacheDuration * 1000).toISOString(),
     };
@@ -103,12 +103,12 @@ export class DownloadService {
     const scene = await this.prisma.scene3D.findFirst({
       where: {
         id: sceneId,
-        project: { id: projectId, user_id: userId },
+        project: { id: projectId, userId: userId },
       },
       include: {
         items: {
           where: {
-            category_key: { in: batchDto.categoryKeys },
+            categoryKey: { in: batchDto.categoryKeys },
           },
         },
       },
@@ -119,13 +119,13 @@ export class DownloadService {
     }
 
     // Get unique category keys from scene items
-    const categoryKeys = [...new Set(scene.items.map(item => item.category_key))];
+    const categoryKeys = [...new Set(scene.items.map(item => item.categoryKey))];
 
     // Get project categories with assets
     const categories = await this.prisma.projectCategory3D.findMany({
       where: {
-        project_id: projectId,
-        category_key: { in: categoryKeys },
+        projectId: projectId,
+        categoryKey: { in: categoryKeys },
       },
       include: {
         asset: true,
@@ -150,7 +150,7 @@ export class DownloadService {
           },
         );
 
-        downloadInfo.categoryKey = category.category_key;
+        downloadInfo.categoryKey = category.categoryKey;
         assets.push(downloadInfo);
         totalSize += downloadInfo.fileSize;
       } catch (error) {
@@ -183,7 +183,7 @@ export class DownloadService {
     const scene = await this.prisma.scene3D.findFirst({
       where: {
         id: sceneId,
-        project: { id: projectId, user_id: userId },
+        project: { id: projectId, userId: userId },
       },
       include: {
         items: true,
@@ -194,7 +194,7 @@ export class DownloadService {
       throw new NotFoundException('Scene not found or access denied');
     }
 
-    const categoryKeys = [...new Set(scene.items.map(item => item.category_key))];
+    const categoryKeys = [...new Set(scene.items.map(item => item.categoryKey))];
 
     return this.generateSceneDownloadUrls(projectId, sceneId, userId, {
       categoryKeys,
@@ -254,7 +254,7 @@ export class DownloadService {
     const asset = await this.prisma.asset.findFirst({
       where: {
         id: assetId,
-        uploader_id: userId,
+        uploaderId: userId,
         status: 'READY',
       },
     });
@@ -272,19 +272,19 @@ export class DownloadService {
     const asset = await this.prisma.asset.findFirst({
       where: {
         id: assetId,
-        uploader_id: userId,
+        uploaderId: userId,
         status: 'READY',
       },
       select: {
         id: true,
-        original_name: true,
-        mime_type: true,
-        file_size: true,
-        updated_at: true,
-        original_url: true,
-        meshopt_url: true,
-        draco_url: true,
-        navmesh_url: true,
+        originalName: true,
+        mimeType: true,
+        fileSize: true,
+        updatedAt: true,
+        originalUrl: true,
+        meshoptUrl: true,
+        dracoUrl: true,
+        navmeshUrl: true,
       },
     });
 

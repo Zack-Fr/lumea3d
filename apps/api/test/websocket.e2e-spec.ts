@@ -147,17 +147,17 @@ describe('WebSocket Realtime Collaboration E2E', () => {
 
       // Verify database was updated
       const sceneItems = await prisma.sceneItem3D.findMany({
-        where: { scene_id: sceneId },
+        where: { sceneId: sceneId },
       });
 
       expect(sceneItems).toHaveLength(1);
       expect(sceneItems[0]).toMatchObject({
-        scene_id: sceneId,
-        category_key: 'test_furniture',
+        sceneId: sceneId,
+        categoryKey: 'test_furniture',
         model: 'chair_01',
-        position_x: 1.0,
-        position_y: 0.0,
-        position_z: -1.0,
+        positionX: 1.0,
+        positionY: 0.0,
+        positionZ: -1.0,
       });
     });
 
@@ -168,18 +168,18 @@ describe('WebSocket Realtime Collaboration E2E', () => {
       await prisma.sceneItem3D.create({
         data: {
           id: 'existing-item',
-          scene_id: sceneId,
-          category_key: 'test_furniture',
+          sceneId: sceneId,
+          categoryKey: 'test_furniture',
           model: 'chair_01',
-          position_x: 0,
-          position_y: 0,
-          position_z: 0,
-          rotation_x: 0,
-          rotation_y: 0,
-          rotation_z: 0,
-          scale_x: 1,
-          scale_y: 1,
-          scale_z: 1,
+          positionX: 0,
+          positionY: 0,
+          positionZ: 0,
+          rotationX: 0,
+          rotationY: 0,
+          rotationZ: 0,
+          scaleX: 1,
+          scaleY: 1,
+          scaleZ: 1,
           selectable: true,
           locked: false,
         },
@@ -239,7 +239,7 @@ describe('WebSocket Realtime Collaboration E2E', () => {
 
       // Verify database reflects removal
       const remainingItems = await prisma.sceneItem3D.findMany({
-        where: { scene_id: sceneId },
+        where: { sceneId: sceneId },
       });
 
       expect(remainingItems).toHaveLength(0);
@@ -263,12 +263,12 @@ describe('WebSocket Realtime Collaboration E2E', () => {
         op: 'scene_props',
         exposure: 1.5,
         env: {
-          hdri_url: 'https://example.com/new-env.hdr',
+          hdriUrl: 'https://example.com/new-env.hdr',
           intensity: 2.0,
         },
         spawn: {
           position: [0, 2.0, 10],
-          yaw_deg: 45,
+          yawDeg: 45,
         },
       };
 
@@ -291,12 +291,12 @@ describe('WebSocket Realtime Collaboration E2E', () => {
 
       expect(updatedScene).toMatchObject({
         exposure: 1.5,
-        env_hdri_url: 'https://example.com/new-env.hdr',
-        env_intensity: 2.0,
-        spawn_position_x: 0,
-        spawn_position_y: 2.0,
-        spawn_position_z: 10,
-        spawn_yaw_deg: 45,
+        envHdriUrl: 'https://example.com/new-env.hdr',
+        envIntensity: 2.0,
+        spawnPositionX: 0,
+        spawnPositionY: 2.0,
+        spawnPositionZ: 10,
+        spawnYawDeg: 45,
       });
     });
 
@@ -329,7 +329,7 @@ describe('WebSocket Realtime Collaboration E2E', () => {
             category: 'test_furniture',
             transform: {
               position: [0, 0, 0],
-              rotation_euler: [0, 0, 0],
+              rotationEuler: [0, 0, 0],
               scale: [1, 1, 1],
             },
           },

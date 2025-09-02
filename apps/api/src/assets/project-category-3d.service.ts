@@ -318,4 +318,227 @@ export class ProjectCategory3DService {
 
     return result.count;
   }
+
+  /**
+   * Get category usage statistics
+   */
+  async getCategoryStats(
+    projectId: string,
+    categoryKey: string,
+    userId: string,
+  ): Promise<{
+    categoryKey: string;
+    assetId: string;
+    assetName: string;
+    totalSceneItems: number;
+    uniqueScenes: number;
+    configuration: {
+      instancing: boolean;
+      draco: boolean;
+      meshopt: boolean;
+      ktx2: boolean;
+    };
+  }> {
+    // Get category by categoryKey instead of ID
+    const category = await this.prisma.projectCategory3D.findFirst({
+      where: {
+        projectId: projectId,
+        categoryKey: categoryKey,
+        project: { userId: userId },
+      },
+      include: {
+        asset: {
+          select: {
+            id: true,
+            originalName: true,
+          },
+        },
+      },
+    });
+
+    if (!category) {
+      throw new NotFoundException('Category not found or access denied');
+    }
+
+    // Count scene items using this category
+    const sceneItems = await this.prisma.sceneItem3D.findMany({
+      where: {
+        categoryKey: categoryKey,
+        scene: {
+          projectId: projectId,
+        },
+      },
+      include: {
+        scene: {
+          select: { id: true },
+        },
+      },
+    });
+
+    const totalSceneItems = sceneItems.length;
+    const uniqueScenes = new Set(sceneItems.map(item => item.scene.id)).size;
+
+    return {
+      categoryKey: category.categoryKey,
+      assetId: category.assetId,
+      assetName: category.asset.originalName,
+      totalSceneItems,
+      uniqueScenes,
+      configuration: {
+        instancing: category.instancing,
+        draco: category.draco,
+        meshopt: category.meshopt,
+        ktx2: category.ktx2,
+      },
+    };
+  }
+
+  /**
+   * Bulk create categories
+   */
+  async bulkCreate(
+    projectId: string,
+    userId: string,
+    categories: CreateProjectCategory3DDto[],
+  ): Promise<{ created: number; skipped: number; errors: string[] }> {
+    // Verify project ownership
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, userId: userId },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found or access denied');
+    }
+
+    let created = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+
+    for (const dto of categories) {
+      try {
+        // Check if category already exists
+        const existing = await this.prisma.projectCategory3D.findFirst({
+          where: {
+            projectId: projectId,
+            categoryKey: dto.categoryKey,
+          },
+        });
+
+        if (existing) {
+          skipped++;
+          continue;
+        }
+
+        // Verify asset exists and is ready
+        const asset = await this.prisma.asset.findFirst({
+          where: {
+            id: dto.assetId,
+            uploaderId: userId,
+            status: 'READY',
+          },
+        });
+
+        if (!asset) {
+          errors.push(`Asset ${dto.assetId} not found or not ready for category ${dto.categoryKey}`);
+          continue;
+        }
+
+        await this.prisma.projectCategory3D.create({
+          data: {
+            projectId: projectId,
+            categoryKey: dto.categoryKey,
+            assetId: dto.assetId,
+            instancing: dto.instancing ?? false,
+            draco: dto.draco ?? false,
+            meshopt: dto.meshopt ?? false,
+            ktx2: dto.ktx2 ?? false,
+          },
+        });
+
+        created++;
+      } catch (error) {
+        errors.push(`Failed to create category ${dto.categoryKey}: ${error.message}`);
+      }
+    }
+
+    this.logger.log(`Bulk created ${created} categories, skipped ${skipped}, errors: ${errors.length}`);
+
+    return { created, skipped, errors };
+  }
+
+  /**
+   * Get available assets for adding to project
+   */
+  async getAvailableAssets(
+    projectId: string,
+    userId: string,
+    query: { mimeType?: string; search?: string } = {},
+  ) {
+    // Verify project ownership
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, userId: userId },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found or access denied');
+    }
+
+    // Get assets already in the project
+    const existingCategories = await this.prisma.projectCategory3D.findMany({
+      where: { projectId: projectId },
+      select: { assetId: true },
+    });
+
+    const existingAssetIds = existingCategories.map(cat => cat.assetId);
+
+    // Build where conditions
+    const whereConditions: any = {
+      uploaderId: userId,
+      status: 'READY',
+      id: { notIn: existingAssetIds },
+    };
+
+    if (query.mimeType) {
+      whereConditions.mimeType = query.mimeType;
+    }
+
+    if (query.search) {
+      whereConditions.originalName = {
+        contains: query.search,
+        mode: 'insensitive',
+      };
+    }
+
+    const assets = await this.prisma.asset.findMany({
+      where: whereConditions,
+      select: {
+        id: true,
+        originalName: true,
+        mimeType: true,
+        fileSize: true,
+        createdAt: true,
+        originalUrl: true,
+        meshoptUrl: true,
+        dracoUrl: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    return {
+      assets: assets.map(asset => ({
+        id: asset.id,
+        name: asset.originalName,
+        mimeType: asset.mimeType,
+        fileSize: asset.fileSize,
+        createdAt: asset.createdAt,
+        variants: {
+          original: !!asset.originalUrl,
+          meshopt: !!asset.meshoptUrl,
+          draco: !!asset.dracoUrl,
+        },
+      })),
+      total: assets.length,
+    };
+  }
 }

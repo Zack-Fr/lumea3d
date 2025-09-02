@@ -153,14 +153,14 @@ export class AssetsController {
     return {
       id: asset.id,
       status: asset.status,
-      originalUrl: asset.original_url,
-      meshoptUrl: asset.meshopt_url,
-      dracoUrl: asset.draco_url,
-      navmeshUrl: asset.navmesh_url,
-      errorMessage: asset.error_message,
-      processedAt: asset.processed_at,
-      createdAt: asset.created_at,
-      updatedAt: asset.updated_at,
+      originalUrl: asset.originalUrl,
+      meshoptUrl: asset.meshoptUrl,
+      dracoUrl: asset.dracoUrl,
+      navmeshUrl: asset.navmeshUrl,
+      errorMessage: asset.errorMessage,
+      processedAt: asset.processedAt,
+      createdAt: asset.createdAt,
+      updatedAt: asset.updatedAt,
     };
   }
 
@@ -177,34 +177,34 @@ export class AssetsController {
     
     const variants = [];
     
-    if (asset.original_url) {
+    if (asset.originalUrl) {
       variants.push({
         type: 'original',
-        url: asset.original_url,
+        url: asset.originalUrl,
         available: true,
       });
     }
     
-    if (asset.meshopt_url) {
+    if (asset.meshoptUrl) {
       variants.push({
         type: 'meshopt',
-        url: asset.meshopt_url,
+        url: asset.meshoptUrl,
         available: true,
       });
     }
     
-    if (asset.draco_url) {
+    if (asset.dracoUrl) {
       variants.push({
         type: 'draco',
-        url: asset.draco_url,
+        url: asset.dracoUrl,
         available: true,
       });
     }
     
-    if (asset.navmesh_url) {
+    if (asset.navmeshUrl) {
       variants.push({
         type: 'navmesh',
-        url: asset.navmesh_url,
+        url: asset.navmeshUrl,
         available: true,
       });
     }

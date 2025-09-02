@@ -57,7 +57,7 @@ async function main() {
     create: {
       id: 'demo-project',
       name: 'Demo Living Room',
-      user_id: designer.id,
+      userId: designer.id,
     },
   });
   
@@ -69,13 +69,13 @@ async function main() {
     update: {},
     create: {
       id: 'demo-scene',
-      project_id: demoProject.id,
+      projectId: demoProject.id,
       version: 1,
-      room_w_cm: 500,
-      room_h_cm: 400,
+      roomWCm: 500,
+      roomHCm: 400,
       style: 'MODERN',
       seed: 12345,
-      solver_ms: 150,
+      solverMs: 150,
       status: 'OK',
       rationale: {
         sofa: [
@@ -103,15 +103,15 @@ async function main() {
     create: {
       id: 'demo-scene-3d',
       name: 'Demo 3D Living Room',
-      project_id: demoProject.id,
+      projectId: demoProject.id,
       version: 1,
       scale: 1.0,
       exposure: 1.2,
-      env_intensity: 0.8,
-      spawn_position_x: 0.0,
-      spawn_position_y: 1.7,
-      spawn_position_z: 5.0,
-      spawn_yaw_deg: 0.0,
+      envIntensity: 0.8,
+      spawnPositionX: 0.0,
+      spawnPositionY: 1.7,
+      spawnPositionZ: 5.0,
+      spawnYawDeg: 0.0,
     },
   });
   
@@ -121,33 +121,33 @@ async function main() {
   const demo3DItems = [
     {
       id: 'demo-item-sofa',
-      scene_id: demo3DScene.id,
-      category_key: 'furniture',
+      scene: { connect: { id: demo3DScene.id } },
+      categoryKey: 'furniture_seating',
       model: 'modern_sofa',
-      position_x: 2.5,
-      position_y: 0.0,
-      position_z: 0.6,
-      rotation_x: 0.0,
-      rotation_y: 0.0,
-      rotation_z: 0.0,
-      scale_x: 1.0,
-      scale_y: 1.0,
-      scale_z: 1.0,
+      positionX: 2.5,
+      positionY: 0.0,
+      positionZ: 0.6,
+      rotationX: 0.0,
+      rotationY: 0.0,
+      rotationZ: 0.0,
+      scaleX: 1.0,
+      scaleY: 1.0,
+      scaleZ: 1.0,
     },
     {
       id: 'demo-item-table',
-      scene_id: demo3DScene.id,
-      category_key: 'furniture',
+      scene: { connect: { id: demo3DScene.id } },
+      categoryKey: 'furniture_tables',
       model: 'coffee_table',
-      position_x: 2.5,
-      position_y: 0.0,
-      position_z: 1.4,
-      rotation_x: 0.0,
-      rotation_y: 0.0,
-      rotation_z: 0.0,
-      scale_x: 1.0,
-      scale_y: 1.0,
-      scale_z: 1.0,
+      positionX: 2.5,
+      positionY: 0.0,
+      positionZ: 1.4,
+      rotationX: 0.0,
+      rotationY: 0.0,
+      rotationZ: 0.0,
+      scaleX: 1.0,
+      scaleY: 1.0,
+      scaleZ: 1.0,
     },
   ];
 
@@ -163,50 +163,50 @@ async function main() {
   
   //Type demo project
   type PlacementSeedInput = {
-    scene_id: string;
-    asset_key: AssetKey;
-    x_cm: number;
-    y_cm: number;
-    rotation_deg: number;
+    sceneId: string;
+    assetKey: AssetKey;
+    xCm: number;
+    yCm: number;
+    rotationDeg: number;
   };
   // Create demo placements
   const placements: PlacementSeedInput[] = [
     {
-      scene_id: demoScene.id,
-      asset_key: 'SOFA',
-      x_cm: 250,
-      y_cm: 60,
-      rotation_deg: 0,
+      sceneId: demoScene.id,
+      assetKey: 'SOFA',
+      xCm: 250,
+      yCm: 60,
+      rotationDeg: 0,
     },
     {
-      scene_id: demoScene.id,
-      asset_key: 'COFFEE_TABLE',
-      x_cm: 250,
-      y_cm: 140,
-      rotation_deg: 0,
+      sceneId: demoScene.id,
+      assetKey: 'COFFEE_TABLE',
+      xCm: 250,
+      yCm: 140,
+      rotationDeg: 0,
     },
     {
-      scene_id: demoScene.id,
-      asset_key: 'SIDE_TABLE',
-      x_cm: 360,
-      y_cm: 60,
-      rotation_deg: 0,
+      sceneId: demoScene.id,
+      assetKey: 'SIDE_TABLE',
+      xCm: 360,
+      yCm: 60,
+      rotationDeg: 0,
     },
   ];
 
   for (const placement of placements) {
-    const { scene_id, ...rest } = placement;
+    const { sceneId, ...rest } = placement;
 
     await prisma.placement.upsert({
       where: {
-        id: `demo-placement-${placement.asset_key.toLowerCase()}`,
+        id: `demo-placement-${placement.assetKey.toLowerCase()}`,
       },
       update: {},
       create: {
-        id: `demo-placement-${placement.asset_key.toLowerCase()}`,
+        id: `demo-placement-${placement.assetKey.toLowerCase()}`,
         scene: {
           connect: {
-            id: scene_id,
+            id: sceneId,
           },
         },
         ...rest,
@@ -220,39 +220,41 @@ async function main() {
   const complianceChecks = [
     {
       scene_id: demoScene.id,
-      rule_key: 'no-collision',
+      ruleKey: 'no-collision',
       passed: true,
       message: 'All furniture pieces have non-overlapping boundaries',
     },
     {
-      scene_id: demoScene.id,
-      rule_key: 'sofa-front-walkway-60',
+      sceneId: demoScene.id,
+      ruleKey: 'sofa-front-walkway-60',
       passed: true,
       message: 'Clear walkway of 80cm maintained in front of sofa',
     },
     {
-      scene_id: demoScene.id,
-      rule_key: 'coffee-centered-to-sofa',
+      sceneId: demoScene.id,
+      ruleKey: 'coffee-centered-to-sofa',
       passed: true,
       message: 'Coffee table centered on sofa longitudinal axis with 50cm gap',
     },
     {
-      scene_id: demoScene.id,
-      rule_key: 'side-table-adjacent',
+      sceneId: demoScene.id,
+      ruleKey: 'side-table-adjacent',
       passed: true,
       message: 'Side table positioned within 10cm of sofa arm',
     },
   ];
 
   for (const check of complianceChecks) {
+    const { sceneId, ...checkData } = check;
     await prisma.complianceCheck.upsert({
       where: {
-        id: `demo-check-${check.rule_key}`,
+        id: `demo-check-${check.ruleKey}`,
       },
       update: {},
       create: {
-        id: `demo-check-${check.rule_key}`,
-        ...check,
+        id: `demo-check-${check.ruleKey}`,
+        scene: { connect: { id: sceneId } },
+        ...checkData,
       },
     });
   }
@@ -265,16 +267,154 @@ async function main() {
     update: {},
     create: {
       id: 'demo-feedback',
-      scene_id: demoScene.id,
-      user_id: client.id,
+      sceneId: demoScene.id,
+      userId: client.id,
       rating: 5,
       tags: ['modern', 'spacious', 'comfortable'],
       comment: 'Love this layout! The spacing feels perfect and very welcoming.',
-      is_private: false,
+      isPrivate: false,
     },
   });
 
   console.log('Created demo feedback');
+
+  // Create demo assets for 3D categories
+  const demoAssets = [
+    {
+      id: 'demo-asset-sofa',
+      originalName: 'modern_sofa.glb',
+      mimeType: 'model/gltf-binary',
+      uploader: { connect: { id: designer.id } },
+      status: 'READY' as const,
+      originalUrl: '/assets/demo/modern_sofa.glb',
+      meshoptUrl: '/assets/demo/modern_sofa_meshopt.glb',
+      dracoUrl: '/assets/demo/modern_sofa_draco.glb',
+      fileSize: 1024000,
+    },
+    {
+      id: 'demo-asset-table',
+      originalName: 'coffee_table.glb',
+      mimeType: 'model/gltf-binary',
+      uploader: { connect: { id: designer.id } },
+      status: 'READY' as const,
+      originalUrl: '/assets/demo/coffee_table.glb',
+      meshoptUrl: '/assets/demo/coffee_table_meshopt.glb',
+      dracoUrl: '/assets/demo/coffee_table_draco.glb',
+      fileSize: 512000,
+    },
+    {
+      id: 'demo-asset-lamp',
+      originalName: 'floor_lamp.glb',
+      mimeType: 'model/gltf-binary',
+      uploader: { connect: { id: designer.id } },
+      status: 'READY' as const,
+      originalUrl: '/assets/demo/floor_lamp.glb',
+      meshoptUrl: '/assets/demo/floor_lamp_meshopt.glb',
+      dracoUrl: '/assets/demo/floor_lamp_draco.glb',
+      fileSize: 256000,
+    },
+  ];
+
+  for (const asset of demoAssets) {
+    await prisma.asset.upsert({
+      where: { id: asset.id },
+      update: {},
+      create: asset,
+    });
+  }
+
+  console.log('Created demo assets');
+
+  // Create demo project categories for 3D scene
+  const demoCategories = [
+    {
+      id: 'demo-category-sofa',
+      project: { connect: { id: demoProject.id } },
+      categoryKey: 'furniture_seating',
+      asset: { connect: { id: 'demo-asset-sofa' } },
+      instancing: false,
+      draco: true,
+      meshopt: true,
+      ktx2: false,
+    },
+    {
+      id: 'demo-category-table',
+      project: { connect: { id: demoProject.id } },
+      categoryKey: 'furniture_tables',
+      asset: { connect: { id: 'demo-asset-table' } },
+      instancing: false,
+      draco: true,
+      meshopt: true,
+      ktx2: false,
+    },
+    {
+      id: 'demo-category-lamp',
+      project: { connect: { id: demoProject.id } },
+      categoryKey: 'lighting_floor',
+      asset: { connect: { id: 'demo-asset-lamp' } },
+      instancing: true,
+      draco: true,
+      meshopt: true,
+      ktx2: false,
+    },
+  ];
+
+  for (const category of demoCategories) {
+    await prisma.projectCategory3D.upsert({
+      where: { id: category.id },
+      update: {},
+      create: category,
+    });
+  }
+
+  console.log('Created demo project categories');
+
+  // Create demo placement adjustments for tracking user interactions
+  const demoAdjustments = [
+    {
+      id: 'demo-adjustment-1',
+      scene: { connect: { id: demo3DScene.id } },
+      placement: { connect: { id: 'demo-placement-sofa' } },
+      oldXCm: 240.0,
+      oldYCm: 60.0,
+      newXCm: 250.0,
+      newYCm: 60.0,
+      oldRotation: 0.0,
+      newRotation: 0.0,
+    },
+    {
+      id: 'demo-adjustment-2',
+      scene: { connect: { id: demo3DScene.id } },
+      placement: { connect: { id: 'demo-placement-coffee_table' } },
+      oldXCm: 240.0,
+      oldYCm: 140.0,
+      newXCm: 250.0,
+      newYCm: 140.0,
+      oldRotation: 0.0,
+      newRotation: 15.0,
+    },
+    {
+      id: 'demo-adjustment-3',
+      scene: { connect: { id: demo3DScene.id } },
+      placement: { connect: { id: 'demo-placement-sofa' } },
+      oldXCm: 250.0,
+      oldYCm: 60.0,
+      newXCm: 250.0,
+      newYCm: 55.0,
+      oldRotation: 0.0,
+      newRotation: 0.0,
+    },
+  ];
+
+  for (const adjustment of demoAdjustments) {
+    await prisma.placementAdjustment.upsert({
+      where: { id: adjustment.id },
+      update: {},
+      create: adjustment,
+    });
+  }
+
+  console.log('Created demo placement adjustments');
 
   console.log('Database seed completed successfully!');
   console.log('\n Demo credentials:');

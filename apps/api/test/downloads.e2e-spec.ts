@@ -28,9 +28,9 @@ describe('Asset Download E2E', () => {
     const { scene } = await createTestScene(project, user);
     const { asset } = await createTestAsset(user, {
       status: 'READY',
-      original_url: 'https://test-bucket/original/test-model.glb',
-      meshopt_url: 'https://test-bucket/meshopt/test-model.glb',
-      draco_url: 'https://test-bucket/draco/test-model.glb',
+      originalUrl: 'https://test-bucket/original/test-model.glb',
+      meshoptUrl: 'https://test-bucket/meshopt/test-model.glb',
+      dracoUrl: 'https://test-bucket/draco/test-model.glb',
     });
     
     authToken = token;
@@ -176,16 +176,16 @@ describe('Asset Download E2E', () => {
       // Create additional test assets and categories
       const { asset: asset2 } = await createTestAsset(undefined, {
         status: 'READY',
-        original_name: 'table.glb',
-        original_url: 'https://test-bucket/original/table.glb',
-        meshopt_url: 'https://test-bucket/meshopt/table.glb',
+        originalName: 'table.glb',
+        originalUrl: 'https://test-bucket/original/table.glb',
+        meshoptUrl: 'https://test-bucket/meshopt/table.glb',
       });
 
       const { asset: asset3 } = await createTestAsset(undefined, {
         status: 'READY',
-        original_name: 'lamp.glb',
-        original_url: 'https://test-bucket/original/lamp.glb',
-        draco_url: 'https://test-bucket/draco/lamp.glb',
+        originalName: 'lamp.glb',
+        originalUrl: 'https://test-bucket/original/lamp.glb',
+        dracoUrl: 'https://test-bucket/draco/lamp.glb',
       });
 
       // Create categories for additional assets
@@ -305,14 +305,14 @@ describe('Asset Download E2E', () => {
       // Create one ready asset and one failed asset
       const { asset: readyAsset } = await createTestAsset(undefined, {
         status: 'READY',
-        original_name: 'ready-model.glb',
-        original_url: 'https://test-bucket/ready-model.glb',
+        originalName: 'ready-model.glb',
+        originalUrl: 'https://test-bucket/ready-model.glb',
       });
 
       const { asset: failedAsset } = await createTestAsset(undefined, {
         status: 'FAILED',
-        original_name: 'failed-model.glb',
-        error_message: 'Processing failed',
+        originalName: 'failed-model.glb',
+        errorMessage: 'Processing failed',
       });
 
       // Create categories

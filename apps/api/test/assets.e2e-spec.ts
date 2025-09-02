@@ -55,10 +55,10 @@ describe('Asset Upload Pipeline E2E', () => {
 
       expect(asset).toMatchObject({
         id: assetId,
-        uploader_id: userId,
-        original_name: 'test-chair.glb',
-        mime_type: 'model/gltf-binary',
-        file_size: 1024 * 1024,
+        uploaderId: userId,
+        originalName: 'test-chair.glb',
+        mimeType: 'model/gltf-binary',
+        fileSize: 1024 * 1024,
         status: AssetStatus.UPLOADED,
       });
 
@@ -91,7 +91,7 @@ describe('Asset Upload Pipeline E2E', () => {
 
       expect(processedAsset).toMatchObject({
         status: AssetStatus.PROCESSING,
-        original_url: 'https://test-bucket/original/test-chair.glb',
+        originalUrl: 'https://test-bucket/original/test-chair.glb',
       });
 
       // Step 5: Simulate processing completion
@@ -99,9 +99,9 @@ describe('Asset Upload Pipeline E2E', () => {
         where: { id: assetId },
         data: {
           status: AssetStatus.READY,
-          meshopt_url: 'https://test-bucket/meshopt/test-chair.glb',
-          draco_url: 'https://test-bucket/draco/test-chair.glb',
-          report_json: {
+          meshoptUrl: 'https://test-bucket/meshopt/test-chair.glb',
+          dracoUrl: 'https://test-bucket/draco/test-chair.glb',
+          reportJson: {
             optimization: {
               originalSize: 1024 * 1024,
               meshoptSize: 512 * 1024,
@@ -134,17 +134,17 @@ describe('Asset Upload Pipeline E2E', () => {
       // Step 7: Verify category was created
       const category = await prisma.projectCategory3D.findFirst({
         where: {
-          project_id: projectId,
-          asset_id: assetId,
-          category_key: 'office_chairs',
+          projectId: projectId,
+          assetId: assetId,
+          categoryKey: 'office_chairs',
         },
       });
 
       expect(category).toBeTruthy();
       expect(category).toMatchObject({
-        project_id: projectId,
-        asset_id: assetId,
-        category_key: 'office_chairs',
+        projectId: projectId,
+        assetId: assetId,
+        categoryKey: 'office_chairs',
         draco: true,
         meshopt: true,
         ktx2: true,
@@ -160,7 +160,7 @@ describe('Asset Upload Pipeline E2E', () => {
       expect(assetListResponse.body.assets).toHaveLength(1);
       expect(assetListResponse.body.assets[0]).toMatchObject({
         id: assetId,
-        original_name: 'test-chair.glb',
+        originalName: 'test-chair.glb',
         status: 'READY',
       });
     });
@@ -244,7 +244,7 @@ describe('Asset Upload Pipeline E2E', () => {
       });
 
       expect(failedAsset?.status).toBe(AssetStatus.FAILED);
-      expect(failedAsset?.error_message).toContain('Upload failed');
+      expect(failedAsset?.errorMessage).toContain('Upload failed');
     });
   });
 
@@ -265,7 +265,7 @@ describe('Asset Upload Pipeline E2E', () => {
         .expect(200);
 
       expect(chairsResponse.body.assets).toHaveLength(1);
-      expect(chairsResponse.body.assets[0].original_name).toBe('chair-1.glb');
+      expect(chairsResponse.body.assets[0].originalName).toBe('chair-1.glb');
 
       // Test status filtering
       const readyResponse = await request(testApp.getHttpServer())
@@ -296,12 +296,12 @@ describe('Asset Upload Pipeline E2E', () => {
   async function createMockAsset(filename: string, category: string, status: AssetStatus) {
     return await prisma.asset.create({
       data: {
-        uploader_id: userId,
-        original_name: filename,
-        mime_type: 'model/gltf-binary',
-        file_size: 1024 * 1024,
+        uploaderId: userId,
+        originalName: filename,
+        mimeType: 'model/gltf-binary',
+        fileSize: 1024 * 1024,
         status,
-        original_url: `https://test-bucket/${filename}`,
+        originalUrl: `https://test-bucket/${filename}`,
         license: 'CC0',
       },
     });

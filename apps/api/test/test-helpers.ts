@@ -57,7 +57,7 @@ export const createTestProject = async (user?: User): Promise<TestProject> => {
   const project = await prisma.project.create({
     data: {
       name: `Test Project ${Date.now()}`,
-      user_id: user.id,
+      userId: user.id,
     },
   });
 
@@ -75,12 +75,12 @@ export const createTestAsset = async (user?: User, overrides: Partial<Asset> = {
 
   const asset = await prisma.asset.create({
     data: {
-      uploader_id: user.id,
-      original_name: 'test-model.glb',
-      mime_type: 'model/gltf-binary',
-      file_size: 1024 * 1024, // 1MB
+      uploaderId: user.id,
+      originalName: 'test-model.glb',
+      mimeType: 'model/gltf-binary',
+      fileSize: 1024 * 1024, // 1MB
       status: 'UPLOADED',
-      original_url: 'https://test-bucket/test-model.glb',
+      originalUrl: 'https://test-bucket/test-model.glb',
       license: 'CC0',
       ...overrides,
     },
@@ -102,15 +102,15 @@ export const createTestScene = async (project?: Project, user?: User, overrides:
   const scene = await prisma.scene3D.create({
     data: {
       name: `Test Scene ${Date.now()}`,
-      project_id: project.id,
+      projectId: project.id,
       version: 1,
       scale: 1.0,
       exposure: 1.0,
-      env_intensity: 1.0,
-      spawn_position_x: 0,
-      spawn_position_y: 1.7,
-      spawn_position_z: 5,
-      spawn_yaw_deg: 0,
+      envIntensity: 1.0,
+      spawnPositionX: 0,
+      spawnPositionY: 1.7,
+      spawnPositionZ: 5,
+      spawnYawDeg: 0,
       ...overrides,
     },
   });
@@ -124,9 +124,9 @@ export const createTestScene = async (project?: Project, user?: User, overrides:
 export const createTestCategory = async (project: Project, asset: Asset, categoryKey = 'test_furniture') => {
   return await prisma.projectCategory3D.create({
     data: {
-      project_id: project.id,
-      asset_id: asset.id,
-      category_key: categoryKey,
+      projectId: project.id,
+      assetId: asset.id,
+      categoryKey: categoryKey,
       instancing: false,
       draco: true,
       meshopt: true,
@@ -141,19 +141,19 @@ export const createTestCategory = async (project: Project, asset: Asset, categor
 export const createTestSceneItem = async (scene: Scene3D, categoryKey: string, overrides = {}) => {
   return await prisma.sceneItem3D.create({
     data: {
-      scene_id: scene.id,
-      category_key: categoryKey,
+      sceneId: scene.id,
+      categoryKey: categoryKey,
       model: 'default',
-      position_x: 0,
-      position_y: 1.7,
-      position_z: 0,
-      rotation_x: 0,
-      rotation_y: 0,
-      rotation_z: 0,
-      scale_x: 1,
-      scale_y: 1,
-      scale_z: 1,
-      material_variant: 'default',
+      positionX: 0,
+      positionY: 1.7,
+      positionZ: 0,
+      rotationX: 0,
+      rotationY: 0,
+      rotationZ: 0,
+      scaleX: 1,
+      scaleY: 1,
+      scaleZ: 1,
+      materialVariant: 'default',
       selectable: true,
       locked: false,
       ...overrides,

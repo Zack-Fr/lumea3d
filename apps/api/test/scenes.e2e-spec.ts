@@ -57,8 +57,8 @@ describe('Scenes Management E2E', () => {
         version: 1,
         scale: 1.0,
         exposure: 1.2,
-        env_hdri_url: 'https://example.com/hdri/livingroom.hdr',
-        env_intensity: 1.5,
+        envHdriUrl: 'https://example.com/hdri/livingroom.hdr',
+        envIntensity: 1.5,
       });
 
       const sceneId = createResponse.body.id;
@@ -73,7 +73,7 @@ describe('Scenes Management E2E', () => {
         id: sceneId,
         name: 'Living Room Scene',
         version: 1,
-        project_id: projectId,
+        projectId: projectId,
       });
 
       // Step 3: Update the scene
@@ -216,14 +216,14 @@ describe('Scenes Management E2E', () => {
 
       expect(addResponse.body).toMatchObject({
         id: expect.any(String),
-        category_key: categoryKey,
+        categoryKey: categoryKey,
         model: 'chair_variant_01',
-        position_x: 2.5,
-        position_y: 0,
-        position_z: -1.5,
-        rotation_y: 45,
-        scale_x: 1.2,
-        material_variant: 'leather_brown',
+        positionX: 2.5,
+        positionY: 0,
+        positionZ: -1.5,
+        rotationY: 45,
+        scaleX: 1.2,
+        materialVariant: 'leather_brown',
       });
 
       const itemId = addResponse.body.id;
@@ -246,10 +246,10 @@ describe('Scenes Management E2E', () => {
 
       expect(updateResponse.body).toMatchObject({
         id: itemId,
-        position_x: 3.0,
-        position_z: -2.0,
-        rotation_y: 90,
-        material_variant: 'fabric_blue',
+        positionX: 3.0,
+        positionZ: -2.0,
+        rotationY: 90,
+        materialVariant: 'fabric_blue',
         locked: true,
       });
 
@@ -262,7 +262,7 @@ describe('Scenes Management E2E', () => {
       expect(itemsResponse.body.items).toHaveLength(1);
       expect(itemsResponse.body.items[0]).toMatchObject({
         id: itemId,
-        category_key: categoryKey,
+        categoryKey: categoryKey,
       });
 
       // Step 4: Remove scene item
@@ -349,8 +349,8 @@ describe('Scenes Management E2E', () => {
         name: 'Test Manifest Scene',
         scale: 1.5,
         exposure: 1.2,
-        env_hdri_url: 'https://example.com/test.hdr',
-        env_intensity: 2.0,
+        envHdriUrl: 'https://example.com/test.hdr',
+        envIntensity: 2.0,
       });
       const { asset } = await createTestAsset(user);
       
@@ -358,16 +358,16 @@ describe('Scenes Management E2E', () => {
       await createTestCategory(project, asset, 'test_furniture');
       await createTestSceneItem(scene, 'test_furniture', {
         model: 'chair_01',
-        position_x: 1.0,
-        position_y: 0.0,
-        position_z: -2.0,
-        rotation_x: 0,
-        rotation_y: 45,
-        rotation_z: 0,
-        scale_x: 1.2,
-        scale_y: 1.0,
-        scale_z: 1.2,
-        material_variant: 'wood_oak',
+        positionX: 1.0,
+        positionY: 0.0,
+        positionZ: -2.0,
+        rotationX: 0,
+        rotationY: 45,
+        rotationZ: 0,
+        scaleX: 1.2,
+        scaleY: 1.0,
+        scaleZ: 1.2,
+        materialVariant: 'wood_oak',
         selectable: true,
         locked: false,
       });
@@ -388,12 +388,12 @@ describe('Scenes Management E2E', () => {
         },
         spawn: {
           position: [expect.any(Number), expect.any(Number), expect.any(Number)],
-          yaw_deg: expect.any(Number),
+          yawDeg: expect.any(Number),
         },
-        navmesh_url: expect.any(String),
+        navmeshUrl: expect.any(String),
         categories: {
-          test_furniture: {
-            glb_url: expect.any(String),
+          testFurniture: {
+            glbUrl: expect.any(String),
             encodings: expect.any(Object),
             license: expect.any(String),
           },
