@@ -133,7 +133,7 @@ export class ValidationService {
                 include: {
                   project: {
                     include: {
-                      categories3d: {
+                      categories3D: {
                         include: {
                           asset: true,
                         },
@@ -160,8 +160,8 @@ export class ValidationService {
       // Check items per category
       const categoryCount = new Map<string, number>();
       scene.items.forEach(item => {
-        const count = categoryCount.get(item.category_key) || 0;
-        categoryCount.set(item.category_key, count + 1);
+        const count = categoryCount.get(item.categoryKey) || 0;
+        categoryCount.set(item.categoryKey, count + 1);
       });
 
       for (const [category, count] of categoryCount.entries()) {

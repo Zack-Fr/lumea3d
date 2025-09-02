@@ -1,4 +1,4 @@
-import winston from 'winston';
+import winston, { createLogger } from 'winston';
 import { Injectable } from '@nestjs/common';
 import { loggerConfig } from '../config/logger.config';
 
@@ -7,7 +7,7 @@ export class LoggerService {
   private logger: winston.Logger;
 
   constructor() {
-    this.logger = winston.createLogger(loggerConfig);
+    this.logger = createLogger(loggerConfig);
   }
 
   // Standard logging methods

@@ -221,21 +221,21 @@ export class DownloadController {
     // Set caching headers
     res.set({
       'Cache-Control': 'public, max-age=3600',
-      ETag: `"${metadata.id}-${metadata.updated_at.getTime()}"`,
-      'Last-Modified': metadata.updated_at.toUTCString(),
+      ETag: `"${metadata.id}-${metadata.updatedAt.getTime()}"`,
+      'Last-Modified': metadata.updatedAt.toUTCString(),
     });
 
     res.json({
       id: metadata.id,
-      filename: metadata.original_name,
-      contentType: metadata.mime_type,
-      fileSize: metadata.file_size,
-      lastModified: metadata.updated_at.toISOString(),
+      filename: metadata.originalName,
+      contentType: metadata.mimeType,
+      fileSize: metadata.fileSize,
+      lastModified: metadata.updatedAt.toISOString(),
       variants: {
-        original: !!metadata.original_url,
-        meshopt: !!metadata.meshopt_url,
-        draco: !!metadata.draco_url,
-        navmesh: !!metadata.navmesh_url,
+        original: !!metadata.originalUrl,
+        meshopt: !!metadata.meshoptUrl,
+        draco: !!metadata.dracoUrl,
+        navmesh: !!metadata.navmeshUrl,
       },
     });
   }
