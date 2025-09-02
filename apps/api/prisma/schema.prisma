@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,7 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enums aligned with shared schemas
+// ──────────────────────────────────────────────────────
+// Enums
+// ──────────────────────────────────────────────────────
+
 enum Role {
   GUEST
   CLIENT
@@ -35,7 +35,6 @@ enum GenerationStatus {
   ERROR
 }
 
-// 3D Asset processing status
 enum AssetStatus {
   UPLOADED
   PROCESSING
@@ -43,342 +42,295 @@ enum AssetStatus {
   FAILED
 }
 
-// 3D Asset license types
 enum AssetLicense {
   CC0
   ROYALTY_FREE
   PROPRIETARY
 }
 
-// Core user management
+// ──────────────────────────────────────────────────────
+// Models
+// ──────────────────────────────────────────────────────
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
-  passwordHash String   @map("password_hash")
-  displayName String?  @map("display_name")
+  passwordHash String
+  displayName  String?
   role         Role     @default(DESIGNER)
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  // User relationships
+  // Relations
   projects     Project[]
   feedback     Feedback[]
   sessions     Session[]
   invites      Invite[]
   assets       Asset[]
-
-  @@map("users")
 }
 
-// Project management
 model Project {
-  id         String   @id @default(cuid())
-  name       String
-  user_id    String
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id              String               @id @default(cuid())
+  name            String
+  userId          String
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 
-  // Relationships
-  user         User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  scenes       Scene[]
-  categories3d ProjectCategory3D[]
-  scenes3d     Scene3D[]
+  // Relations
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scenes          Scene[]
+  categories3D    ProjectCategory3D[]
+  scenes3D        Scene3D[]
 
-  // Indexes
-  @@index([user_id])
-  @@map("projects")
+  @@index([userId])
 }
 
-// Scene management - immutable snapshots
 model Scene {
-  id         String           @id @default(cuid())
-  project_id String
-  version    Int              @default(1)
-  room_w_cm  Int              @default(500)
-  room_h_cm  Int              @default(400)
-  style      StyleKey         @default(MODERN)
-  seed       Int?
-  solver_ms  Int?
-  status     GenerationStatus @default(OK)
-  created_at DateTime         @default(now())
+  id                    String              @id @default(cuid())
+  projectId             String
+  version               Int                 @default(1)
+  roomWCm               Int                 @default(500)
+  roomHCm               Int                 @default(400)
+  style                 StyleKey            @default(MODERN)
+  seed                  Int?
+  solverMs              Int?
+  status                GenerationStatus    @default(OK)
+  createdAt             DateTime            @default(now())
+  rationale             Json?
 
-  // Relationships
-  project            Project             @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  placements         Placement[]
-  compliance_checks  ComplianceCheck[]
-  feedback           Feedback[]
-  placement_adjustments PlacementAdjustment[]
+  // Relations
+  project               Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  placements            Placement[]
+  complianceChecks      ComplianceCheck[]
+  feedback              Feedback[]
+  placementAdjustments  PlacementAdjustment[]
 
-  // Rationale JSON storage
-  rationale Json?
-
-  // Indexes
-  @@index([project_id])
-  @@index([created_at])
-  @@map("scenes")
+  @@index([projectId])
+  @@index([createdAt])
 }
 
-// Asset placements in scenes
 model Placement {
-  id           String   @id @default(cuid())
-  scene_id     String
-  asset_key    AssetKey
-  x_cm         Int
-  y_cm         Int
-  rotation_deg Int      @default(0)
-  created_at   DateTime @default(now())
+  id           String              @id @default(cuid())
+  sceneId      String
+  assetKey     AssetKey
+  xCm          Int
+  yCm          Int
+  rotationDeg  Int                 @default(0)
+  createdAt    DateTime            @default(now())
 
-  // Relationships
-  scene                 Scene                 @relation(fields: [scene_id], references: [id], onDelete: Cascade)
-  placement_adjustments PlacementAdjustment[]
+  // Relations
+  scene                 Scene                 @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  placementAdjustments  PlacementAdjustment[]
 
-  // Indexes
-  @@index([scene_id])
-  @@map("placements")
+  @@index([sceneId])
 }
 
-// Rule compliance tracking
 model ComplianceCheck {
-  id       String  @id @default(cuid())
-  scene_id String
-  rule_key String
-  passed   Boolean
-  message  String
+  id        String   @id @default(cuid())
+  sceneId   String
+  ruleKey   String
+  passed    Boolean
+  message   String
 
-  // Relationships
-  scene Scene @relation(fields: [scene_id], references: [id], onDelete: Cascade)
+  // Relations
+  scene     Scene   @relation(fields: [sceneId], references: [id], onDelete: Cascade)
 
-  // Indexes
-  @@index([scene_id])
-  @@index([rule_key])
-  @@map("compliance_checks")
+  @@index([sceneId])
+  @@index([ruleKey])
 }
 
-// User feedback on scenes
 model Feedback {
-  id         String   @id @default(cuid())
-  scene_id   String
-  user_id    String
-  rating     Int      // 1-5 scale
-  tags       String[] // Array of string tags
+  id         String    @id @default(cuid())
+  sceneId    String
+  userId     String
+  rating     Int       // 1-5 scale
+  tags       String[]  // Array of string tags
   comment    String?
-  is_private Boolean  @default(false)
-  created_at DateTime @default(now())
+  isPrivate  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
 
-  // Relationships
-  scene Scene @relation(fields: [scene_id], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  // Relations
+  scene      Scene     @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Indexes
-  @@index([scene_id])
-  @@index([user_id])
+  @@index([sceneId])
+  @@index([userId])
   @@index([rating])
-  @@map("feedback")
 }
 
-// Collaboration sessions
 model Session {
   id         String    @id @default(cuid())
-  project_id String
-  user_id    String
+  projectId  String
+  userId     String
   token      String    @unique
-  expires_at DateTime?
-  created_at DateTime  @default(now())
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
 
-  // Relationships
-  user    User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  invites Invite[]
+  // Relations
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invites    Invite[]
 
-  // Indexes
   @@index([token])
-  @@index([user_id])
-  @@map("sessions")
+  @@index([userId])
 }
 
-// Session invitations
 model Invite {
   id         String    @id @default(cuid())
-  session_id String
-  user_id    String
+  sessionId  String
+  userId     String
   token      String    @unique
-  expires_at DateTime?
-  used_at    DateTime?
-  created_at DateTime  @default(now())
+  expiresAt  DateTime?
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
 
-  // Relationships
-  session Session @relation(fields: [session_id], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  // Relations
+  session    Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Indexes
   @@index([token])
-  @@index([session_id])
-  @@map("invites")
+  @@index([sessionId])
 }
 
-// Manual placement adjustments (post-generation nudging)
 model PlacementAdjustment {
-  id           String   @id @default(cuid())
-  scene_id     String
-  placement_id String
-  old_x_cm     Int
-  old_y_cm     Int
-  new_x_cm     Int
-  new_y_cm     Int
-  old_rotation Int
-  new_rotation Int
-  created_at   DateTime @default(now())
+  id           String    @id @default(cuid())
+  sceneId      String
+  placementId  String
+  oldXCm       Int
+  oldYCm       Int
+  newXCm       Int
+  newYCm       Int
+  oldRotation  Int
+  newRotation  Int
+  createdAt    DateTime  @default(now())
 
-  // Relationships
-  scene     Scene     @relation(fields: [scene_id], references: [id], onDelete: Cascade)
-  placement Placement @relation(fields: [placement_id], references: [id], onDelete: Cascade)
+  // Relations
+  scene        Scene     @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  placement    Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
 
-  // Indexes
-  @@index([scene_id])
-  @@index([placement_id])
-  @@map("placement_adjustments")
+  @@index([sceneId])
+  @@index([placementId])
 }
 
-// ============================================================================
-// 3D MODELS - New modular viewer system (side-by-side with 2D models above)
-// ============================================================================
-
-// 3D Asset management - uploaded GLB files with processing pipeline
 model Asset {
-  id           String      @id @default(cuid())
-  uploader_id  String
-  original_name String
-  mime_type    String
-  file_size    Int
-  status       AssetStatus @default(UPLOADED)
-  
+  id            String        @id @default(cuid())
+  uploaderId    String
+  originalName  String
+  mimeType      String
+  fileSize      Int
+  status        AssetStatus   @default(UPLOADED)
+
   // Processing results
-  original_url  String?
-  meshopt_url   String?
-  draco_url     String?
-  navmesh_url   String?
-  report_json   Json?
-  error_message String?
-  
+  originalUrl   String?
+  meshoptUrl    String?
+  dracoUrl      String?
+  navmeshUrl    String?
+  reportJson    Json?
+  errorMessage  String?
+
   // Metadata
-  license      AssetLicense? @default(PROPRIETARY)
-  created_at   DateTime      @default(now()) @map("created_at")
-  updated_at   DateTime      @updatedAt @map("updated_at")
-  processed_at DateTime?     @map("processed_at")
+  license       AssetLicense? @default(PROPRIETARY)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  processedAt   DateTime?
 
-  // Relationships
-  uploader    User                @relation(fields: [uploader_id], references: [id], onDelete: Cascade)
-  categories  ProjectCategory3D[]
-  navmesh_scenes Scene3D[]
+  // Relations
+  uploader      User                @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  categories    ProjectCategory3D[]
+  navmeshScenes Scene3D[]
 
-  // Indexes
-  @@index([uploader_id])
+  @@index([uploaderId])
   @@index([status])
-  @@index([created_at])
-  @@map("assets")
+  @@index([createdAt])
 }
 
-// 3D Categories per project - link assets to projects with category metadata
 model ProjectCategory3D {
-  id          String  @id @default(cuid())
-  project_id  String
-  asset_id    String
-  category_key String // e.g., "furniture", "decor", "lighting"
-  
-  // Category configuration flags
-  instancing  Boolean @default(false)
-  draco       Boolean @default(true)
-  meshopt     Boolean @default(true)
-  ktx2        Boolean @default(true)
-  
-  created_at  DateTime @default(now()) @map("created_at")
+  id           String   @id @default(cuid())
+  projectId    String
+  assetId      String
+  categoryKey  String
 
-  // Relationships
-  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  asset   Asset   @relation(fields: [asset_id], references: [id], onDelete: Cascade)
-  
-  // A project can have each asset only once per category
-  @@unique([project_id, asset_id, category_key])
-  @@index([project_id])
-  @@index([category_key])
-  @@map("project_categories_3d")
+  // Config flags
+  instancing   Boolean  @default(false)
+  draco        Boolean  @default(true)
+  meshopt      Boolean  @default(true)
+  ktx2         Boolean  @default(true)
+
+  createdAt    DateTime @default(now())
+
+  // Relations
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  asset        Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, assetId, categoryKey])
+  @@index([projectId])
+  @@index([categoryKey])
 }
 
-// 3D Scene management with version tracking for realtime deltas
 model Scene3D {
-  id          String  @id @default(cuid())
-  project_id  String
-  name        String
-  version     Int     @default(1) // For optimistic locking and realtime deltas
-  
-  // Scene properties (matches SceneManifestV2)
-  scale       Float?  @default(1.0)
-  exposure    Float?  @default(1.0)
-  env_hdri_url String?
-  env_intensity Float? @default(1.0)
-  
-  // Spawn point
-  spawn_position_x Float   @default(0.0)
-  spawn_position_y Float   @default(1.7) // Eye level
-  spawn_position_z Float   @default(5.0)
-  spawn_yaw_deg    Float   @default(0.0)
-  
-  // Navmesh reference
-  navmesh_asset_id String?
-  
-  created_at  DateTime @default(now()) @map("created_at")
-  updated_at  DateTime @updatedAt @map("updated_at")
+  id              String    @id @default(cuid())
+  projectId       String
+  name            String
+  version         Int       @default(1)
 
-  // Relationships
-  project      Project       @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  navmesh_asset Asset?       @relation(fields: [navmesh_asset_id], references: [id], onDelete: SetNull)
-  items        SceneItem3D[]
+  scale           Float?    @default(1.0)
+  exposure        Float?    @default(1.0)
+  envHdriUrl      String?
+  envIntensity    Float?    @default(1.0)
 
-  // Indexes
-  @@index([project_id])
-  @@index([created_at])
+  spawnPositionX  Float     @default(0.0)
+  spawnPositionY  Float     @default(1.7)
+  spawnPositionZ  Float     @default(5.0)
+  spawnYawDeg     Float     @default(0.0)
+
+  navmeshAssetId  String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  navmeshAsset    Asset?    @relation(fields: [navmeshAssetId], references: [id], onDelete: SetNull)
+  items           SceneItem3D[]
+
+  @@index([projectId])
+  @@index([createdAt])
   @@index([version])
-  @@map("scenes_3d")
 }
 
-// 3D Scene items - positioned/scaled/rotated objects in scenes
 model SceneItem3D {
-  id          String @id @default(cuid())
-  scene_id    String
-  category_key String // References ProjectCategory3D.category_key
-  model       String? // Optional model identifier within category
-  
-  // Transform (matches SceneManifestV2 item.transform)
-  position_x     Float @default(0.0)
-  position_y     Float @default(0.0)
-  position_z     Float @default(0.0)
-  rotation_x     Float @default(0.0) // Euler angles
-  rotation_y     Float @default(0.0)
-  rotation_z     Float @default(0.0)
-  scale_x        Float @default(1.0)
-  scale_y        Float @default(1.0)
-  scale_z        Float @default(1.0)
-  
-  // Material configuration
-  material_variant   String?
-  material_overrides Json?
-  
-  // Item behavior
-  selectable Boolean @default(true)
-  locked     Boolean @default(false)
-  
-  // Metadata
-  meta       Json?
-  created_at DateTime @default(now()) @map("created_at")
-  updated_at DateTime @updatedAt @map("updated_at")
+  id                String   @id @default(cuid())
+  sceneId           String
+  categoryKey       String
+  model             String?
 
-  // Relationships
-  scene Scene3D @relation(fields: [scene_id], references: [id], onDelete: Cascade)
+  // Transform
+  positionX         Float @default(0.0)
+  positionY         Float @default(0.0)
+  positionZ         Float @default(0.0)
+  rotationX         Float @default(0.0)
+  rotationY         Float @default(0.0)
+  rotationZ         Float @default(0.0)
+  scaleX            Float @default(1.0)
+  scaleY            Float @default(1.0)
+  scaleZ            Float @default(1.0)
 
-  // Indexes
-  @@index([scene_id])
-  @@index([category_key])
-  @@map("scene_items_3d")
+  // Material
+  materialVariant   String?
+  materialOverrides Json?
+
+  selectable        Boolean @default(true)
+  locked            Boolean @default(false)
+
+  meta              Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  scene             Scene3D @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+
+  @@index([sceneId])
+  @@index([categoryKey])
 }
 
 // generator erd {
