@@ -69,10 +69,10 @@ describe('Full Workflow Integration E2E', () => {
         where: { id: chairAssetId },
         data: {
           status: AssetStatus.READY,
-          original_url: 'https://test-bucket/original/office-chair.glb',
-          meshopt_url: 'https://test-bucket/meshopt/office-chair.glb',
-          draco_url: 'https://test-bucket/draco/office-chair.glb',
-          report_json: {
+          originalUrl: 'https://test-bucket/original/office-chair.glb',
+          meshoptUrl: 'https://test-bucket/meshopt/office-chair.glb',
+          dracoUrl: 'https://test-bucket/draco/office-chair.glb',
+          reportJson: {
             optimization: { compressionRatio: 0.3 },
             quality: { vertices: 1500, triangles: 1000 },
           },
@@ -83,9 +83,9 @@ describe('Full Workflow Integration E2E', () => {
         where: { id: tableAssetId },
         data: {
           status: AssetStatus.READY,
-          original_url: 'https://test-bucket/original/office-table.glb',
-          meshopt_url: 'https://test-bucket/meshopt/office-table.glb',
-          draco_url: 'https://test-bucket/draco/office-table.glb',
+          originalUrl: 'https://test-bucket/original/office-table.glb',
+          meshoptUrl: 'https://test-bucket/meshopt/office-table.glb',
+          dracoUrl: 'https://test-bucket/draco/office-table.glb',
         },
       });
 
@@ -477,7 +477,7 @@ describe('Full Workflow Integration E2E', () => {
             where: { id: response.body.assetId },
             data: {
               status: AssetStatus.READY,
-              original_url: `https://test-bucket/asset-${response.body.assetId}.glb`,
+              originalUrl: `https://test-bucket/asset-${response.body.assetId}.glb`,
             },
           })
         )

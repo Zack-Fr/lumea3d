@@ -53,10 +53,13 @@ describe('WebSocket Realtime Collaboration E2E', () => {
 
     // Wait for connections
     await Promise.all([
-      new Promise(resolve => client1.on('connect', resolve)),
-      new Promise(resolve => client2.on('connect', resolve)),
+      new Promise<void>(resolve => {
+        client1.on('connect', () => resolve());
+      }),
+      new Promise<void>(resolve => {
+        client2.on('connect', () => resolve());
+      }),
     ]);
-  });
 
   afterEach(async () => {
     client1?.disconnect();
@@ -422,4 +425,4 @@ describe('WebSocket Realtime Collaboration E2E', () => {
       expect(allOps).toHaveLength(rapidOps.length);
     });
   });
-});
+})});
