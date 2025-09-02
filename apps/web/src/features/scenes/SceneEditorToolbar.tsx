@@ -6,7 +6,7 @@ import {
   History, 
   Users, 
   Keyboard,
-  Grid3X3,
+  Grid,
   Zap
 } from 'lucide-react';
 import { useScenePersistence } from './ScenePersistenceContext';
@@ -154,7 +154,7 @@ export function SceneEditorToolbar({
               className="p-2 rounded hover:bg-gray-700 transition-colors text-gray-300"
               title="Toggle grid (G)"
             >
-              <Grid3X3 className="w-4 h-4" />
+              <Grid className="w-4 h-4" />
             </button>
           )}
 

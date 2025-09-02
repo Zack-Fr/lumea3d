@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { ROUTES } from "@/app/paths";
 import { CtaLink } from "@/shared/ui/CtaLink";
