@@ -10,12 +10,12 @@ import { Scene3D, SceneItem3D, Prisma } from '@prisma/client';
 
 export interface SceneWithItems extends Scene3D {
   items: SceneItem3D[];
-  navmesh_asset?: {
+  navmeshAsset?: {
     id: string;
-    original_name: string;
-    meshopt_url: string | null;
-    draco_url: string | null;
-    navmesh_url: string | null;
+    originalName: string;
+    meshoptUrl: string | null;
+    dracoUrl: string | null;
+    navmeshUrl: string | null;
   };
 }
 
@@ -34,7 +34,7 @@ export class ScenesService {
   async create(projectId: string, userId: string, createSceneDto: CreateSceneDto): Promise<Scene3D> {
     // Verify project ownership
     const project = await this.prisma.project.findFirst({
-      where: { id: projectId, user_id: userId },
+      where: { id: projectId, userId: userId },
     });
 
     if (!project) {
@@ -46,8 +46,8 @@ export class ScenesService {
       const navmeshAsset = await this.prisma.asset.findFirst({
         where: {
           id: createSceneDto.navmeshAssetId,
-          uploader_id: userId,
-          mime_type: 'model/gltf-binary',
+          uploaderId: userId,
+          mimeType: 'model/gltf-binary',
           status: 'READY',
         },
       });
@@ -59,17 +59,17 @@ export class ScenesService {
 
     return this.prisma.scene3D.create({
       data: {
-        project_id: projectId,
+        projectId: projectId,
         name: createSceneDto.name,
         scale: createSceneDto.scale,
         exposure: createSceneDto.exposure,
-        env_hdri_url: createSceneDto.envHdriUrl,
-        env_intensity: createSceneDto.envIntensity,
-        spawn_position_x: createSceneDto.spawnPositionX ?? 0.0,
-        spawn_position_y: createSceneDto.spawnPositionY ?? 1.7,
-        spawn_position_z: createSceneDto.spawnPositionZ ?? 5.0,
-        spawn_yaw_deg: createSceneDto.spawnYawDeg ?? 0.0,
-        navmesh_asset_id: createSceneDto.navmeshAssetId,
+        envHdriUrl: createSceneDto.envHdriUrl,
+        envIntensity: createSceneDto.envIntensity,
+        spawnPositionX: createSceneDto.spawnPositionX ?? 0.0,
+        spawnPositionY: createSceneDto.spawnPositionY ?? 1.7,
+        spawnPositionZ: createSceneDto.spawnPositionZ ?? 5.0,
+        spawnYawDeg: createSceneDto.spawnYawDeg ?? 0.0,
+        navmeshAssetId: createSceneDto.navmeshAssetId,
       },
     });
   }

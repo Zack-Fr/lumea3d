@@ -56,15 +56,15 @@ export class AssetsService {
       );
     }
 
-    // Create asset record in database (using snake_case field names)
+    // Create asset record in database (using PascalCase field names)
     const asset = await this.prisma.asset.create({
       data: {
-        original_name: dto.filename,
-        mime_type: dto.contentType,
-        file_size: dto.fileSize,
+        originalName: dto.filename,
+        mimeType: dto.contentType,
+        fileSize: dto.fileSize,
         status: AssetStatus.UPLOADED,
-        uploader_id: userId,
-        report_json: dto.metadata || {},
+        uploaderId: userId,
+        reportJson: dto.metadata || {},
       },
     });
 
@@ -87,7 +87,7 @@ export class AssetsService {
     // Update asset with storage URL
     await this.prisma.asset.update({
       where: { id: asset.id },
-      data: { original_url: objectKey },
+      data: { originalUrl: objectKey },
     });
 
     this.logger.log(`Generated upload URL for asset ${asset.id} by user ${userId}`);
@@ -105,7 +105,7 @@ export class AssetsService {
    */
   async handleUploadComplete(assetId: string, userId: string): Promise<Asset> {
     const asset = await this.prisma.asset.findFirst({
-      where: { id: assetId, uploader_id: userId },
+      where: { id: assetId, uploaderId: userId },
     });
 
     if (!asset) {
@@ -121,7 +121,7 @@ export class AssetsService {
       where: { id: assetId },
       data: {
         status: AssetStatus.PROCESSING,
-        processed_at: new Date(),
+        processedAt: new Date(),
       },
     });
 
@@ -139,15 +139,19 @@ export class AssetsService {
   async createAsset(userId: string, dto: CreateAssetDto): Promise<Asset> {
     return this.prisma.asset.create({
       data: {
-        original_name: dto.originalName,
-        mime_type: dto.mimeType,
-        file_size: dto.fileSize,
+        originalName: dto.originalName,
+        mimeType: dto.mimeType,
+        fileSize: dto.fileSize,
         status: dto.status || AssetStatus.UPLOADED,
-        uploader_id: userId,
+        uploaderId: userId,
         license: dto.license,
-        original_url: dto.originalUrl,
-        report_json: dto.reportJson,
-        error_message: dto.errorMessage,
+        originalUrl: dto.originalUrl,
+        meshoptUrl: dto.meshoptUrl,
+        dracoUrl: dto.dracoUrl,
+        navmeshUrl: dto.navmeshUrl,
+        reportJson: dto.reportJson,
+        errorMessage: dto.errorMessage,
+        processedAt: dto.processedAt ? new Date(dto.processedAt) : undefined,
       },
     });
   }
@@ -157,7 +161,7 @@ export class AssetsService {
    */
   async getAsset(assetId: string, userId: string): Promise<Asset> {
     const asset = await this.prisma.asset.findFirst({
-      where: { id: assetId, uploader_id: userId },
+      where: { id: assetId, uploaderId: userId },
     });
 
     if (!asset) {
@@ -173,9 +177,9 @@ export class AssetsService {
   async getUserAssets(userId: string): Promise<Asset[]> {
     return this.prisma.asset.findMany({
       where: {
-        uploader_id: userId,
+        uploaderId: userId,
       },
-      orderBy: { created_at: 'desc' },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -188,15 +192,15 @@ export class AssetsService {
     return this.prisma.asset.update({
       where: { id: assetId },
       data: {
-        original_name: dto.originalName,
+        originalName: dto.originalName,
         status: dto.status,
-        original_url: dto.originalUrl,
-        meshopt_url: dto.meshoptUrl,
-        draco_url: dto.dracoUrl,
-        navmesh_url: dto.navmeshUrl,
+        originalUrl: dto.originalUrl,
+        meshoptUrl: dto.meshoptUrl,
+        dracoUrl: dto.dracoUrl,
+        navmeshUrl: dto.navmeshUrl,
         license: dto.license,
-        report_json: dto.reportJson,
-        error_message: dto.errorMessage,
+        reportJson: dto.reportJson,
+        errorMessage: dto.errorMessage,
       },
     });
   }
@@ -208,34 +212,34 @@ export class AssetsService {
     const asset = await this.getAsset(assetId, userId);
 
     // Delete from storage
-    if (asset.original_url) {
+    if (asset.originalUrl) {
       try {
-        await this.storageService.deleteAsset(asset.original_url);
+        await this.storageService.deleteAsset(asset.originalUrl);
       } catch (error) {
         this.logger.warn(`Failed to delete storage object for asset ${assetId}: ${error.message}`);
       }
     }
 
     // Delete processed variants from storage
-    if (asset.meshopt_url) {
+    if (asset.meshoptUrl) {
       try {
-        await this.storageService.deleteAsset(asset.meshopt_url);
+        await this.storageService.deleteAsset(asset.meshoptUrl);
       } catch (error) {
         this.logger.warn(`Failed to delete meshopt variant: ${error.message}`);
       }
     }
 
-    if (asset.draco_url) {
+    if (asset.dracoUrl) {
       try {
-        await this.storageService.deleteAsset(asset.draco_url);
+        await this.storageService.deleteAsset(asset.dracoUrl);
       } catch (error) {
         this.logger.warn(`Failed to delete draco variant: ${error.message}`);
       }
     }
 
-    if (asset.navmesh_url) {
+    if (asset.navmeshUrl) {
       try {
-        await this.storageService.deleteAsset(asset.navmesh_url);
+        await this.storageService.deleteAsset(asset.navmeshUrl);
       } catch (error) {
         this.logger.warn(`Failed to delete navmesh variant: ${error.message}`);
       }
@@ -264,16 +268,16 @@ export class AssetsService {
     
     switch (variant) {
       case 'original':
-        objectKey = asset.original_url;
+        objectKey = asset.originalUrl;
         break;
       case 'meshopt':
-        objectKey = asset.meshopt_url;
+        objectKey = asset.meshoptUrl;
         break;
       case 'draco':
-        objectKey = asset.draco_url;
+        objectKey = asset.dracoUrl;
         break;
       case 'navmesh':
-        objectKey = asset.navmesh_url;
+        objectKey = asset.navmeshUrl;
         break;
     }
 
@@ -310,7 +314,7 @@ export class AssetsService {
         where: { id: assetId },
         data: { 
           status: AssetStatus.FAILED,
-          error_message: error.message,
+          errorMessage: error.message,
         },
       });
     }
