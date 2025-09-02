@@ -98,8 +98,8 @@ export class AssetProcessingProcessor {
           where: { id: assetId },
           data: {
             status: AssetStatus.FAILED,
-            error_message: result.error || 'Processing failed',
-            report_json: {
+            errorMessage: result.error || 'Processing failed',
+            reportJson: {
               error: result.error,
               failedAt: new Date().toISOString(),
             },
@@ -117,8 +117,8 @@ export class AssetProcessingProcessor {
         where: { id: assetId },
         data: {
           status: AssetStatus.FAILED,
-          error_message: error.message,
-          report_json: {
+          errorMessage: error.message,
+          reportJson: {
             error: error.message,
             stack: error.stack,
             failedAt: new Date().toISOString(),

@@ -1,4 +1,4 @@
-import winston from 'winston';
+import winston, { addColors, format, transports } from 'winston';
 
 // Custom log levels
 const customLevels = {
@@ -19,17 +19,17 @@ const customLevels = {
 };
 
 // Add colors to winston
-winston.addColors(customLevels.colors);
+addColors(customLevels.colors);
 
 // Production log format
-const productionFormat = winston.format.combine(
-  winston.format.timestamp({
+const productionFormat = format.combine(
+  format.timestamp({
     format: 'YYYY-MM-DD HH:mm:ss.SSS',
   }),
-  winston.format.errors({ stack: true }),
-  winston.format.splat(),
-  winston.format.json(),
-  winston.format.printf(({ timestamp, level, message, service, ...meta }) => {
+  format.errors({ stack: true }),
+  format.splat(),
+  format.json(),
+  format.printf(({ timestamp, level, message, service, ...meta }) => {
     return JSON.stringify({
       '@timestamp': timestamp,
       level: level.toUpperCase(),
@@ -42,13 +42,13 @@ const productionFormat = winston.format.combine(
 );
 
 // Development log format
-const developmentFormat = winston.format.combine(
-  winston.format.timestamp({
+const developmentFormat = format.combine(
+  format.timestamp({
     format: 'HH:mm:ss',
   }),
-  winston.format.errors({ stack: true }),
-  winston.format.colorize({ all: true }),
-  winston.format.printf(({ timestamp, level, message, service, ...meta }) => {
+  format.errors({ stack: true }),
+  format.colorize({ all: true }),
+  format.printf(({ timestamp, level, message, service, ...meta }) => {
     const metaString = Object.keys(meta).length 
       ? `\n${JSON.stringify(meta, null, 2)}` 
       : '';
@@ -74,11 +74,11 @@ const errorFileRotationOptions = {
 
 // Create transports based on environment
 export const createTransports = () => {
-  const transports: winston.transport[] = [];
+  const transportsList: winston.transport[] = [];
 
   // Console transport (always present)
-  transports.push(
-    new winston.transports.Console({
+  transportsList.push(
+    new transports.Console({
       format: process.env.NODE_ENV === 'production' 
         ? productionFormat 
         : developmentFormat,
@@ -89,8 +89,8 @@ export const createTransports = () => {
   // File transports for production or when LOG_TO_FILE is true
   if (process.env.NODE_ENV === 'production' || process.env.LOG_TO_FILE === 'true') {
     // Combined logs
-    transports.push(
-      new winston.transports.File({
+    transportsList.push(
+      new transports.File({
         filename: 'logs/combined.log',
         format: productionFormat,
         ...fileRotationOptions,
@@ -98,8 +98,8 @@ export const createTransports = () => {
     );
 
     // Error logs
-    transports.push(
-      new winston.transports.File({
+    transportsList.push(
+      new transports.File({
         filename: 'logs/error.log',
         level: 'error',
         format: productionFormat,
@@ -108,14 +108,14 @@ export const createTransports = () => {
     );
 
     // Audit logs
-    transports.push(
-      new winston.transports.File({
+    transportsList.push(
+      new transports.File({
         filename: 'logs/audit.log',
         level: 'audit',
-        format: winston.format.combine(
-          winston.format.timestamp(),
-          winston.format.json(),
-          winston.format.printf((info: any) => {
+        format: format.combine(
+          format.timestamp(),
+          format.json(),
+          format.printf((info: any) => {
             if (info.audit && typeof info.audit === 'object') {
               return JSON.stringify({
                 '@timestamp': info.timestamp,
@@ -131,13 +131,13 @@ export const createTransports = () => {
     );
 
     // Security logs
-    transports.push(
-      new winston.transports.File({
+    transportsList.push(
+      new transports.File({
         filename: 'logs/security.log',
-        format: winston.format.combine(
-          winston.format.timestamp(),
-          winston.format.json(),
-          winston.format.printf((info: any) => {
+        format: format.combine(
+          format.timestamp(),
+          format.json(),
+          format.printf((info: any) => {
             if (info.security && typeof info.security === 'object') {
               return JSON.stringify({
                 '@timestamp': info.timestamp,
@@ -155,13 +155,13 @@ export const createTransports = () => {
     );
 
     // Performance logs
-    transports.push(
-      new winston.transports.File({
+    transportsList.push(
+      new transports.File({
         filename: 'logs/performance.log',
-        format: winston.format.combine(
-          winston.format.timestamp(),
-          winston.format.json(),
-          winston.format.printf((info: any) => {
+        format: format.combine(
+          format.timestamp(),
+          format.json(),
+          format.printf((info: any) => {
             if (info.performance || info.http || info.database) {
               return JSON.stringify({
                 '@timestamp': info.timestamp,
@@ -179,8 +179,8 @@ export const createTransports = () => {
 
   // External log aggregation (ELK stack, etc.)
   if (process.env.NODE_ENV === 'production' && process.env.LOG_AGGREGATION_URL) {
-    transports.push(
-      new winston.transports.Http({
+    transportsList.push(
+      new transports.Http({
         host: process.env.LOG_AGGREGATION_HOST || 'localhost',
         port: parseInt(process.env.LOG_AGGREGATION_PORT || '3000'),
         path: process.env.LOG_AGGREGATION_PATH || '/logs',
@@ -189,7 +189,7 @@ export const createTransports = () => {
     );
   }
 
-  return transports;
+  return transportsList;
 };
 
 // Logger configuration
