@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { 
-  Grid3X3, 
+  Grid, 
   Sun, 
   Navigation, 
   Zap, 
@@ -65,7 +65,7 @@ export function ViewerSidebar({
           {/* Grid Toggle */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Grid3X3 size={16} />
+              <Grid size={16} />
               <span className="text-sm">Grid</span>
             </div>
             <button
