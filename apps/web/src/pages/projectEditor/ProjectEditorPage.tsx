@@ -2,12 +2,12 @@ import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "@/app/paths";
-import s from "./ProjectEditor.module.css"; // ✅ CSS Module
-import { Button } from "../../components/ui/Button";
-import { Card, CardContent } from "../../components/ui/Card";
-import { Badge } from "../../components/ui/Badge";
-import { Progress } from "../../components/ui/Progress";
-import { Separator } from "../../components/ui/Separator";
+import s from "./ProjectEditor.module.css";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent } from "../../components/ui/card";
+import { Badge } from "../../components/ui/badge";
+import { Progress } from "../../components/ui/progress";
+import { Separator } from "../../components/ui/separator";
 import {
   Award, ArrowLeft, Sparkles, Zap
 } from "lucide-react";
