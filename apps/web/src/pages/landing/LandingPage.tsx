@@ -15,10 +15,9 @@ import s from "./Landing.module.css";
 
 interface LandingPageProps {
   onNavigate?: (page: string) => void;
-  onLogin?: () => void;
 }
 
-const LandingPage = memo(({ onNavigate, onLogin }: LandingPageProps) => {
+const LandingPage = memo(({ onNavigate }: LandingPageProps) => {
   const [selectedMenuItem, setSelectedMenuItem] = useState<string | null>(null);
   
   // Custom hooks for clean state management
@@ -54,7 +53,6 @@ const LandingPage = memo(({ onNavigate, onLogin }: LandingPageProps) => {
         menuItems={MENU_ITEMS}
         selectedMenuItem={selectedMenuItem}
         onMenuItemClick={handleMenuItemClick}
-        onLogin={onLogin}
       />
 
       {/* Central 3D Scene Area */}

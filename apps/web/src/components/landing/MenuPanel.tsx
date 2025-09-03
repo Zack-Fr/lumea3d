@@ -5,6 +5,8 @@ import { Card } from "../ui/card";
 import { Button } from "../../components/ui/button";
 import { Separator } from "../../components/ui/separator";
 import { ScrollArea } from "../../components/ui/scrollArea";
+import { CtaLink } from "@/shared/ui/CtaLink";
+import { ROUTES } from "@/app/paths";
 import { MenuItem } from "../../types/landing";
 import MenuItemButton from "./MenuItemButton";
 import s from "../../pages/landing/Landing.module.css";
@@ -15,7 +17,6 @@ interface MenuPanelProps {
   menuItems: MenuItem[];
   selectedMenuItem: string | null;
   onMenuItemClick: (item: MenuItem) => void;
-  onLogin?: () => void;
   className?: string;
 }
 
@@ -24,8 +25,7 @@ const MenuPanel = memo(({
   onClose, 
   menuItems, 
   selectedMenuItem, 
-  onMenuItemClick, 
-  onLogin,
+  onMenuItemClick,
   className = ""
 }: MenuPanelProps) => {
   return (
@@ -95,23 +95,24 @@ const MenuPanel = memo(({
               {/* Quick Actions */}
               <Separator className="my-4 bg-[var(--glass-border-dim)]" />
               <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="glass border-glow text-[var(--glass-gray)] hover:text-white"
-                  onClick={onLogin}
+                <CtaLink
+                  to={ROUTES.login()}
+                  variant="custom"
+                  className="glass border-glow text-[var(--glass-gray)] hover:text-white inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background h-9 px-3"
+                  aria-label="Go to login page"
                 >
                   <LogIn className="w-4 h-4 mr-2" />
                   Login
-                </Button>
-                <Button
-                  size="sm"
-                  className="bg-[var(--glass-yellow)] hover:bg-[var(--glass-yellow-dark)] text-[var(--glass-black)] glow-yellow"
-                  onClick={onLogin}
+                </CtaLink>
+                <CtaLink
+                  to={ROUTES.signup()}
+                  variant="custom"
+                  className="bg-[var(--glass-yellow)] hover:bg-[var(--glass-yellow-dark)] text-[var(--glass-black)] glow-yellow inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background h-9 px-3"
+                  aria-label="Go to signup page"
                 >
                   <UserPlus className="w-4 h-4 mr-2" />
                   Join
-                </Button>
+                </CtaLink>
               </div>
             </div>
           </Card>
