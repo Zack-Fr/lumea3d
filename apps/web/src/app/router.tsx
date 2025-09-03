@@ -3,11 +3,11 @@ import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom"
 import { PATHS } from "@/app/paths";            
 import { RequireAuth, GuestOnly } from "@/components/ProtectedRoute";
 import Layout from "@/app/layout";
-import LandingPage from "@/pages/LandingPage";
 import AuthPage from "@/pages/auth/AuthPage";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
 import ProjectEditor from "@/pages/projectEditor/ProjectEditorPage";
 import ViewerPage from "@/pages/viewer/ViewerPage";
+import LandingPage from "@/pages/landing/LandingPage";
 // import PreviewPage from "@/pages/PreviewPage";
 
 // 404(need to change)
@@ -25,7 +25,7 @@ function NotFound() {
 
 const router = createBrowserRouter([
   // Public landing
-  { path: PATHS.landing, element: <LandingPage /> },
+  { path: PATHS.landing, element: <LandingPage/> },
 
   // Public viewer (for development/demos)
   { path: "/viewer/:sceneId", element: <ViewerPage /> },
