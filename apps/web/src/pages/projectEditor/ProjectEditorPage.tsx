@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "@/app/paths";
-import s from "./ProjectEditor.module.css"; // ✅ CSS Module
+import s from "./ProjectEditor.module.css";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";

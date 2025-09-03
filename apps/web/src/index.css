@@ -458,6 +458,23 @@
     min-height: 100vh;
   }
 
+  :root {
+    /* Existing brand colors */
+    --brand-gold: #F8CC3E;
+    --brand-plum: #311317;
+    --brand-stone: #A09F92;
+    --brand-black: #030201;
+    
+    /* Add missing glass theme variables */
+    --glass-black: #030201;
+    --glass-gray: #A09F92;
+    --glass-yellow: #F8CC3E;
+    --glass-yellow-dark: #E6B835;
+    --glass-border-light: rgba(245, 200, 66, 0.2);
+    --glass-border-dim: rgba(160, 159, 146, 0.2);
+    --glass-border-glow: rgba(245, 200, 66, 0.4);
+  }
+
   :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) h1 {
     font-size: var(--text-2xl);
     font-weight: var(--font-weight-medium);
