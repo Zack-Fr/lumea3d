@@ -1,150 +1,195 @@
-import { motion } from "framer-motion";
-import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { PATHS } from "@/app/paths";
-import s from "./ProjectEditor.module.css";
-import { Button } from "../../components/ui/Button";
-import { Card, CardContent } from "../../components/ui/Card";
-import { Badge } from "../../components/ui/Badge";
-import { Progress } from "../../components/ui/Progress";
-import { Separator } from "../../components/ui/Separator";
-import {
-  Award, ArrowLeft, Sparkles, Zap
-} from "lucide-react";
+import React, { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import styles from './ProjectEditor.module.css';
 
-const assetCategories = [
-  { id: "models", title: "3D Models", icon: "Box" },
-  { id: "props", title: "Props", icon: "Grid3x3" },
-  { id: "lights", title: "Lights", icon: "Sun" },
-];
+// Custom Hooks
+import { useViewportControls } from '../../hooks/projectEditor/useViewportControls';
+import { useGamificationSystem } from '../../hooks/projectEditor/useGamificationSystem';
+import { useAssetManagement } from '../../hooks/projectEditor/useAssetManagement';
+import { useProjectEditorSettings } from '../../hooks/projectEditor/useProjectEditorSettings';
 
-const gamificationData = { level: 3, xp: 120, nextLevelXp: 200, streak: 5 };
+// Atomic Components
+import TopBar from '../../components/projectEditor/TopBar';
+import LeftSidebar from '../../components/projectEditor/LeftSidebar';
+import ViewportCanvas from '../../components/projectEditor/ViewportCanvas';
+import ViewportTools from '../../components/projectEditor/ViewportTools';
+import ViewportSettings from '../../components/projectEditor/ViewportSettings';
+import PropertiesPanel from '../../components/projectEditor/PropertiesPanel';
+import GamificationOverlay from '../../components/projectEditor/GamificationOverlay';
+import Achievement from '../../components/projectEditor/Achievement';
 
-export default function ProjectEditor() {
-  const [selectedTool, setSelectedTool] = useState("models");
-  const [showProperties, setShowProperties] = useState(true);
-  const [showGamification, setShowGamification] = useState(true);
-  const [isWASDActive, setIsWASDActive] = useState(false);
-  const [renderMode] = useState("realistic");
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const [movement, setMovement] = useState({ forward: false, backward: false, left: false, right: false });
-  const [showAchievement, setShowAchievement] = useState(false);
-  const [achievementMessage, setAchievementMessage] = useState("");
+// Data Layer
+import { assetCategories } from '../../data/projectEditorData';
 
-  useEffect(() => {
-    const keyMap: Record<string, keyof typeof movement> = { w: "forward", a: "left", s: "backward", d: "right" };
-
-    const handleKey = (e: KeyboardEvent, pressed: boolean) => {
-      if (!isWASDActive) return;
-      const key = (e.key || "").toLowerCase();
-      if (["w", "a", "s", "d"].includes(key)) {
-        const field = keyMap[key];
-        setMovement(prev => ({ ...prev, [field]: pressed }));
-      }
-    };
-
-    const down = (e: KeyboardEvent) => handleKey(e, true);
-    const up = (e: KeyboardEvent) => handleKey(e, false);
-
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
-    return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
-  }, [isWASDActive]);
-
+const ProjectEditorPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const handleViewportClick = () => {
-    setIsWASDActive(true);
-    viewportRef.current?.focus();
-    if (!showAchievement) {
-      setAchievementMessage("🎮 Viewport Activated! Use WASD to navigate");
-      setShowAchievement(true);
-      setTimeout(() => setShowAchievement(false), 3000);
-    }
-  };
+  // Custom Hooks
+  const {
+    isWASDActive,
+    cameraMode,
+    setCameraMode,
+    movement,
+    viewportRef,
+    handleViewportClick
+  } = useViewportControls();
 
-  const handleAssetAdd = (name: string) => {
-    setAchievementMessage(`✨ +15 XP - Added ${name} to scene!`);
-    setShowAchievement(true);
-    setTimeout(() => setShowAchievement(false), 2000);
-  };
+  const {
+    gamificationData,
+    showGamification,
+    setShowGamification,
+    showAchievement,
+    achievementMessage,
+    triggerAchievement
+  } = useGamificationSystem();
+
+  const {
+    selectedTool,
+    setSelectedTool,
+    selectedAsset,
+    setSelectedAsset
+  } = useAssetManagement(assetCategories);
+
+  const {
+    showProperties,
+    setShowProperties,
+    soundEnabled,
+    setSoundEnabled,
+    lightingMode,
+    setLightingMode
+  } = useProjectEditorSettings();
+
+  // Navigation callback
+  const handleNavigate = useCallback((page: string) => {
+    if (page === 'dashboard') {
+      navigate('/app/dashboard');
+    }
+  }, [navigate]);
+
+  // Camera mode change callback
+  const handleCameraModeChange = useCallback((mode: string) => {
+    setCameraMode(mode);
+    triggerAchievement(`Camera switched to ${mode} mode!`);
+  }, [setCameraMode, triggerAchievement]);
+
+  // Sound toggle callback
+  const handleSoundToggle = useCallback(() => {
+    setSoundEnabled(!soundEnabled);
+    triggerAchievement(soundEnabled ? 'Sound disabled' : 'Sound enabled');
+  }, [soundEnabled, setSoundEnabled, triggerAchievement]);
+
+  // Lighting mode toggle callback
+  const handleLightingModeToggle = useCallback(() => {
+    const newMode = lightingMode === 'day' ? 'night' : 'day';
+    setLightingMode(newMode);
+    triggerAchievement(`Lighting changed to ${newMode} mode!`);
+  }, [lightingMode, setLightingMode, triggerAchievement]);
+
+  // Properties toggle callback
+  const handlePropertiesToggle = useCallback(() => {
+    setShowProperties(!showProperties);
+  }, [showProperties, setShowProperties]);
+
+  // AI Assist callback
+  const handleAIAssist = useCallback(() => {
+    setShowGamification(true);
+    triggerAchievement('🤖 AI Assistant activated!');
+  }, [setShowGamification, triggerAchievement]);
+
+  // Asset selection callback
+  const handleAssetSelect = useCallback((assetId: number) => {
+    setSelectedAsset(assetId);
+    triggerAchievement('✨ +15 XP - Asset selected!');
+  }, [setSelectedAsset, triggerAchievement]);
+
+  // Asset add callback
+  const handleAssetAdd = useCallback((assetName: string) => {
+    triggerAchievement(`✨ +15 XP - Added ${assetName} to scene!`);
+  }, [triggerAchievement]);
+
+  // Viewport click callback with achievement
+  const handleViewportClickWithAchievement = useCallback(() => {
+    handleViewportClick();
+    if (!isWASDActive) {
+      triggerAchievement('🎮 Viewport Activated! Use WASD to navigate');
+    }
+  }, [handleViewportClick, isWASDActive, triggerAchievement]);
 
   return (
-    <div className={s.editorRoot}>
+    <div className={styles.projectEditorRoot}>
+      {/* Achievement Notification */}
       {showAchievement && (
-        <motion.div initial={{ opacity: 0, scale: 0.8, y: -50 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.8, y: -50 }} className={s.achievementToast}>
-          <Award className={s.achievementIcon} />
-          <p>{achievementMessage}</p>
-        </motion.div>
+        <Achievement 
+          message={achievementMessage}
+          show={showAchievement}
+        />
       )}
 
+      {/* Gamification Overlay */}
       {showGamification && (
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className={s.gamificationBar}>
-          <Award className={s.iconSm} />
-          <span>Level {gamificationData.level}</span>
-          <Progress value={(gamificationData.xp / gamificationData.nextLevelXp) * 100} className={s.progressSm} />
-          <span>{gamificationData.xp}/{gamificationData.nextLevelXp}</span>
-          <Zap className={s.iconSm} />
-          <span>{gamificationData.streak}</span>
-          <Button variant="ghost" size="sm" onClick={() => setShowGamification(false)} className={s.closeBtn}>×</Button>
-        </motion.div>
+        <GamificationOverlay
+          gamificationData={gamificationData}
+          show={showGamification}
+          onClose={() => setShowGamification(false)}
+        />
       )}
 
-      <header className={s.topBar}>
-        <div className={s.topLeft}>
-          <Button variant="ghost" size="sm" onClick={() => navigate(PATHS.dashboard)}>
-            <ArrowLeft className={s.iconXs} /> Back
-          </Button>
-          <Separator orientation="vertical" />
-          <h1>3D Scene Editor</h1>
-          <Badge className={s.liveBadge}>Live</Badge>
-        </div>
-        <div className={s.topRight}>
-          {/* Add your camera toggle buttons */}
-          <Button size="sm" onClick={() => { setShowProperties(false); setShowGamification(true); }} className={s.aiAssistBtn}>
-            <Sparkles className={s.iconXs} /> AI Assist
-          </Button>
-        </div>
-      </header>
+      {/* Top Bar */}
+      <TopBar
+        onNavigate={handleNavigate}
+        cameraMode={cameraMode}
+        onCameraModeChange={handleCameraModeChange}
+        soundEnabled={soundEnabled}
+        onSoundToggle={handleSoundToggle}
+        lightingMode={lightingMode}
+        onLightingModeToggle={handleLightingModeToggle}
+        showProperties={showProperties}
+        onPropertiesToggle={handlePropertiesToggle}
+        onAIAssist={handleAIAssist}
+      />
 
-      <div className={s.layout}>
-        <aside className={s.sidebarLeft}>
-          <Card>
-            <CardContent>
-              <h3>Assets</h3>
-              <div>
-                {assetCategories.map((c) => (
-                  <Button key={c.id} variant={selectedTool === c.id ? "secondary" : "ghost"} size="sm" onClick={() => setSelectedTool(c.id)}>
-                    {c.title}
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </aside>
+      {/* Main Layout */}
+      <div className={styles.projectEditorLayout}>
+        {/* Left Sidebar */}
+        <LeftSidebar
+          assetCategories={assetCategories}
+          selectedTool={selectedTool}
+          onToolChange={setSelectedTool}
+          selectedAsset={selectedAsset}
+          onAssetSelect={handleAssetSelect}
+          onAssetAdd={handleAssetAdd}
+        />
 
-        <main className={s.viewport} ref={viewportRef} onClick={handleViewportClick} tabIndex={0}>
-          <div className={s.viewportInner}>
-            <p>Viewport placeholder — 3D canvas goes here.</p>
-            <Button onClick={() => handleAssetAdd('Sample Model')}>Add Sample Model</Button>
-          </div>
+        {/* Main Viewport Area */}
+        <main className={styles.mainViewportArea}>
+          {/* Viewport Canvas */}
+          <ViewportCanvas
+            viewportRef={viewportRef}
+            isWASDActive={isWASDActive}
+            movement={movement}
+            onViewportClick={handleViewportClickWithAchievement}
+          />
+
+          {/* Viewport Tools */}
+          <ViewportTools />
+
+          {/* Viewport Settings */}
+          <ViewportSettings
+            cameraMode={cameraMode}
+            renderMode="realistic"
+          />
         </main>
 
+        {/* Right Properties Panel */}
         {showProperties && (
-          <aside className={s.sidebarRight}>
-            <Card>
-              <CardContent>
-                <h3>Properties</h3>
-                <div>
-                  <p>Camera: orbit</p>
-                  <p>Lighting: day</p>
-                  <p>Render: {renderMode}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </aside>
+          <PropertiesPanel
+            show={showProperties}
+            onClose={() => setShowProperties(false)}
+          />
         )}
       </div>
     </div>
   );
-}
+};
+
+export default ProjectEditorPage;
