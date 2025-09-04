@@ -4,7 +4,7 @@ import { PATHS } from "@/app/paths";
 import { RequireAuth, GuestOnly } from "@/components/ProtectedRoute";
 import Layout from "@/app/layout";
 import AuthPage from "@/pages/auth/AuthPage";
-import DashboardPage from "@/pages/dashboard/DashboardPage";
+import UserDashboardPage from "@/pages/dashboard/UserDashboardPage";
 import ProjectEditor from "@/pages/projectEditor/ProjectEditorPage";
 import ViewerPage from "@/pages/viewer/ViewerPage";
 import LandingPage from "@/pages/landing/LandingPage";
@@ -48,7 +48,7 @@ const router = createBrowserRouter([
         element: <Layout />,                // app chrome: Topbar + Sidebar + <Outlet/>
         children: [
           { index: true, element: <Navigate to={PATHS.dashboard} replace /> },
-          { path: PATHS.dashboard, element: <DashboardPage /> },               // "/app/dashboard"
+          { path: PATHS.dashboard, element: <UserDashboardPage /> },               // "/app/dashboard"
           { path: PATHS.projectNew, element: <ProjectEditor /> },             // "/app/projects/new"
           { path: PATHS.project, element: <ProjectEditor /> },                // "/app/projects/:id"
           // { path: PATHS.preview, element: <PreviewPage /> },                   // "/app/preview/:token"

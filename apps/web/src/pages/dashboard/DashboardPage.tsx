@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {ArrowRight, Calendar, CheckCircle, Home, LogOut, Palette,Plus, Settings, Sparkles, Users} from "lucide-react";
 import { Button } from "../../components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/Card";
-import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/Avatar";
 import { Badge } from "../../components/ui/Badge";
 import { PATHS, ROUTES } from "@/app/paths";
 import { useAuth } from "../../providers/AuthProvider";
