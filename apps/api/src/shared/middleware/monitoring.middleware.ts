@@ -38,31 +38,43 @@ export class MonitoringMiddleware implements NestMiddleware {
     });
 
     // Override end function to capture response data
-    const originalEnd = res.end;
-    res.end = function (chunk?: any, encoding?: any) {
+    const originalEnd = res.end.bind(res);
+    const self = this;
+
+    res.end = function (chunk?: any, encoding?: any, cb?: () => void): any {
       const duration = Date.now() - startTime;
       const hrDuration = process.hrtime(startHrTime);
       const durationSeconds = hrDuration[0] + hrDuration[1] / 1e9;
 
       // Record metrics
-      this.metrics.recordHttpRequest(method, route, res.statusCode, durationSeconds);
+      try {
+        self.metrics.recordHttpRequest(method, route, res.statusCode, durationSeconds);
+      } catch (error) {
+        console.error('Error recording metrics:', error);
+      }
 
       // Log request completion
       const logLevel = res.statusCode >= 400 ? 'warn' : 'info';
-      this.logger[logLevel](`Request completed: ${method} ${req.path}`, {
-        method,
-        url: req.path,
-        statusCode: res.statusCode,
-        duration,
-        durationSeconds,
-        userId,
-        contentLength: res.get('Content-Length'),
-        responseSize: chunk ? Buffer.byteLength(chunk) : 0,
-      });
+      try {
+        self.logger[logLevel](`Request completed: ${method} ${req.path}`, {
+          method,
+          url: req.path,
+          statusCode: res.statusCode,
+          duration,
+          durationSeconds,
+          userId,
+          userAgent: req.get('User-Agent'),
+          ip: req.ip,
+          contentLength: res.get('Content-Length'),
+          responseSize: chunk ? Buffer.byteLength(chunk.toString()) : 0,
+        });
+      } catch (error) {
+        console.error('Error logging request completion:', error);
+      }
 
       // Log slow requests
       if (duration > 1000) {
-        this.logger.warn(`Slow request detected: ${method} ${req.path}`, {
+        self.logger.warn(`Slow request detected: ${method} ${req.path}`, {
           method,
           url: req.path,
           duration,
@@ -76,9 +88,9 @@ export class MonitoringMiddleware implements NestMiddleware {
         const errorType = res.statusCode >= 500 ? 'server_error' : 'client_error';
         const severity = res.statusCode >= 500 ? 'high' : 'medium';
         
-        this.metrics.recordError(errorType, severity);
+        self.metrics.recordError(errorType, severity);
         
-        this.logger.error(`HTTP Error: ${res.statusCode} for ${method} ${req.path}`, null, {
+        self.logger.error(`HTTP Error: ${res.statusCode} for ${method} ${req.path}`, null, {
           method,
           url: req.path,
           statusCode: res.statusCode,
@@ -91,12 +103,18 @@ export class MonitoringMiddleware implements NestMiddleware {
 
       // Record user activity
       if (userId !== 'anonymous') {
-        this.metrics.recordUserActivity(`${method.toLowerCase()}_${this.getActionFromPath(req.path)}`);
+        self.metrics.recordUserActivity(`${method.toLowerCase()}_${self.getActionFromPath(req.path)}`);
       }
 
       // Call original end function
-      originalEnd.call(this, chunk, encoding);
-    }.bind(this);
+      if (cb) {
+        return originalEnd(chunk, encoding, cb);
+      } else if (encoding) {
+        return originalEnd(chunk, encoding);
+      } else {
+        return originalEnd(chunk);
+      }
+    };
 
     next();
   }
