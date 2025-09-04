@@ -28,7 +28,7 @@ import { useAuth } from "../../providers/AuthProvider";
 
 // Custom hooks
 import { useProjects } from "../../hooks/useProjects";
-import { useActivity, useDeadlines } from "../../hooks/useActivityAndDeadlines";
+// import { useActivity, useDeadlines } from "../../hooks/useActivityAndDeadlines";
 import { useAchievements, useQuickActions } from "../../hooks/useAchievementsAndActions";
 
 // Data and types
@@ -54,10 +54,6 @@ const UserDashboardPage = memo(() => {
       case "landing":
         navigate(PATHS.landing);
         break;
-      case "admin":
-        // Add admin route when available
-        console.log("Navigate to admin");
-        break;
       case "project":
         navigate(ROUTES.projectNew('new'));
         break;
@@ -73,8 +69,8 @@ const UserDashboardPage = memo(() => {
 
   // Custom hooks for clean state management
   const { onProjectClick } = useProjects();
-  const { viewAllActivity, toggleViewAll } = useActivity();
-  const { onDeadlineClick } = useDeadlines();
+  // const { viewAllActivity, toggleViewAll } = useActivity();
+  // const { onDeadlineClick } = useDeadlines();
   const { onAchievementClick } = useAchievements();
   const { handleQuickAction } = useQuickActions();
 
@@ -118,13 +114,13 @@ const UserDashboardPage = memo(() => {
         />
 
         {/* Right Sidebar - Activity & Deadlines */}
-        <RightSidebar 
+        {/* <RightSidebar 
           recentActivity={USER_STATS.recentActivity}
           upcomingDeadlines={USER_STATS.upcomingDeadlines}
           viewAllActivity={viewAllActivity}
           onToggleViewAll={toggleViewAll}
           onDeadlineClick={onDeadlineClick}
-        />
+        /> */}
       </div>
     </div>
   );
@@ -319,14 +315,6 @@ const TopNavigation = memo(({ onNavigate, onLogout }: TopNavigationProps) => (
       </button>
 
       <div className="flex items-center space-x-4">
-        <Button 
-          variant="outline" 
-          onClick={() => onNavigate("admin")}
-          className="glass border-glow text-[var(--glass-gray)] hover:text-white hover:bg-white/10"
-        >
-          <Settings className="w-4 h-4 mr-2" />
-          Admin
-        </Button>
         <Avatar className="cursor-pointer ring-2 ring-[var(--glass-border-light)]">
           <AvatarImage src="/placeholder-avatar.jpg" />
           <AvatarFallback className="bg-[var(--glass-yellow)] text-[var(--glass-black)]">JD</AvatarFallback>

@@ -12,7 +12,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-brand-black text-white">
-      <nav className="border-b border-white/10">
+      {/* <nav className="border-b border-white/10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <a href="/" className="flex items-center">
             <img src="/brand/lumea_Logo_NoBg.svg" alt="Lumea" className="h-8" />
@@ -39,7 +39,7 @@ export default function Layout() {
             )}
           </div>
         </div>
-      </nav>
+      </nav> */}
       <main>
         <Outlet />
       </main>
