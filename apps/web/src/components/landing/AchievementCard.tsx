@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
-import { Badge } from "../../components/ui/badge";
+import { Badge } from "../../components/ui/Badge";
 import { Achievement } from "../../types/landing";
 
 interface AchievementCardProps {

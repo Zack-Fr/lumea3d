@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
-import { Button } from "../../components/ui/button";
-import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/Button";
+import { Badge } from "../../components/ui/Badge";
 import { ChevronRight, Shield } from "lucide-react";
 import { MenuItem } from "../../types/landing";
 import s from "../../pages/landing/Landing.module.css";

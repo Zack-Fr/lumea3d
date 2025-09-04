@@ -1,7 +1,7 @@
 import { memo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Gamepad2, ArrowRight, Play, Sparkles, Zap, Menu, Settings, Volume2, VolumeX } from "lucide-react";
-import { Button } from "../../components/ui/button";
+import { Button } from "../../components/ui/Button";
 import { useMouse } from "../../hooks/useMouse";
 import { usePanels } from "../../hooks/usePanels";
 import { useAudio } from "../../hooks/useAudio";
