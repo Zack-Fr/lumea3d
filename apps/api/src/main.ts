@@ -78,12 +78,87 @@ async function bootstrap() {
   // Swagger documentation
   const config = new DocumentBuilder()
     .setTitle('Lumea API')
-    .setDescription('Interior layout generator with explainable spatial reasoning')
-    .setVersion('0.0.1')
-    .addBearerAuth()
+    .setDescription(`
+      # Lumea Interior Layout Generator API
+      
+      Advanced AI-powered interior layout generator with explainable spatial reasoning.
+      
+      ## Features
+      - **3D Scene Management**: Create and manage complex 3D interior layouts
+      - **Asset Processing Pipeline**: Automatic optimization with KTX2, Draco, and Meshopt variants
+      - **Real-time Collaboration**: Server-Sent Events for live scene updates
+      - **Optimistic Locking**: If-Match headers for safe concurrent editing
+      - **Category-based Organization**: Enhanced scene manifests with filtering capabilities
+      - **Processing Queue**: Background asset processing with status tracking
+      
+      ## Authentication
+      All endpoints require Bearer token authentication unless explicitly marked as public.
+      
+      ## Rate Limiting
+      - General API: 100 requests per 15 minutes per IP
+      - Authentication: 5 attempts per 15 minutes per IP
+      
+      ## Versioning
+      Scene operations support optimistic locking via If-Match headers for safe concurrent editing.
+    `)
+    .setVersion('1.0.0')
+    .setContact(
+      'Lumea Development Team',
+      'https://lumea.dev',
+      'support@lumea.dev'
+    )
+    .setLicense('MIT', 'https://opensource.org/licenses/MIT')
+    .addServer('http://localhost:3000', 'Development Server')
+    .addServer('https://api.lumea.dev', 'Production Server')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth',
+    )
+    .addTag('Authentication', 'User authentication and authorization')
+    .addTag('Users', 'User profile and management')
+    .addTag('Projects', 'Project creation and management')
+    .addTag('Scenes', 'Scene CRUD operations and management')
+    .addTag('Flat Scenes', 'Simplified scene endpoints with project context')
+    .addTag('Assets', 'Asset upload, processing, and management')
+    .addTag('Processing', 'Background processing and queue management')
+    .addTag('Real-time', 'Server-Sent Events and live updates')
+    .addTag('Storage', 'File storage and download endpoints')
     .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
+  
+  const document = SwaggerModule.createDocument(app, config, {
+    operationIdFactory: (controllerKey: string, methodKey: string) => {
+      return `${controllerKey}_${methodKey}`;
+    },
+  });
+  
+  SwaggerModule.setup('docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+      displayRequestDuration: true,
+      filter: true,
+      showExtensions: true,
+      showCommonExtensions: true,
+      docExpansion: 'none',
+      defaultModelExpandDepth: 3,
+      defaultModelsExpandDepth: 3,
+    },
+    customSiteTitle: 'Lumea API Documentation',
+    customfavIcon: '/favicon.ico',
+    customJs: [
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui-bundle.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui-standalone-preset.min.js',
+    ],
+    customCssUrl: [
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui.min.css',
+    ],
+  });
 
   const port = process.env.PORT || 3000;
   await app.listen(port);

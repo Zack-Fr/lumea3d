@@ -40,7 +40,7 @@ interface RequestWithSceneContext extends Request {
   };
 }
 
-@ApiTags('Scenes (Flat Routes)')
+@ApiTags('Flat Scenes')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, ScenesAuthGuard)
 @Controller('scenes')
