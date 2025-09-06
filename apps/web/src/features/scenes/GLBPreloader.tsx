@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useGLTF } from '@react-three/drei';
-import type { SceneManifestV2 } from '@lumea/shared';
+import type { SceneManifestV2 } from '../../services/scenesApi';
 import { pickCategoryUrl } from './useSceneAssets';
 
 interface GLBPreloaderProps {

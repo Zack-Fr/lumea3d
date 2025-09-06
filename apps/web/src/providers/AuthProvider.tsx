@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react'
+import { createContext, useContext, useState, ReactNode, useCallback, useMemo, useEffect } from 'react'
 import { api } from '../services/authApi'
+import { updateApiClientToken } from '../services/scenesApi'
 
 export enum RoleEnum {
   GUEST = 'GUEST',
@@ -73,6 +74,13 @@ const [state, setState] = useState<AuthState>(() => {
     localStorage.setItem(AUTH_TOKEN_KEY, token)
     localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user))
   }
+
+  // Update API client token whenever auth token changes
+  useEffect(() => {
+    if (state.token) {
+      updateApiClientToken(state.token)
+    }
+  }, [state.token])
 
   const clearAuthData = () => {
     setState({

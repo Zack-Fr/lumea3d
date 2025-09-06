@@ -1,7 +1,7 @@
 import { Canvas } from '@react-three/fiber';
 import { Environment, Stats } from '@react-three/drei';
 import { Suspense, useState, useCallback, useEffect } from 'react';
-import type { SceneManifestV2 } from '@lumea/shared';
+import type { SceneManifestV2 } from '../../services/scenesApi';
 import { CategoryRenderer } from './CategoryRenderer';
 import { GLBPreloader, useSceneMetrics } from './GLBPreloader';
 import { ViewerSidebar, type ViewerControls } from './ViewerSidebar';
@@ -77,7 +77,7 @@ function SceneGraph({ manifest, controls, onFPSUpdate }: SceneGraphProps) {
       {/* FPS Controls for first-person navigation */}
       <FPSControls 
         controls={controls}
-        spawnPosition={manifest.spawn.position}
+        spawnPosition={manifest.spawn?.position || [0, 1.6, 0]}
       />
       
       {/* FPS Tracker */}
@@ -132,7 +132,7 @@ interface SceneViewerProps {
 }
 
 export default function SceneViewer({ manifest }: SceneViewerProps) {
-  const spawnPosition = manifest.spawn.position;
+  const spawnPosition = manifest.spawn?.position || [0, 1.6, 0];
   const { controls, updateControls } = useViewerControls();
   const [currentFPS, setCurrentFPS] = useState(0);
   const [showInstructions, setShowInstructions] = useState(true);

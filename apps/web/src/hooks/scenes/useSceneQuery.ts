@@ -20,7 +20,7 @@ export function useSceneManifest(sceneId: string, options: UseSceneManifestOptio
       if (!token) {
         throw new SceneApiError(401, 'Authentication required');
       }
-      return scenesApi.getManifest(sceneId, token);
+      return scenesApi.getManifest(sceneId);
     },
     enabled: !!sceneId && !!token && (options.enabled !== false),
     refetchInterval: options.refetchInterval,
@@ -48,7 +48,7 @@ export function useScene(sceneId: string, options: { enabled?: boolean } = {}) {
       if (!token) {
         throw new SceneApiError(401, 'Authentication required');
       }
-      return scenesApi.getScene(sceneId, token);
+      return scenesApi.getScene(sceneId);
     },
     enabled: !!sceneId && !!token && (options.enabled !== false),
     staleTime: 60000, // 1 minute
@@ -73,7 +73,7 @@ export function useSceneVersion(sceneId: string, options: { enabled?: boolean } 
       if (!token) {
         throw new SceneApiError(401, 'Authentication required');
       }
-      return scenesApi.getVersion(sceneId, token);
+      return scenesApi.getVersion(sceneId);
     },
     enabled: !!sceneId && !!token && (options.enabled !== false),
     staleTime: 5000, // 5 seconds - version changes frequently

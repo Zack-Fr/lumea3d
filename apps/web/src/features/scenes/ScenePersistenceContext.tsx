@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
-import type { SceneManifestV2, DeltaOp, SceneDelta } from '@lumea/shared';
+import type { SceneManifestV2, SceneDelta, DeltaOperation } from '../../services/scenesApi';
 
 interface ScenePersistenceState {
   manifest: SceneManifestV2;
@@ -7,7 +7,7 @@ interface ScenePersistenceState {
   isDirty: boolean;
   isSaving: boolean;
   lastSaved: number | null;
-  pendingOps: DeltaOp[];
+  pendingOps: DeltaOperation[];
   connectionStatus: 'connected' | 'disconnected' | 'connecting' | 'error';
   collaborators: Array<{
     id: string;
@@ -19,7 +19,7 @@ interface ScenePersistenceState {
 
 type ScenePersistenceAction =
   | { type: 'APPLY_DELTA'; payload: SceneDelta }
-  | { type: 'ADD_PENDING_OP'; payload: DeltaOp }
+  | { type: 'ADD_PENDING_OP'; payload: DeltaOperation }
   | { type: 'SAVE_START' }
   | { type: 'SAVE_SUCCESS'; payload: { version: number; timestamp: number } }
   | { type: 'SAVE_ERROR'; payload: string }
@@ -107,22 +107,24 @@ function applyDeltaToState(state: ScenePersistenceState, delta: SceneDelta): Sce
   let newManifest = { ...state.manifest };
   
   for (const op of delta.ops) {
-    switch (op.op) {
-      case 'upsert_item':
+    switch (op.type) {
+      case 'add':
         // Add or update item
-        const itemIndex = newManifest.items.findIndex(item => item.id === op.item.id);
-        if (itemIndex >= 0) {
-          newManifest.items[itemIndex] = { ...op.item };
-        } else {
-          newManifest.items = [...newManifest.items, op.item];
+        if (op.item) {
+          const itemIndex = newManifest.items.findIndex(item => item.id === op.item!.id);
+          if (itemIndex >= 0) {
+            newManifest.items[itemIndex] = { ...op.item };
+          } else {
+            newManifest.items = [...newManifest.items, op.item];
+          }
         }
         break;
       
-      case 'remove_item':
+      case 'remove':
         newManifest.items = newManifest.items.filter(item => item.id !== op.id);
         break;
       
-      case 'update_item':
+      case 'update':
         const updateIndex = newManifest.items.findIndex(item => item.id === op.id);
         if (updateIndex >= 0) {
           const existingItem = newManifest.items[updateIndex];
@@ -142,7 +144,7 @@ function applyDeltaToState(state: ScenePersistenceState, delta: SceneDelta): Sce
         }
         break;
       
-      case 'scene_props':
+      case 'scene':
         newManifest = {
           ...newManifest,
           ...(op.exposure !== undefined && { exposure: op.exposure }),
@@ -152,15 +154,19 @@ function applyDeltaToState(state: ScenePersistenceState, delta: SceneDelta): Sce
         break;
       
       case 'category_add':
-        newManifest.categories = {
-          ...newManifest.categories,
-          [op.key]: op.category as any // Type assertion to handle delta type flexibility
-        };
+        if (op.key && op.category) {
+          newManifest.categories = {
+            ...newManifest.categories,
+            [op.key as string]: op.category as any // Type assertion to handle delta type flexibility
+          };
+        }
         break;
       
       case 'category_remove':
-        const { [op.key]: removed, ...remainingCategories } = newManifest.categories;
-        newManifest.categories = remainingCategories;
+        if (op.key) {
+          const { [op.key as string]: removed, ...remainingCategories } = newManifest.categories;
+          newManifest.categories = remainingCategories;
+        }
         break;
     }
   }
@@ -314,22 +320,22 @@ export function ScenePersistenceProvider({
   }, [sceneId, userId, userRole, state.isSaving, state.pendingOps, state.version]);
 
   const addItem = useCallback((item: any) => {
-    const op: DeltaOp = { op: 'upsert_item', item };
+    const op: DeltaOperation = { type: 'add', item };
     dispatch({ type: 'ADD_PENDING_OP', payload: op });
   }, []);
 
   const updateItem = useCallback((id: string, updates: any) => {
-    const op: DeltaOp = { op: 'update_item', id, ...updates };
+    const op: DeltaOperation = { type: 'update', id, ...updates };
     dispatch({ type: 'ADD_PENDING_OP', payload: op });
   }, []);
 
   const removeItem = useCallback((id: string) => {
-    const op: DeltaOp = { op: 'remove_item', id };
+    const op: DeltaOperation = { type: 'remove', id };
     dispatch({ type: 'ADD_PENDING_OP', payload: op });
   }, []);
 
   const updateSceneProps = useCallback((props: any) => {
-    const op: DeltaOp = { op: 'scene_props', ...props };
+    const op: DeltaOperation = { type: 'scene', ...props };
     dispatch({ type: 'ADD_PENDING_OP', payload: op });
   }, []);
 

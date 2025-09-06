@@ -1,13 +1,13 @@
 import { Suspense, useMemo } from 'react';
-import type { SceneManifestV2 } from '@lumea/shared';
-import { SceneItem } from './SceneItem';
+import type { SceneItem, CategoryInfo } from '../../services/scenesApi';
+import { SceneItem as SceneItemComponent } from './SceneItem';
 import { InstancedObject, useInstancedRenderer } from './InstancedRenderer';
 import { pickCategoryUrl } from './useSceneAssets';
 
 interface CategoryRendererProps {
   categoryKey: string;
-  category: SceneManifestV2['categories'][string];
-  items: SceneManifestV2['items'];
+  category: CategoryInfo;
+  items: SceneItem[];
 }
 
 export function CategoryRenderer({ categoryKey, category, items }: CategoryRendererProps) {
@@ -73,7 +73,7 @@ export function CategoryRenderer({ categoryKey, category, items }: CategoryRende
         // Use individual rendering for unique objects
         categoryItems.map((item) => (
           <Suspense key={item.id} fallback={null}>
-            <SceneItem
+            <SceneItemComponent
               item={item}
               categoryUrl={categoryUrl}
               categoryKey={categoryKey}

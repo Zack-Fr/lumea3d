@@ -1,10 +1,10 @@
-import type { SceneManifestV2 } from '@lumea/shared';
+import type { SceneItem, CategoryInfo } from '../../services/scenesApi';
 
 /**
  * Picks the best available URL for a category based on supported encodings
  * Priority: meshopt > draco > base GLB
  */
-export function pickCategoryUrl(category: SceneManifestV2['categories'][string]): string {
+export function pickCategoryUrl(category: CategoryInfo): string {
   // Priority order: meshopt (preferred), draco (fallback), base GLB
   if (category.meshopt && category.encodings?.meshopt_url) {
     console.log('🎯 Using Meshopt encoding for category');
@@ -23,7 +23,7 @@ export function pickCategoryUrl(category: SceneManifestV2['categories'][string])
 /**
  * Preloads assets for better performance with many items
  */
-export function preloadCategoryAssets(categories: SceneManifestV2['categories']) {
+export function preloadCategoryAssets(categories: Record<string, CategoryInfo>) {
   Object.entries(categories).forEach(([key, category]) => {
     const url = pickCategoryUrl(category);
     console.log(`📦 Preloading category "${key}": ${url}`);
@@ -34,7 +34,7 @@ export function preloadCategoryAssets(categories: SceneManifestV2['categories'])
 /**
  * Utility to get all unique model names from a category's items
  */
-export function getCategoryModels(categoryKey: string, items: SceneManifestV2['items']): string[] {
+export function getCategoryModels(categoryKey: string, items: SceneItem[]): string[] {
   const categoryItems = items.filter(item => item.category === categoryKey);
   const modelNames = [...new Set(categoryItems.map(item => item.model).filter(Boolean))];
   return modelNames as string[];
@@ -43,7 +43,7 @@ export function getCategoryModels(categoryKey: string, items: SceneManifestV2['i
 /**
  * Performance utility: Group items by model for potential instancing
  */
-export function groupItemsByModel(items: SceneManifestV2['items']): Record<string, typeof items> {
+export function groupItemsByModel(items: SceneItem[]): Record<string, SceneItem[]> {
   return items.reduce((groups, item) => {
     const modelKey = item.model || 'fallback';
     if (!groups[modelKey]) {
@@ -51,5 +51,5 @@ export function groupItemsByModel(items: SceneManifestV2['items']): Record<strin
     }
     groups[modelKey].push(item);
     return groups;
-  }, {} as Record<string, typeof items>);
+  }, {} as Record<string, SceneItem[]>);
 }

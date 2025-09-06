@@ -1,10 +1,10 @@
 import { useRef, useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { Group } from 'three';
-import type { SceneManifestV2 } from '@lumea/shared';
+import type { SceneItem } from '../../services/scenesApi';
 
 interface SceneItemProps {
-  item: SceneManifestV2['items'][0];
+  item: SceneItem;
   categoryUrl: string;
   categoryKey: string;
 }

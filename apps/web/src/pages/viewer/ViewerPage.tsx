@@ -1,6 +1,6 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useParams } from 'react-router-dom';
-import type { SceneManifestV2 } from '@lumea/shared';
+import type { SceneManifestV2 } from '@/services/scenesApi';
 import SceneViewer from '@/features/scenes/SceneViewer';
 import { ScenePersistenceProvider } from '@/features/scenes/ScenePersistenceContext';
 
@@ -58,7 +58,7 @@ export default function ViewerPage() {
             throw new Error('Invalid manifest format');
           }
           
-          setManifest(manifestData);
+          setManifest(manifestData as SceneManifestV2);
         } else {
           // For real scenes, load from API (not implemented yet)
           throw new Error('Real scene loading not implemented yet');
