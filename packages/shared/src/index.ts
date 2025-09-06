@@ -32,4 +32,5 @@ export type {
 } from './client';
 
 // Re-export configuration for easy client setup
-export { Configuration, ConfigurationParameters } from './client/configuration';
+export { Configuration } from './client/configuration';
+export type { ConfigurationParameters } from './client/configuration';
