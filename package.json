@@ -18,7 +18,7 @@
     "generate:openapi": "node scripts/generate-openapi.mjs",
     "generate:client": "pnpm generate:openapi && pnpm generate:client:types && pnpm generate:client:sdk",
     "generate:client:types": "openapi-typescript ./openapi.json -o ./packages/shared/src/types/api.ts",
-    "generate:client:sdk": "openapi-generator-cli generate -i ./openapi.json -g typescript-axios -o ./packages/shared/src/client --additional-properties=typescriptThreePlus=true,withSeparateModelsAndApi=true,apiPackage=api,modelPackage=models"
+    "generate:client:sdk": "openapi-generator-cli generate -i ./openapi.json -g typescript-axios -o ./packages/api-client/src/generated --additional-properties=typescriptThreePlus=true,withSeparateModelsAndApi=true,apiPackage=api,modelPackage=models"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.4.9",
