@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, NotFoundException, Logger } from '@nes
 import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { ProcessingService } from '../processing/processing.service';
+import { ProcessingQueueService } from '../processing/processing-queue.service';
 import { Asset, AssetStatus, AssetLicense } from '@prisma/client';
 import { CreateAssetDto, UpdateAssetDto, AssetUploadUrlDto } from './dto/assets.dto';
 
@@ -22,6 +23,7 @@ export class AssetsService {
     private prisma: PrismaService,
     private storageService: StorageService,
     private processingService: ProcessingService,
+    private processingQueueService: ProcessingQueueService,
   ) {}
 
   /**
@@ -237,6 +239,14 @@ export class AssetsService {
       }
     }
 
+    if (asset.ktx2Url) {
+      try {
+        await this.storageService.deleteAsset(asset.ktx2Url);
+      } catch (error) {
+        this.logger.warn(`Failed to delete ktx2 variant: ${error.message}`);
+      }
+    }
+
     if (asset.navmeshUrl) {
       try {
         await this.storageService.deleteAsset(asset.navmeshUrl);
@@ -259,7 +269,7 @@ export class AssetsService {
   async generateDownloadUrl(
     assetId: string,
     userId: string,
-    variant: 'original' | 'meshopt' | 'draco' | 'navmesh' = 'original',
+    variant: 'original' | 'meshopt' | 'draco' | 'ktx2' | 'navmesh' = 'original',
     expiresIn: number = 3600,
   ): Promise<{ downloadUrl: string; expiresIn: number }> {
     const asset = await this.getAsset(assetId, userId);
@@ -275,6 +285,9 @@ export class AssetsService {
         break;
       case 'draco':
         objectKey = asset.dracoUrl;
+        break;
+      case 'ktx2':
+        objectKey = asset.ktx2Url;
         break;
       case 'navmesh':
         objectKey = asset.navmeshUrl;
@@ -293,28 +306,127 @@ export class AssetsService {
   }
 
   /**
+   * Get asset processing status including queue information
+   */
+  async getAssetProcessingStatus(assetId: string, userId: string): Promise<{
+    assetStatus: AssetStatus;
+    queueStatus?: {
+      status: string;
+      progress?: number;
+      error?: string;
+    };
+    variants: {
+      original?: string;
+      meshopt?: string;
+      draco?: string;
+      ktx2?: string;
+      navmesh?: string;
+    };
+  }> {
+    const asset = await this.getAsset(assetId, userId);
+    
+    // Get queue status if asset is processing
+    let queueStatus = undefined;
+    if (asset.status === AssetStatus.PROCESSING) {
+      queueStatus = await this.processingQueueService.getJobStatus(assetId);
+    }
+
+    // Build variants object
+    const variants: any = {};
+    if (asset.originalUrl) variants.original = asset.originalUrl;
+    if (asset.meshoptUrl) variants.meshopt = asset.meshoptUrl;
+    if (asset.dracoUrl) variants.draco = asset.dracoUrl;
+    if (asset.ktx2Url) variants.ktx2 = asset.ktx2Url;
+    if (asset.navmeshUrl) variants.navmesh = asset.navmeshUrl;
+
+    return {
+      assetStatus: asset.status,
+      queueStatus: queueStatus || undefined,
+      variants,
+    };
+  }
+
+  /**
+   * Retry failed asset processing
+   */
+  async retryAssetProcessing(assetId: string, userId: string): Promise<boolean> {
+    const asset = await this.getAsset(assetId, userId);
+    
+    if (asset.status !== AssetStatus.FAILED) {
+      throw new BadRequestException('Asset is not in failed state');
+    }
+
+    // Try to retry the queue job first
+    const retried = await this.processingQueueService.retryAssetProcessing(assetId);
+    
+    if (retried) {
+      // Update asset status back to processing
+      await this.prisma.asset.update({
+        where: { id: assetId },
+        data: {
+          status: AssetStatus.PROCESSING,
+          errorMessage: null,
+        },
+      });
+      
+      this.logger.log(`Retrying processing for asset ${assetId}`);
+      return true;
+    } else {
+      // No existing job found, trigger new processing
+      await this.prisma.asset.update({
+        where: { id: assetId },
+        data: {
+          status: AssetStatus.PROCESSING,
+          errorMessage: null,
+        },
+      });
+      
+      await this.triggerAssetProcessing(assetId, userId);
+      return true;
+    }
+  }
+
+  /**
    * Trigger background asset processing
    */
   private async triggerAssetProcessing(assetId: string, userId: string): Promise<void> {
     try {
-      // This will be fully implemented in the next task (processing pipeline)
-      // For now, we just mark the asset as ready
-      setTimeout(async () => {
-        await this.prisma.asset.update({
-          where: { id: assetId },
-          data: { status: AssetStatus.READY },
-        });
-        this.logger.log(`Marked asset ${assetId} as ready (processing pipeline will be implemented)`);
-      }, 2000); // Simulate processing delay
+      const asset = await this.prisma.asset.findUnique({
+        where: { id: assetId },
+      });
+
+      if (!asset || !asset.originalUrl) {
+        throw new Error('Asset or originalUrl not found');
+      }
+
+      // Determine category from the original filename or default to 'glb'
+      const category = 'glb'; // Default category
+
+      // Queue the asset for processing with default options
+      await this.processingQueueService.queueAssetProcessing(
+        assetId,
+        userId,
+        category,
+        asset.originalUrl,
+        {
+          enableDraco: true,
+          enableMeshopt: true,
+          generateLODs: false, // Can be enabled based on requirements
+          textureFormat: 'ktx2',
+        }
+      );
+
+      this.logger.log(`Successfully queued asset ${assetId} for processing`);
 
     } catch (error) {
-      this.logger.error(`Failed to process asset ${assetId}:`, error);
+      this.logger.error(`Failed to queue asset ${assetId} for processing:`, error);
       
+      // Mark asset as failed if we can't even queue it
       await this.prisma.asset.update({
         where: { id: assetId },
         data: { 
           status: AssetStatus.FAILED,
-          errorMessage: error.message,
+          errorMessage: `Failed to queue for processing: ${error.message}`,
         },
       });
     }

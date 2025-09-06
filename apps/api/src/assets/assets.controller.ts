@@ -156,6 +156,7 @@ export class AssetsController {
       originalUrl: asset.originalUrl,
       meshoptUrl: asset.meshoptUrl,
       dracoUrl: asset.dracoUrl,
+      ktx2Url: asset.ktx2Url,
       navmeshUrl: asset.navmeshUrl,
       errorMessage: asset.errorMessage,
       processedAt: asset.processedAt,
@@ -209,6 +210,43 @@ export class AssetsController {
       });
     }
     
+    if (asset.ktx2Url) {
+      variants.push({
+        type: 'ktx2',
+        url: asset.ktx2Url,
+        available: true,
+      });
+    }
+    
     return { variants };
+  }
+
+  /**
+   * Get detailed processing status for an asset
+   * GET /assets/:id/processing-status
+   */
+  @Get(':id/processing-status')
+  async getProcessingStatus(
+    @CurrentUser() user: User,
+    @Param('id') assetId: string,
+  ) {
+    return this.assetsService.getAssetProcessingStatus(assetId, user.id);
+  }
+
+  /**
+   * Retry failed asset processing
+   * POST /assets/:id/retry-processing
+   */
+  @Post(':id/retry-processing')
+  @HttpCode(HttpStatus.OK)
+  async retryProcessing(
+    @CurrentUser() user: User,
+    @Param('id') assetId: string,
+  ) {
+    const retried = await this.assetsService.retryAssetProcessing(assetId, user.id);
+    return {
+      success: retried,
+      message: retried ? 'Processing retried successfully' : 'Failed to retry processing',
+    };
   }
 }
