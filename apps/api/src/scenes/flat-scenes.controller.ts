@@ -11,6 +11,9 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  Headers,
+  BadRequestException,
+  PreconditionFailedException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,6 +22,7 @@ import {
   ApiBearerAuth,
   ApiParam,
   ApiQuery,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { ScenesService } from './scenes.service';
 import { UpdateSceneDto } from './dto/update-scene.dto';
@@ -63,34 +67,50 @@ export class FlatScenesController {
   @Patch(':sceneId')
   @ApiOperation({ 
     summary: 'Update scene properties',
-    description: 'Flat route - no project ID required in path',
+    description: 'Flat route - no project ID required in path. Requires If-Match header for optimistic locking.',
   })
   @ApiParam({ name: 'sceneId', description: 'Scene ID' })
-  @ApiQuery({
-    name: 'version',
+  @ApiHeader({
+    name: 'If-Match',
     description: 'Expected scene version for optimistic locking',
-    required: false,
-    type: Number,
+    required: true,
   })
   @ApiResponse({ status: 200, description: 'Scene updated successfully' })
+  @ApiResponse({ status: 400, description: 'If-Match header missing or invalid' })
   @ApiResponse({ status: 404, description: 'Scene not found' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
-  @ApiResponse({ status: 409, description: 'Version conflict' })
-  update(
+  @ApiResponse({ status: 412, description: 'Precondition Failed - version conflict' })
+  async update(
     @Param('sceneId') sceneId: string,
+    @Headers('if-match') ifMatch: string,
     @Body() updateSceneDto: UpdateSceneDto,
     @Request() req: RequestWithSceneContext,
-    @Query('version') version?: string,
   ) {
+    if (!ifMatch) {
+      throw new BadRequestException('If-Match header is required for scene updates');
+    }
+    
+    const expectedVersion = parseInt(ifMatch, 10);
+    if (isNaN(expectedVersion)) {
+      throw new BadRequestException('If-Match header must be a valid version number');
+    }
+
     const { projectId } = req.sceneContext;
-    const expectedVersion = version ? parseInt(version) : undefined;
-    return this.scenesService.update(
-      projectId,
-      sceneId,
-      req.user.userId,
-      updateSceneDto,
-      expectedVersion,
-    );
+    
+    try {
+      return await this.scenesService.update(
+        projectId,
+        sceneId,
+        req.user.userId,
+        updateSceneDto,
+        expectedVersion,
+      );
+    } catch (error) {
+      if (error.message?.includes('version conflict') || error.message?.includes('Version mismatch')) {
+        throw new PreconditionFailedException('Scene has been modified by another user');
+      }
+      throw error;
+    }
   }
 
   @Delete(':sceneId')
@@ -116,71 +136,145 @@ export class FlatScenesController {
   @Post(':sceneId/items')
   @ApiOperation({ 
     summary: 'Add an item to a scene',
-    description: 'Flat route - no project ID required in path',
+    description: 'Flat route - no project ID required in path. Requires If-Match header for optimistic locking.',
   })
   @ApiParam({ name: 'sceneId', description: 'Scene ID' })
+  @ApiHeader({
+    name: 'If-Match',
+    description: 'Expected scene version for optimistic locking',
+    required: true,
+  })
   @ApiResponse({ status: 201, description: 'Scene item created successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid item data' })
+  @ApiResponse({ status: 400, description: 'Invalid item data or If-Match header missing' })
   @ApiResponse({ status: 404, description: 'Scene or category not found' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
-  addItem(
+  @ApiResponse({ status: 412, description: 'Precondition Failed - version conflict' })
+  async addItem(
     @Param('sceneId') sceneId: string,
+    @Headers('if-match') ifMatch: string,
     @Body() createSceneItemDto: CreateSceneItemDto,
     @Request() req: RequestWithSceneContext,
   ) {
+    if (!ifMatch) {
+      throw new BadRequestException('If-Match header is required for scene item operations');
+    }
+    
+    const expectedVersion = parseInt(ifMatch, 10);
+    if (isNaN(expectedVersion)) {
+      throw new BadRequestException('If-Match header must be a valid version number');
+    }
+
     const { projectId } = req.sceneContext;
-    return this.scenesService.addItem(
-      projectId,
-      sceneId,
-      req.user.userId,
-      createSceneItemDto,
-    );
+    
+    try {
+      return await this.scenesService.addItem(
+        projectId,
+        sceneId,
+        req.user.userId,
+        createSceneItemDto,
+      );
+    } catch (error) {
+      if (error.message?.includes('version conflict') || error.message?.includes('Version mismatch')) {
+        throw new PreconditionFailedException('Scene has been modified by another user');
+      }
+      throw error;
+    }
   }
 
   @Patch(':sceneId/items/:itemId')
   @ApiOperation({ 
     summary: 'Update a scene item',
-    description: 'Flat route - no project ID required in path',
+    description: 'Flat route - no project ID required in path. Requires If-Match header for optimistic locking.',
   })
   @ApiParam({ name: 'sceneId', description: 'Scene ID' })
   @ApiParam({ name: 'itemId', description: 'Scene item ID' })
+  @ApiHeader({
+    name: 'If-Match',
+    description: 'Expected scene version for optimistic locking',
+    required: true,
+  })
   @ApiResponse({ status: 200, description: 'Scene item updated successfully' })
+  @ApiResponse({ status: 400, description: 'If-Match header missing or invalid' })
   @ApiResponse({ status: 404, description: 'Scene item not found' })
   @ApiResponse({ status: 403, description: 'Scene item is locked or insufficient permissions' })
-  updateItem(
+  @ApiResponse({ status: 412, description: 'Precondition Failed - version conflict' })
+  async updateItem(
     @Param('sceneId') sceneId: string,
     @Param('itemId') itemId: string,
+    @Headers('if-match') ifMatch: string,
     @Body() updateSceneItemDto: UpdateSceneItemDto,
     @Request() req: RequestWithSceneContext,
   ) {
+    if (!ifMatch) {
+      throw new BadRequestException('If-Match header is required for scene item operations');
+    }
+    
+    const expectedVersion = parseInt(ifMatch, 10);
+    if (isNaN(expectedVersion)) {
+      throw new BadRequestException('If-Match header must be a valid version number');
+    }
+
     const { projectId } = req.sceneContext;
-    return this.scenesService.updateItem(
-      projectId,
-      sceneId,
-      itemId,
-      req.user.userId,
-      updateSceneItemDto,
-    );
+    
+    try {
+      return await this.scenesService.updateItem(
+        projectId,
+        sceneId,
+        itemId,
+        req.user.userId,
+        updateSceneItemDto,
+      );
+    } catch (error) {
+      if (error.message?.includes('version conflict') || error.message?.includes('Version mismatch')) {
+        throw new PreconditionFailedException('Scene has been modified by another user');
+      }
+      throw error;
+    }
   }
 
   @Delete(':sceneId/items/:itemId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ 
     summary: 'Remove an item from a scene',
-    description: 'Flat route - no project ID required in path',
+    description: 'Flat route - no project ID required in path. Requires If-Match header for optimistic locking.',
   })
   @ApiParam({ name: 'sceneId', description: 'Scene ID' })
   @ApiParam({ name: 'itemId', description: 'Scene item ID' })
+  @ApiHeader({
+    name: 'If-Match',
+    description: 'Expected scene version for optimistic locking',
+    required: true,
+  })
   @ApiResponse({ status: 204, description: 'Scene item removed successfully' })
+  @ApiResponse({ status: 400, description: 'If-Match header missing or invalid' })
   @ApiResponse({ status: 404, description: 'Scene item not found' })
   @ApiResponse({ status: 403, description: 'Scene item is locked or insufficient permissions' })
-  removeItem(
+  @ApiResponse({ status: 412, description: 'Precondition Failed - version conflict' })
+  async removeItem(
     @Param('sceneId') sceneId: string,
     @Param('itemId') itemId: string,
+    @Headers('if-match') ifMatch: string,
     @Request() req: RequestWithSceneContext,
   ) {
+    if (!ifMatch) {
+      throw new BadRequestException('If-Match header is required for scene item operations');
+    }
+    
+    const expectedVersion = parseInt(ifMatch, 10);
+    if (isNaN(expectedVersion)) {
+      throw new BadRequestException('If-Match header must be a valid version number');
+    }
+
     const { projectId } = req.sceneContext;
-    return this.scenesService.removeItem(projectId, sceneId, itemId, req.user.userId);
+    
+    try {
+      return await this.scenesService.removeItem(projectId, sceneId, itemId, req.user.userId);
+    } catch (error) {
+      if (error.message?.includes('version conflict') || error.message?.includes('Version mismatch')) {
+        throw new PreconditionFailedException('Scene has been modified by another user');
+      }
+      throw error;
+    }
   }
 
   // Scene Manifest endpoints
