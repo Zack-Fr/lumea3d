@@ -259,7 +259,7 @@ export class AssetsService {
   async generateDownloadUrl(
     assetId: string,
     userId: string,
-    variant: 'original' | 'meshopt' | 'draco' | 'navmesh' = 'original',
+    variant: 'original' | 'meshopt' | 'draco' | 'ktx2' | 'navmesh' = 'original',
     expiresIn: number = 3600,
   ): Promise<{ downloadUrl: string; expiresIn: number }> {
     const asset = await this.getAsset(assetId, userId);
@@ -275,6 +275,9 @@ export class AssetsService {
         break;
       case 'draco':
         objectKey = asset.dracoUrl;
+        break;
+      case 'ktx2':
+        objectKey = asset.ktx2Url;
         break;
       case 'navmesh':
         objectKey = asset.navmeshUrl;

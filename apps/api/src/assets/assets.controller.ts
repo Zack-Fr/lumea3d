@@ -90,7 +90,20 @@ export class AssetsController {
     @CurrentUser() user: User,
     @Param('id') assetId: string,
   ) {
-    return this.assetsService.getAsset(assetId, user.id);
+    const asset = await this.assetsService.getAsset(assetId, user.id);
+    
+    // Build convenient URLs map
+    const urls: Record<string, string> = {};
+    if (asset.originalUrl) urls.original = asset.originalUrl;
+    if (asset.meshoptUrl) urls.meshopt = asset.meshoptUrl;
+    if (asset.dracoUrl) urls.draco = asset.dracoUrl;
+    if (asset.ktx2Url) urls.ktx2 = asset.ktx2Url;
+    if (asset.navmeshUrl) urls.navmesh = asset.navmeshUrl;
+    
+    return {
+      ...asset,
+      urls,
+    };
   }
 
   /**
@@ -128,7 +141,7 @@ export class AssetsController {
   async generateDownloadUrl(
     @CurrentUser() user: User,
     @Param('id') assetId: string,
-    @Query('variant') variant: 'original' | 'meshopt' | 'draco' | 'navmesh' = 'original',
+    @Query('variant') variant: 'original' | 'meshopt' | 'draco' | 'ktx2' | 'navmesh' = 'original',
     @Body() dto: GenerateDownloadUrlDto,
   ) {
     return this.assetsService.generateDownloadUrl(
@@ -156,6 +169,7 @@ export class AssetsController {
       originalUrl: asset.originalUrl,
       meshoptUrl: asset.meshoptUrl,
       dracoUrl: asset.dracoUrl,
+      ktx2Url: asset.ktx2Url,
       navmeshUrl: asset.navmeshUrl,
       errorMessage: asset.errorMessage,
       processedAt: asset.processedAt,
@@ -205,6 +219,14 @@ export class AssetsController {
       variants.push({
         type: 'navmesh',
         url: asset.navmeshUrl,
+        available: true,
+      });
+    }
+    
+    if (asset.ktx2Url) {
+      variants.push({
+        type: 'ktx2',
+        url: asset.ktx2Url,
         available: true,
       });
     }
