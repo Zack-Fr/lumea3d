@@ -282,9 +282,23 @@ export class FlatScenesController {
   @Get(':sceneId/manifest')
   @ApiOperation({
     summary: 'Generate scene manifest for client consumption',
-    description: 'Flat route - returns a complete scene manifest with all items, transforms, and asset references',
+    description: 'Flat route - returns a complete scene manifest with all items, transforms, and asset references. Supports category filtering.',
   })
   @ApiParam({ name: 'sceneId', description: 'Scene ID' })
+  @ApiQuery({
+    name: 'categories',
+    description: 'Comma-separated list of category keys to include in manifest. If not provided, all categories are included.',
+    required: false,
+    type: String,
+    example: 'furniture,lighting,decorations',
+  })
+  @ApiQuery({
+    name: 'includeMetadata',
+    description: 'Include additional category metadata like descriptions, tags, and configuration',
+    required: false,
+    type: Boolean,
+    example: true,
+  })
   @ApiResponse({
     status: 200,
     description: 'Scene manifest generated successfully',
@@ -295,9 +309,63 @@ export class FlatScenesController {
   generateManifest(
     @Param('sceneId') sceneId: string,
     @Request() req: RequestWithSceneContext,
+    @Query('categories') categories?: string,
+    @Query('includeMetadata') includeMetadata?: boolean,
   ): Promise<SceneManifestV2> {
     const { projectId } = req.sceneContext;
-    return this.scenesService.generateManifest(projectId, sceneId, req.user.userId);
+    const categoryFilter = categories ? categories.split(',').map(c => c.trim()) : undefined;
+    return this.scenesService.generateManifest(
+      projectId, 
+      sceneId, 
+      req.user.userId,
+      categoryFilter,
+      includeMetadata || false,
+    );
+  }
+
+  @Get(':sceneId/categories')
+  @ApiOperation({
+    summary: 'Get available categories in scene',
+    description: 'Flat route - returns all unique categories used by items in the scene with their metadata',
+  })
+  @ApiParam({ name: 'sceneId', description: 'Scene ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Scene categories retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        categories: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              categoryKey: { type: 'string' },
+              assetId: { type: 'string' },
+              itemCount: { type: 'number' },
+              capabilities: {
+                type: 'object',
+                properties: {
+                  instancing: { type: 'boolean' },
+                  draco: { type: 'boolean' },
+                  meshopt: { type: 'boolean' },
+                  ktx2: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Scene not found' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  async getSceneCategories(
+    @Param('sceneId') sceneId: string,
+    @Request() req: RequestWithSceneContext,
+  ) {
+    const { projectId } = req.sceneContext;
+    return this.scenesService.getSceneCategories(projectId, sceneId, req.user.userId);
   }
 
   @Get(':sceneId/delta')

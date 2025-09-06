@@ -43,7 +43,7 @@ export class SceneManifestV2 {
   }>;
 
   @ApiProperty({
-    description: 'Asset categories referenced in the scene',
+    description: 'Asset categories referenced in the scene with enhanced metadata support',
   })
   categories: Record<string, {
     assetId: string;
@@ -51,6 +51,12 @@ export class SceneManifestV2 {
       url: string;
       metadata?: Record<string, any>;
     }>;
+    metadata?: {
+      instancing?: boolean;
+      draco?: boolean;
+      meshopt?: boolean;
+      ktx2?: boolean;
+    };
   }>;
 
   @ApiProperty({
