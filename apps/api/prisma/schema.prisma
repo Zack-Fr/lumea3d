@@ -244,6 +244,7 @@ model Asset {
   originalUrl   String?
   meshoptUrl    String?
   dracoUrl      String?
+  ktx2Url       String?       // KTX2 compressed textures
   navmeshUrl    String?
   reportJson    Json?
   errorMessage  String?
@@ -258,6 +259,7 @@ model Asset {
   uploader      User                @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
   categories    ProjectCategory3D[]
   navmeshScenes Scene3D[]
+  shellScenes   Scene3D[]           @relation("SceneShell")
 
   @@index([uploaderId])
   @@index([status])
@@ -305,12 +307,18 @@ model Scene3D {
 
   navmeshAssetId  String?
 
+  // Shell properties
+  shellAssetId    String?
+  shellCastShadow Boolean   @default(true)
+  shellReceiveShadow Boolean @default(true)
+
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   // Relations
   project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   navmeshAsset    Asset?    @relation(fields: [navmeshAssetId], references: [id], onDelete: SetNull)
+  shellAsset      Asset?    @relation("SceneShell", fields: [shellAssetId], references: [id], onDelete: SetNull)
   items           SceneItem3D[]
 
   @@index([projectId])
