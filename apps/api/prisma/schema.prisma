@@ -48,6 +48,12 @@ enum AssetLicense {
   PROPRIETARY
 }
 
+enum ProjectRole {
+  CLIENT
+  DESIGNER
+  ADMIN
+}
+
 // ──────────────────────────────────────────────────────
 // Models
 // ──────────────────────────────────────────────────────
@@ -68,6 +74,19 @@ model User {
   sessions     Session[]
   invites      Invite[]
   assets       Asset[]
+  projectMembers ProjectMember[]
+}
+
+model ProjectMember {
+  userId    String
+  projectId String
+  role      ProjectRole @default(CLIENT)
+
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([userId, projectId])
+  @@index([projectId])
 }
 
 model Project {
@@ -82,6 +101,7 @@ model Project {
   scenes          Scene[]
   categories3D    ProjectCategory3D[]
   scenes3D        Scene3D[]
+  members         ProjectMember[]
 
   @@index([userId])
 }

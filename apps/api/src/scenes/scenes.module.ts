@@ -3,11 +3,15 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScenesService } from './scenes.service';
 import { ScenesController } from './scenes.controller';
+import { FlatScenesController } from './flat-scenes.controller';
 import { ScenesGateway } from './scenes.gateway';
+import { FlatScenesGateway } from './flat-scenes.gateway';
 import { ScenesSSEController } from './scenes-sse.controller';
 import { DownloadService } from './download.service';
 import { DownloadController } from './download.controller';
 import { ValidationService } from '../shared/services/validation.service';
+import { AuthzService } from '../shared/services/authz.service';
+import { ScenesAuthGuard } from '../shared/guards/scenes-auth.guard';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
 import { StorageModule } from '../storage/storage.module';
@@ -26,17 +30,20 @@ import { StorageModule } from '../storage/storage.module';
       inject: [ConfigService],
     }),
   ],
-  controllers: [ScenesController, ScenesSSEController, DownloadController],
+  controllers: [ScenesController, FlatScenesController, ScenesSSEController, DownloadController],
   providers: [
     ScenesService,
     DownloadService,
     ValidationService,
+    AuthzService,
+    ScenesAuthGuard,
     {
       provide: 'ScenesGateway',
       useClass: ScenesGateway,
     },
     ScenesGateway,
+    FlatScenesGateway,
   ],
-  exports: [ScenesService, ScenesGateway, DownloadService],
+  exports: [ScenesService, ScenesGateway, FlatScenesGateway, DownloadService],
 })
 export class ScenesModule {}
