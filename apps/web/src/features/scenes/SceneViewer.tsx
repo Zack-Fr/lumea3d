@@ -27,6 +27,12 @@ import { useSceneHistory } from './useSceneHistory';
 import { useSceneKeyboardShortcuts, createSceneEditorShortcuts } from './useSceneKeyboardShortcuts';
 import { SceneShortcutsHelp, useSceneShortcutsHelp } from './SceneShortcutsHelp';
 
+// Import our new Shell UI components
+import { ShellUIControls } from './ShellUIControls';
+import { LayerManagementPanel } from './LayerManagementPanel';
+import { SmoothCameraControls, CameraTransitionStatus } from './SmoothCameraControls';
+import { PerformanceStats } from './PerformanceStats';
+
 interface SceneGraphProps {
   manifest: SceneManifestV2;
   controls: ViewerControls;
@@ -97,6 +103,9 @@ function SceneGraph({ manifest, controls, onFPSUpdate }: SceneGraphProps) {
       <TransformGizmos enabled={true} />
       <SelectionHighlight />
       
+      {/* Smooth Camera Controls */}
+      <SmoothCameraControls enabled={true} />
+      
       {/* Environment lighting with exposure control */}
       {manifest.env?.hdri_url && (
         <Environment files={manifest.env.hdri_url} />
@@ -137,6 +146,12 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
   const [currentFPS, setCurrentFPS] = useState(0);
   const [showInstructions, setShowInstructions] = useState(true);
   const [showAssetManagement, setShowAssetManagement] = useState(false);
+  
+  // Shell UI state
+  const [cameraMode, setCameraMode] = useState<'orbit' | 'fps'>('orbit');
+  const [showShellUI, setShowShellUI] = useState(true);
+  const [showLayerPanel, setShowLayerPanel] = useState(false);
+  const [showPerformanceStats, setShowPerformanceStats] = useState(false);
 
   // Performance monitoring for the overall viewer
   const { stats } = usePerformanceMonitor({
@@ -172,6 +187,14 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
     onDeselectAll: () => console.log('🔲 Deselect all'),
     onDelete: () => console.log('🗑️ Delete selected'),
     onDuplicate: () => console.log('📋 Duplicate selected')
+  });
+
+  // Add shell UI toggle shortcut
+  shortcuts.push({
+    key: 'Shift+U',
+    action: () => setShowShellUI(!showShellUI),
+    description: 'Toggle Shell UI controls',
+    category: 'UI'
   });
 
   // Add help shortcut
@@ -275,6 +298,74 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
         shortcuts={shortcuts}
         isVisible={shortcutsHelp.isVisible}
         onClose={shortcutsHelp.hide}
+      />
+
+      {/* Camera Transition Status */}
+      <CameraTransitionStatus />
+
+      {/* Enhanced Shell UI Controls */}
+      {showShellUI && (
+        <ShellUIControls
+          cameraMode={cameraMode}
+          onCameraModeChange={setCameraMode}
+          showGrid={controls.showGrid}
+          onToggleGrid={() => updateControls({ showGrid: !controls.showGrid })}
+          showPerformance={showPerformanceStats}
+          onTogglePerformance={() => setShowPerformanceStats(!showPerformanceStats)}
+          isPlaying={false}
+          onTogglePlayback={() => console.log('Toggle playback')}
+          onSave={() => console.log('Save scene')}
+          onUndo={sceneHistory.undo}
+          onRedo={sceneHistory.redo}
+          canUndo={sceneHistory.canUndo}
+          canRedo={sceneHistory.canRedo}
+          lightingMode="realistic"
+          onToggleLighting={() => console.log('Toggle lighting')}
+          selectionMode="select"
+          onToggleSelectionMode={() => console.log('Toggle selection mode')}
+        />
+      )}
+
+      {/* Layer Management Panel */}
+      <LayerManagementPanel
+        isVisible={showLayerPanel}
+        onToggleVisibility={() => setShowLayerPanel(!showLayerPanel)}
+        layers={[
+          {
+            id: 'layer-1',
+            name: 'Environment',
+            visible: true,
+            locked: false,
+            type: 'objects' as const,
+            color: '#4ade80',
+            expanded: true,
+            objects: [
+              { id: 'obj-1', name: 'Ground Plane', visible: true, locked: false, type: 'mesh', selected: false }
+            ]
+          }
+        ]}
+        onLayerUpdate={(layerId, updates) => {
+          console.log('🏷️ Update layer:', layerId, updates);
+        }}
+        onObjectSelect={(objectId) => {
+          console.log('🎯 Select object:', objectId);
+        }}
+        onObjectUpdate={(objectId, layerId, updates) => {
+          console.log('📝 Update object:', objectId, 'in layer:', layerId, updates);
+        }}
+        onCreateLayer={() => {
+          console.log('➕ Create new layer');
+        }}
+        onDeleteLayer={(layerId) => {
+          console.log('🗑️ Delete layer:', layerId);
+        }}
+      />
+
+      {/* Enhanced Performance Stats */}
+      <PerformanceStats
+        isVisible={showPerformanceStats}
+        onToggleVisibility={() => setShowPerformanceStats(!showPerformanceStats)}
+        position="top-left"
       />
     </div>
   );

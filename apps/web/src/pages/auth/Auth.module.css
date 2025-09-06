@@ -205,10 +205,10 @@
   gap:.6rem;
 }
 .logoCircle{
-  background-image: url('../../../public/brand/lumeaLogo_noText.svg');
+  background-image: url('../../../brand/lumeaLogo_noText.svg');
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: 10px;
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
