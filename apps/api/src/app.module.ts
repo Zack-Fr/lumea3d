@@ -9,6 +9,7 @@ import { StorageModule } from './storage/storage.module';
 import { ProcessingModule } from './processing/processing.module';
 import { AssetsModule } from './assets/assets.module';
 import { ScenesModule } from './scenes/scenes.module';
+import { ProjectsModule } from './projects/projects.module';
 import { MonitoringModule } from './shared/monitoring.module';
 import { MonitoringMiddleware } from './shared/middleware/monitoring.middleware';
 
@@ -58,6 +59,9 @@ import { MonitoringMiddleware } from './shared/middleware/monitoring.middleware'
     
     // Scenes module for 3D scene management
     ScenesModule,
+    
+    // Projects module for project management
+    ProjectsModule,
   ],
   controllers: [],
   providers: [],

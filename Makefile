@@ -11,6 +11,7 @@ help:
 	@echo "  wait            - Wait for services to be healthy"
 	@echo "  migrate         - Run database migrations"
 	@echo "  seed            - Seed database with demo data"
+	@echo "  backfill        - Backfill ProjectMember records for existing projects"
 	@echo "  generate        - Test scene generation pipeline"
 	@echo "  metrics         - View API metrics"
 	@echo "  demo-fail       - Simulate solver failure for testing"
@@ -57,6 +58,11 @@ migrate:
 seed:
 		@echo "🌱 Seeding database with demo data..."
 		docker exec lumea-api pnpm prisma:seed
+
+# Backfill ProjectMember records for existing projects
+backfill:
+		@echo "🔧 Backfilling ProjectMember records..."
+		docker exec lumea-api pnpm exec ts-node scripts/backfill-members.ts
 
 # Test scene generation
 generate:
