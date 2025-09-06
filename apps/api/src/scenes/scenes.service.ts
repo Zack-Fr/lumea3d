@@ -426,11 +426,19 @@ export class ScenesService {
     projectId: string,
     sceneId: string,
     userId: string,
+    categoryFilter?: string[],
+    includeMetadata?: boolean,
   ): Promise<SceneManifestV2> {
     const scene = await this.findOne(projectId, sceneId, userId);
 
     // Get all categories referenced by scene items
-    const categoryKeys = [...new Set(scene.items.map(item => item.categoryKey))];
+    let categoryKeys = [...new Set(scene.items.map(item => item.categoryKey))];
+    
+    // Apply category filter if provided
+    if (categoryFilter && categoryFilter.length > 0) {
+      categoryKeys = categoryKeys.filter(key => categoryFilter.includes(key));
+    }
+    
     const categories = await this.prisma.projectCategory3D.findMany({
       where: {
         projectId: projectId,
@@ -442,6 +450,7 @@ export class ScenesService {
             id: true,
             meshoptUrl: true,
             dracoUrl: true,
+            ktx2Url: true,
             originalUrl: true,
           },
         },
@@ -451,15 +460,33 @@ export class ScenesService {
     // Build categories map for manifest
     const categoriesMap: Record<string, any> = {};
     for (const category of categories) {
-      categoriesMap[category.categoryKey] = {
+      const categoryData: any = {
         assetId: category.asset.id,
         variants: {
-          original: category.asset.originalUrl,
-          meshopt: category.asset.meshoptUrl,
-          draco: category.asset.dracoUrl,
+          original: { url: category.asset.originalUrl },
+          meshopt: category.asset.meshoptUrl ? { url: category.asset.meshoptUrl } : undefined,
+          draco: category.asset.dracoUrl ? { url: category.asset.dracoUrl } : undefined,
+          ktx2: category.asset.ktx2Url ? { url: category.asset.ktx2Url } : undefined,
         },
       };
+      
+      // Include additional metadata if requested
+      if (includeMetadata) {
+        categoryData.metadata = {
+          instancing: category.instancing,
+          draco: category.draco,
+          meshopt: category.meshopt,
+          ktx2: category.ktx2,
+        };
+      }
+      
+      categoriesMap[category.categoryKey] = categoryData;
     }
+
+    // Filter scene items if category filter is applied
+    const filteredItems = categoryFilter 
+      ? scene.items.filter(item => categoryFilter.includes(item.categoryKey))
+      : scene.items;
 
     // Get shell asset data if exists
     let shellData: any = undefined;
@@ -509,7 +536,7 @@ export class ScenesService {
         navmeshAssetId: scene.navmeshAssetId || undefined,
         shell: shellData,
       },
-      items: scene.items.map(item => ({
+      items: filteredItems.map(item => ({
         id: item.id,
         categoryKey: item.categoryKey,
         model: item.model || undefined,
@@ -545,6 +572,54 @@ export class ScenesService {
     };
 
     return manifest;
+  }
+
+  /**
+   * Get available categories in a scene with their metadata
+   */
+  async getSceneCategories(
+    projectId: string,
+    sceneId: string,
+    userId: string,
+  ) {
+    const scene = await this.findOne(projectId, sceneId, userId);
+
+    // Get category usage statistics
+    const categoryStats = scene.items.reduce((acc, item) => {
+      acc[item.categoryKey] = (acc[item.categoryKey] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const categoryKeys = Object.keys(categoryStats);
+    const categories = await this.prisma.projectCategory3D.findMany({
+      where: {
+        projectId: projectId,
+        categoryKey: { in: categoryKeys },
+      },
+      include: {
+        asset: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    const result = {
+      categories: categories.map(category => ({
+        categoryKey: category.categoryKey,
+        assetId: category.asset.id,
+        itemCount: categoryStats[category.categoryKey],
+        capabilities: {
+          instancing: category.instancing,
+          draco: category.draco,
+          meshopt: category.meshopt,
+          ktx2: category.ktx2,
+        },
+      })),
+    };
+
+    return result;
   }
 
   /**
