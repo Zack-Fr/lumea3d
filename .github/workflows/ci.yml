@@ -71,10 +71,12 @@ jobs:
       - name: Build packages
         run: pnpm build
 
-      - name: Verify OpenAPI tools (optional)
+      - name: Validate OpenAPI generation (optional)
         run: |
+          echo "Testing OpenAPI generation tools availability..."
           npx openapi-generator-cli version || echo "OpenAPI generator not needed for CI"
           npx openapi-typescript --version || echo "OpenAPI TypeScript not needed for CI"
+          echo "OpenAPI tools check completed"
         continue-on-error: true
 
       - name: Generate Prisma client
@@ -187,13 +189,13 @@ jobs:
 
       - name: Wait for services
         run: |
-          timeout 120 bash -c 'until curl -f http://localhost:3000/health; do sleep 2; done'
+          timeout 120 bash -c 'until curl -f http://localhost:3000/monitoring/health; do sleep 2; done'
           timeout 120 bash -c 'until curl -f http://localhost:8000/health; do sleep 2; done'
 
       - name: Run integration tests
         run: |
           # Test API health
-          curl -f http://localhost:3000/health
+          curl -f http://localhost:3000/monitoring/health
           # Test Solver health  
           curl -f http://localhost:8000/health
           # Test API docs
@@ -226,7 +228,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run npm audit
-        run: pnpm audit --fix=false || echo "Security audit completed with warnings"
+        run: |
+          pnpm audit --audit-level high || echo "Audit found vulnerabilities - review required"
+          echo "Security audit completed"
 
       - name: Run Snyk security scan
         uses: snyk/actions/node@master
