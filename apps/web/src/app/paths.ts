@@ -12,6 +12,7 @@ export const PATHS = {
   dashboard: "dashboard",
   project: "projects/:id",
   projectNew: "projects/new",
+  projectSceneEditor: "projects/:projectId/scenes/:sceneId/editor",
   preview: "preview/:token",
   // viewer  
   viewer: "viewer/:sceneId",
@@ -31,6 +32,12 @@ export const ROUTES = {
 
   projectNew: (id: string) =>
     `${PATHS.app}/${generatePath(PATHS.projectNew, { id: encodeURIComponent(id) })}`,
+
+  projectSceneEditor: (projectId: string, sceneId: string) =>
+    `${PATHS.app}/${generatePath(PATHS.projectSceneEditor, { 
+      projectId: encodeURIComponent(projectId), 
+      sceneId: encodeURIComponent(sceneId) 
+    })}`,
 
   preview: (token: string) =>
     `${PATHS.app}/${generatePath(PATHS.preview, { token: encodeURIComponent(token) })}`,

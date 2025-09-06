@@ -1,14 +1,13 @@
 import { Outlet } from 'react-router-dom'
-import { useAuth } from '../providers/AuthProvider'
-import { ROUTES } from './paths'
+// import { useAuth } from '../providers/AuthProvider'
 
 export default function Layout() {
-  const { user, logout } = useAuth()
+  // const { logout } = useAuth()
 
-  const handleLogout = () => {
-    logout()
-    // Navigation will happen automatically via auth context
-  }
+  // const handleLogout = () => {
+  //   logout()
+  //   // Navigation will happen automatically via auth context
+  // }
 
   return (
     <div className="min-h-screen bg-brand-black text-white">

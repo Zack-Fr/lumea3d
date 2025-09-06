@@ -2,7 +2,7 @@ import React, { memo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
-  Settings, 
+  // Settings, 
   LogOut, 
   ArrowRight, 
   Sparkles, 

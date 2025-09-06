@@ -6,6 +6,7 @@ import Layout from "@/app/layout";
 import AuthPage from "@/pages/auth/AuthPage";
 import UserDashboardPage from "@/pages/dashboard/UserDashboardPage";
 import ProjectEditor from "@/pages/projectEditor/ProjectEditorPage";
+import ProjectCreationPage from "@/pages/projects/ProjectCreationPage";
 import ViewerPage from "@/pages/viewer/ViewerPage";
 import LandingPage from "@/pages/landing/LandingPage";
 // import PreviewPage from "@/pages/PreviewPage";
@@ -49,10 +50,11 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to={PATHS.dashboard} replace /> },
           { path: PATHS.dashboard, element: <UserDashboardPage /> },               // "/app/dashboard"
-          { path: PATHS.projectNew, element: <ProjectEditor /> },             // "/app/projects/new"
-          { path: PATHS.project, element: <ProjectEditor /> },                // "/app/projects/:id"
+          { path: PATHS.projectNew, element: <ProjectCreationPage /> },            // "/app/projects/new"
+          { path: PATHS.project, element: <ProjectEditor /> },                     // "/app/projects/:id"
+          { path: PATHS.projectSceneEditor, element: <ProjectEditor /> },          // "/app/projects/:projectId/scenes/:sceneId/editor"
           // { path: PATHS.preview, element: <PreviewPage /> },                   // "/app/preview/:token"
-          { path: PATHS.viewer, element: <ViewerPage /> },                    // "/app/viewer/:sceneId"
+          { path: PATHS.viewer, element: <ViewerPage /> },                         // "/app/viewer/:sceneId"
         ],
       },
     ],
