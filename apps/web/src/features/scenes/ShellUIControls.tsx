@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useSelection } from './SelectionContext';
 import { useSmoothCameraTransitions } from './SmoothCameraControls';
+import { PerformanceStats } from './PerformanceStats';
 
 interface ShellUIControlsProps {
   cameraMode: 'orbit' | 'fps';
@@ -326,6 +327,7 @@ export function ShellUIControls({
   const { selection, setTransformMode } = useSelection();
   const { focusOnSelected, resetView } = useSmoothCameraTransitions();
   const [showLayerPanel, setShowLayerPanel] = useState(false);
+  const [showPerformanceStats, setShowPerformanceStats] = useState(showPerformance);
 
   const handleFocusSelected = useCallback(() => {
     if (selection.selectedObject) {
@@ -397,6 +399,16 @@ export function ShellUIControls({
           <Layers size={20} />
         </button>
       </div>
+
+      {/* Performance Stats Integration */}
+      <PerformanceStats 
+        isVisible={showPerformanceStats}
+        onToggleVisibility={() => {
+          setShowPerformanceStats(!showPerformanceStats);
+          onTogglePerformance();
+        }}
+        position="top-left"
+      />
 
       {/* Responsive Mobile Toolbar - Hidden on Desktop */}
       <div className="fixed bottom-4 right-4 z-50 md:hidden">

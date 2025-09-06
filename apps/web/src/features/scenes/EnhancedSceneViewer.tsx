@@ -12,8 +12,10 @@ import { FPSControls } from './FPSControls';
 import { SelectionProvider } from './SelectionContext';
 import { ClickSelection } from './ClickSelection';
 import { TransformGizmos } from './TransformGizmos';
-import { SelectionHighlight } from './SelectionHighlight';
+import { SelectionHighlightSystem } from './SelectionHighlight';
 import { SmoothCameraControls, CameraTransitionStatus } from './SmoothCameraControls';
+import { KeyboardShortcuts } from './KeyboardShortcuts';
+import { EditorPersistence } from './EditorPersistence';
 
 interface SceneGraphProps {
   manifest: SceneManifestV2;
@@ -47,7 +49,7 @@ function SceneGraph({ manifest, controls, onFPSUpdate }: SceneGraphProps) {
       {/* Selection and Transform System */}
       <ClickSelection enabled={true} />
       <TransformGizmos enabled={true} />
-      <SelectionHighlight />
+      <SelectionHighlightSystem />
       
       {/* Smooth Camera Controls */}
       <SmoothCameraControls enabled={true} />
@@ -117,6 +119,20 @@ export function SceneViewer({ manifest, isInteractive = false }: SceneViewerProp
               onFPSUpdate={handleFPSUpdate}
             />
             
+            {/* Enhanced Selection Highlighting System */}
+            <SelectionHighlightSystem 
+              enabled={true}
+              highlightColor="#00aaff"
+              boxColor="#ffaa00"
+              showOutline={true}
+              showBox={false}
+              intensity={1.0}
+              pulseSpeed={2.0}
+            />
+            
+            {/* Smooth Camera Controls */}
+            <SmoothCameraControls enabled={true} />
+            
             {controls.showFPS && <Stats />}
           </Suspense>
         </Canvas>
@@ -132,6 +148,23 @@ export function SceneViewer({ manifest, isInteractive = false }: SceneViewerProp
           onAssetImportComplete={handleAssetImportComplete}
         />
         
+        {/* Editor State Persistence */}
+        <EditorPersistence 
+          enabled={isInteractive}
+          sceneId={manifest.scene.id}
+          autoSaveInterval={30000}
+          onStateLoaded={(state) => console.log('📂 Editor state loaded:', state)}
+          onStateSaved={(state) => console.log('💾 Editor state saved:', state)}
+        />
+
+        {/* Keyboard Shortcuts Handler */}
+        <KeyboardShortcuts 
+          enabled={isInteractive}
+          onSave={() => console.log('💾 Save action triggered')}
+          onUndo={() => console.log('↶ Undo action triggered')}
+          onRedo={() => console.log('↷ Redo action triggered')}
+        />
+
         {/* Simple Shell UI Toggle */}
         {isInteractive && (
           <div className="fixed bottom-4 left-4 z-50">
