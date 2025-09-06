@@ -17,6 +17,13 @@ export interface SceneWithItems extends Scene3D {
     dracoUrl: string | null;
     navmeshUrl: string | null;
   };
+  shellAsset?: {
+    id: string;
+    originalName: string;
+    originalUrl: string;
+    meshoptUrl: string | null;
+    dracoUrl: string | null;
+  };
 }
 
 @Injectable()
@@ -129,6 +136,15 @@ export class ScenesService {
             navmeshUrl: true,
           },
         },
+        shellAsset: {
+          select: {
+            id: true,
+            originalName: true,
+            originalUrl: true,
+            meshoptUrl: true,
+            dracoUrl: true,
+          },
+        },
       },
     });
 
@@ -174,6 +190,22 @@ export class ScenesService {
       }
     }
 
+    // Validate shell asset if being updated
+    if (updateSceneDto.shellAssetId) {
+      const shellAsset = await this.prisma.asset.findFirst({
+        where: {
+          id: updateSceneDto.shellAssetId,
+          uploaderId: userId,
+          mimeType: 'model/gltf-binary',
+          status: 'READY',
+        },
+      });
+
+      if (!shellAsset) {
+        throw new NotFoundException('Shell asset not found or not ready');
+      }
+    }
+
     return this.prisma.scene3D.update({
       where: { id: sceneId },
       data: {
@@ -186,6 +218,9 @@ export class ScenesService {
         spawnPositionZ: updateSceneDto.spawnPositionZ,
         spawnYawDeg: updateSceneDto.spawnYawDeg,
         navmeshAssetId: updateSceneDto.navmeshAssetId,
+        shellAssetId: updateSceneDto.shellAssetId,
+        shellCastShadow: updateSceneDto.shellCastShadow,
+        shellReceiveShadow: updateSceneDto.shellReceiveShadow,
       },
     });
   }
@@ -426,6 +461,34 @@ export class ScenesService {
       };
     }
 
+    // Get shell asset data if exists
+    let shellData: any = undefined;
+    if (scene.shellAssetId) {
+      const shellAsset = await this.prisma.asset.findUnique({
+        where: { id: scene.shellAssetId },
+        select: {
+          id: true,
+          originalUrl: true,
+          meshoptUrl: true,
+          dracoUrl: true,
+        },
+      });
+
+      if (shellAsset) {
+        shellData = {
+          assetId: shellAsset.id,
+          castShadow: scene.shellCastShadow ?? true,
+          receiveShadow: scene.shellReceiveShadow ?? true,
+          url: shellAsset.originalUrl,
+          variants: {
+            original: shellAsset.originalUrl,
+            ...(shellAsset.meshoptUrl && { meshopt: shellAsset.meshoptUrl }),
+            ...(shellAsset.dracoUrl && { draco: shellAsset.dracoUrl }),
+          },
+        };
+      }
+    }
+
     const manifest: SceneManifestV2 = {
       scene: {
         id: scene.id,
@@ -444,6 +507,7 @@ export class ScenesService {
           yawDeg: scene.spawnYawDeg,
         },
         navmeshAssetId: scene.navmeshAssetId || undefined,
+        shell: shellData,
       },
       items: scene.items.map(item => ({
         id: item.id,

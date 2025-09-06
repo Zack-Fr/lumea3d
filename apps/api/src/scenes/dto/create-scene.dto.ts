@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, IsUrl, Min, Max } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsUrl, IsBoolean, Min, Max } from 'class-validator';
 import { IsValidPosition, IsValidExposure } from '../../shared/decorators/transform-validation.decorator';
 
 export class CreateSceneDto {
@@ -106,4 +106,33 @@ export class CreateSceneDto {
   @IsOptional()
   @IsString()
   navmeshAssetId?: string;
+
+  @ApiProperty({
+    description: 'Shell asset ID for scene container/environment',
+    example: 'clabcd456...',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  shellAssetId?: string;
+
+  @ApiProperty({
+    description: 'Whether the shell should cast shadows',
+    example: true,
+    required: false,
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  shellCastShadow?: boolean;
+
+  @ApiProperty({
+    description: 'Whether the shell should receive shadows',
+    example: true,
+    required: false,
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  shellReceiveShadow?: boolean;
 }

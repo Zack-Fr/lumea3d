@@ -17,6 +17,16 @@ export class SceneManifestV2 {
       yawDeg: number;
     };
     navmeshAssetId?: string;
+    shell?: {
+      assetId: string;
+      castShadow: boolean;
+      receiveShadow: boolean;
+      url: string;
+      variants?: Record<string, {
+        url: string;
+        metadata?: Record<string, any>;
+      }>;
+    };
   };
 
   @ApiProperty({
