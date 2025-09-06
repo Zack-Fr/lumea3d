@@ -83,24 +83,36 @@ export default function AuthPage({ initialMode }: AuthPageProps) {
 
   return (
     <div className={s.authWrap}>
-      <div className={s.card} role="dialog" aria-label={isSignUp ? "Sign Up" : "Sign In"}>
-        {/* Back + Brand */}
-        <div className={s.brandRow}>
-          <CtaLink to={ROUTES.landing()} variant="custom" className={s.secondaryBtn} aria-label="Back to Home">
-            <ArrowLeft width={18} height={18} style={{ marginRight: 8 }} />
-            Back
-          </CtaLink>
-          <div className={s.logoWrap}>
-            <div className={s.logoCircle} aria-hidden></div>
+      {/* Back Button - positioned at top left of screen */}
+      <div className={s.backButtonContainer}>
+        <CtaLink to={ROUTES.landing()} variant="custom" className={s.backButton} aria-label="Back to Home">
+          <ArrowLeft className={s.backButtonIcon} />
+          Back to Home
+        </CtaLink>
+      </div>
+
+      {/* Cinematic Background Effects */}
+      <div className={s.backgroundEffects} aria-hidden="true">
+        <div className={s.backgroundOrb1}></div>
+        <div className={s.backgroundOrb2}></div>
+        <div className={s.backgroundOrb3}></div>
+      </div>
+
+      <div className={s.contentWrapper}>
+
+        {/* Logo Header */}
+        <header className={s.header}>
+          <div className={s.logoContainer}>
+            <div className={s.logoCircle} aria-hidden="true"></div>
             <span className={s.title}>Lumea</span>
           </div>
-        </div>
+          <p className={s.headerSubtitle}>
+            {isSignUp ? "Create your account" : "Welcome back"}
+          </p>
+        </header>
 
-        <p className={s.hint} style={{ marginBottom: "1rem" }}>
-          {isSignUp ? "Create your account" : "Welcome back"}
-        </p>
-
-        <form onSubmit={handleSubmit} className={s.form} noValidate>
+        <div className={s.card} role="dialog" aria-label={isSignUp ? "Sign Up" : "Sign In"}>
+          <form onSubmit={handleSubmit} className={s.form} noValidate>
           {isSignUp && (
             <FormField
               label="Full Name"
@@ -136,8 +148,7 @@ export default function AuthPage({ initialMode }: AuthPageProps) {
                 onClick={() => setShowPassword((v) => !v)}
                 aria-label={passwordToggleLabel}
                 title={passwordToggleLabel}
-                className={s.secondaryBtn}
-                // style={{ position: "absolute", right: 4, top: 4, padding: ".35rem .5rem" }}
+                className={s.eyeButton}
               >
                 {passwordIcon}
               </button>
@@ -190,6 +201,7 @@ export default function AuthPage({ initialMode }: AuthPageProps) {
             <a href="#" style={{ color: "var(--brand-gold)" }}>Privacy</a>.
           </p>
         </form>
+        </div>
       </div>
     </div>
   );
