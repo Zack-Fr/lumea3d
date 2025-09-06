@@ -7,6 +7,7 @@ import { FlatScenesController } from './flat-scenes.controller';
 import { ScenesGateway } from './scenes.gateway';
 import { FlatScenesGateway } from './flat-scenes.gateway';
 import { ScenesSSEController } from './scenes-sse.controller';
+import { FlatScenesSSEController } from './flat-scenes-sse.controller';
 import { DownloadService } from './download.service';
 import { DownloadController } from './download.controller';
 import { ValidationService } from '../shared/services/validation.service';
@@ -30,7 +31,7 @@ import { StorageModule } from '../storage/storage.module';
       inject: [ConfigService],
     }),
   ],
-  controllers: [ScenesController, FlatScenesController, ScenesSSEController, DownloadController],
+  controllers: [ScenesController, FlatScenesController, ScenesSSEController, FlatScenesSSEController, DownloadController],
   providers: [
     ScenesService,
     DownloadService,
