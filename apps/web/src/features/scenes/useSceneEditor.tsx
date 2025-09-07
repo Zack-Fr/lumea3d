@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { useScenePersistence } from './ScenePersistenceContext';
-import type { Vec3 } from '@lumea/shared';
+import type { Vec3 } from '@/api/sdk';
 
 interface UseSceneEditorProps {
   throttleMs?: number;

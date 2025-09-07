@@ -1,7 +1,7 @@
 import { 
   FlatScenesApi,
   Configuration
-} from '@lumea/shared';
+} from '@/api/sdk';
 
 // Override the generated types with our actual data structure
 export interface SceneManifestV2 {

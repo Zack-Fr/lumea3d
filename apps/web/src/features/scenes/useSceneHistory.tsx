@@ -1,5 +1,5 @@
 import { useReducer, useCallback, useRef } from 'react';
-import type { SceneManifestV2, DeltaOp } from '@lumea/shared';
+import type { SceneManifestV2, DeltaOp } from '@/api/sdk';
 
 interface HistoryEntry {
   id: string;

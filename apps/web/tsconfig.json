@@ -23,7 +23,8 @@
     //baseUrl & paths
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@/api/sdk": ["src/api/sdk.ts"]
       }
     
   },

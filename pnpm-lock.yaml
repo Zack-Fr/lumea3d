@@ -276,6 +276,9 @@ importers:
       '@heroicons/react':
         specifier: ^2.0.18
         version: 2.2.0(react@18.3.1)
+      '@lumea/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
       '@lumea/shared':
         specifier: workspace:*
         version: link:../../packages/shared

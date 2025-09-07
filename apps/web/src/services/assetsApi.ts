@@ -1,4 +1,4 @@
-import { AssetStatus, AssetLicense } from '@lumea/shared';
+import { AssetStatus, AssetLicense } from '@/api/sdk';
 
 export interface AssetUploadUrlRequest {
     filename: string;

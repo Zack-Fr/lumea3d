@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { io, Socket } from 'socket.io-client'
 import { useAuth } from '../providers/AuthProvider'
-import type { SceneDelta } from '@lumea/shared'
+import type { SceneDelta } from '@/api/sdk'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 

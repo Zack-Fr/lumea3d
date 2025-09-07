@@ -9,7 +9,7 @@ import {
   Trash2,
   RefreshCw
 } from 'lucide-react';
-import { AssetStatus, AssetLicense } from '@lumea/shared';
+import { AssetStatus, AssetLicense } from '@/api/sdk';
 import { assetsApi } from '../../services/assetsApi';
 
 interface Asset {
