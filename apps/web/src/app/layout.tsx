@@ -23,7 +23,7 @@ export default function Layout() {
             {user && (
               <div className="flex items-center gap-3">
                 <span className="text-sm text-brand-stone">
-                  {user.name || user.email}
+                  {user.displayName || user.email}
                 </span>
                 <span className="text-xs bg-brand-plum px-2 py-1 rounded-full">
                   {user.role}

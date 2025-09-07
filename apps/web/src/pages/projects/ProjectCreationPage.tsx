@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateProject } from '../../hooks/useProjects';
+import { useAuth } from '../../providers/AuthProvider';
 import { ROUTES } from '../../app/paths';
 
 interface ProjectCreationPageProps {
@@ -12,9 +13,18 @@ const ProjectCreationPage: React.FC<ProjectCreationPageProps> = () => {
   const [projectName, setProjectName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
+  // Debug auth state
+  const { token, user, isAuthenticated } = useAuth();
+  console.log('🔍 ProjectCreationPage: Auth state check', {
+    hasToken: !!token,
+    tokenLength: token?.length,
+    hasUser: !!user,
+    isAuthenticated,
+    userId: user?.id
+  });
+
   const createProject = useCreateProject({
     onSuccess: (result) => {
-      console.log('Project created successfully:', result);
       // Navigate directly to the editor with projectId and sceneId
       navigate(ROUTES.projectSceneEditor(result.projectId, result.sceneId));
     },
@@ -36,21 +46,9 @@ const ProjectCreationPage: React.FC<ProjectCreationPageProps> = () => {
     try {
       await createProject.mutateAsync({
         name: projectName.trim(),
-        // Optional: Add default scene configuration
-        scene: {
-          spawn: {
-            position: [0, 1.7, 5.0],
-            yaw_deg: 0,
-          },
-          environment: {
-            intensity: 1.0,
-          },
-          exposure: 1.0,
-        },
       });
     } catch (error) {
       // Error handling is done in the onError callback
-      console.error('Create project mutation failed:', error);
     }
   };
 

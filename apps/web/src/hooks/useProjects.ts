@@ -52,11 +52,18 @@ export function useCreateProject(options: UseCreateProjectOptions = {}) {
   const { token } = useAuth();
   const queryClient = useQueryClient();
 
+  console.log('🏗️ useCreateProject: Hook initialized', { 
+    hasToken: !!token, 
+    tokenLength: token?.length,
+    tokenPreview: token?.substring(0, 20) + '...'
+  });
+
   return useMutation({
     mutationFn: async (dto: CreateProjectDto) => {
       if (!token) {
         throw new ProjectApiError('Authentication required');
       }
+      
       return projectsApi.create(dto, token);
     },
     onSuccess: (data) => {

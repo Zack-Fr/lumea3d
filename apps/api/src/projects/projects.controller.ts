@@ -84,7 +84,8 @@ export class ProjectsController {
     @CurrentUser() user: any,
     @Body() createProjectDto: CreateProjectDto,
   ): Promise<ProjectCreationResult> {
-    return this.projectsService.create(user.userId, createProjectDto);
+    console.log(`Creating project "${createProjectDto.name}" for user ${user.id}`);
+    return this.projectsService.create(user.id, createProjectDto);
   }
 
   @Get()
@@ -130,7 +131,7 @@ export class ProjectsController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findAll(@CurrentUser() user: any): Promise<ProjectWithScenes[]> {
-    return this.projectsService.findUserProjects(user.userId);
+    return this.projectsService.findUserProjects(user.id);
   }
 
   @Get(':id')
@@ -178,6 +179,6 @@ export class ProjectsController {
     @Param('id') id: string,
     @CurrentUser() user: any,
   ): Promise<ProjectWithScenes> {
-    return this.projectsService.findOne(id, user.userId);
+    return this.projectsService.findOne(id, user.id);
   }
 }

@@ -2,15 +2,13 @@
 export interface CreateProjectDto {
   name: string;
   scene?: {
+    name?: string;
     spawn?: {
       position?: [number, number, number];
       yaw_deg?: number;
     };
-    environment?: {
-      hdri_url?: string;
-      intensity?: number;
-    };
     navmesh_asset_id?: string;
+    shell_asset_id?: string;
     exposure?: number;
   };
 }

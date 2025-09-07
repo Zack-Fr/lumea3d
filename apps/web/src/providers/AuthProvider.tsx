@@ -13,9 +13,11 @@ export type Role = RoleEnum
 export interface User {
   id: string
   email: string
-  name?: string
+  displayName: string
   role: Role
-  created_at: string
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
 }
 
 export interface AuthState {
@@ -47,6 +49,7 @@ const [state, setState] = useState<AuthState>(() => {
   try {
     const token = localStorage.getItem('lumea_auth_token');
     const userJson = localStorage.getItem('lumea_auth_user');
+    
     const looksValid = !!userJson && userJson !== 'undefined' && userJson !== 'null';
     if (token && looksValid) {
       const user = JSON.parse(userJson!) as User;
@@ -56,7 +59,8 @@ const [state, setState] = useState<AuthState>(() => {
     localStorage.removeItem('lumea_auth_token');
     localStorage.removeItem('lumea_auth_user');
     return { user: null, token: null, isAuthenticated: false, isLoading: false };
-  } catch {
+  } catch (error) {
+    console.error('Auth initialization error:', error);
     localStorage.removeItem('lumea_auth_token');
     localStorage.removeItem('lumea_auth_user');
     return { user: null, token: null, isAuthenticated: false, isLoading: false };
@@ -71,6 +75,7 @@ const [state, setState] = useState<AuthState>(() => {
       isAuthenticated: true,
       isLoading: false,
     })
+    
     localStorage.setItem(AUTH_TOKEN_KEY, token)
     localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user))
   }
@@ -100,7 +105,11 @@ const [state, setState] = useState<AuthState>(() => {
 
       const data = await api.login({ email, password })
       setAuthData(data.user, data.token)
+      console.log('🔐 LOGIN: Auth data set, checking localStorage...');
+      console.log('🔐 LOGIN: localStorage token:', localStorage.getItem(AUTH_TOKEN_KEY)?.substring(0, 20) + '...');
+      console.log('🔐 LOGIN: localStorage user:', localStorage.getItem(AUTH_USER_KEY));
     } catch (err) {
+      console.error('🔐 LOGIN: Login failed:', err);
       const message = err instanceof Error ? err.message : 'Login failed'
       setError(message)
       setState(prev => ({ ...prev, isLoading: false }))

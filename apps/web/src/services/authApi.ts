@@ -14,6 +14,11 @@ export interface RegisterRequest {
   role?: Role
 }
 
+export interface BackendAuthResponse {
+  accessToken: string;
+  refreshToken: string;
+}
+
 export interface AuthResponse {
   user: User
   token: string
@@ -84,10 +89,51 @@ async function apiRequest<T>(
 
 export const authApi = {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    return apiRequest<AuthResponse>('/auth/login', {
+    console.log('🌐 AUTH_API: Making login request to:', `${API_BASE_URL}/auth/login`);
+    console.log('🌐 AUTH_API: Request payload:', { email: credentials.email });
+    
+    // Step 1: Get tokens from login endpoint
+    const tokensResponse = await apiRequest<BackendAuthResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
-    })
+    });
+    
+    console.log('🌐 AUTH_API: Login tokens received:', {
+      hasAccessToken: !!tokensResponse.accessToken,
+      hasRefreshToken: !!tokensResponse.refreshToken,
+      accessTokenLength: tokensResponse.accessToken?.length
+    });
+    
+    // Step 2: Get user profile using the access token
+    console.log('🌐 AUTH_API: Fetching user profile...');
+    const userResponse = await apiRequest<User>('/auth/profile', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${tokensResponse.accessToken}`,
+      },
+    });
+    
+    console.log('🌐 AUTH_API: User profile received:', {
+      userId: userResponse.id,
+      userEmail: userResponse.email,
+      hasUser: !!userResponse
+    });
+    
+    // Step 3: Combine into expected format
+    const response: AuthResponse = {
+      user: userResponse,
+      token: tokensResponse.accessToken,
+      refreshToken: tokensResponse.refreshToken
+    };
+    
+    console.log('🌐 AUTH_API: Combined response ready:', {
+      hasUser: !!response.user,
+      hasToken: !!response.token,
+      tokenLength: response.token?.length,
+      userId: response.user?.id
+    });
+    
+    return response;
   },
 
   async register(userData: RegisterRequest): Promise<AuthResponse> {

@@ -47,6 +47,8 @@ export class ProjectsService {
 
     // Execute in transaction: Project + ProjectMember(ADMIN) + initial Scene3D
     return await this.prisma.$transaction(async (tx) => {
+      console.log(`Creating project "${name}" with initial scene for user ${userId}`);
+      
       // 1. Create the project
       const project = await tx.project.create({
         data: {
