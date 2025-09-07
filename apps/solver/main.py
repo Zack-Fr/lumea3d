@@ -1,16 +1,21 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 import time
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from models import (
-    SolveRequest, SolveResponse, ValidateRequest, ValidateResponse, HealthResponse
+    HealthResponse,
+    SolveRequest,
+    SolveResponse,
+    ValidateRequest,
+    ValidateResponse,
 )
-from solver import ConstraintSolver, AIIntegrationHelper
+from solver import AIIntegrationHelper, ConstraintSolver
 
 app = FastAPI(
     title="Lumea Solver",
     description="Constraint satisfaction solver for interior layout generation",
-    version="0.0.1"
+    version="0.0.1",
 )
 
 # CORS middleware
@@ -35,10 +40,7 @@ async def health_check():
     """Health check endpoint"""
     uptime = int(time.time() - startup_time)
     return HealthResponse(
-        status="ok", 
-        service="lumea-solver",
-        version="0.0.1",
-        uptime_seconds=uptime
+        status="ok", service="lumea-solver", version="0.0.1", uptime_seconds=uptime
     )
 
 
@@ -54,14 +56,11 @@ async def solve_layout(request: SolveRequest):
         rotations_allowed=request.rotations_allowed,
         seed=request.seed,
         rules=request.rules,
-        style=request.style or "modern"
+        style=request.style or "modern",
     )
-    
+
     return SolveResponse(
-        placements=placements,
-        checks=checks,
-        rationale=rationale,
-        solver_ms=solver_ms
+        placements=placements, checks=checks, rationale=rationale, solver_ms=solver_ms
     )
 
 
@@ -72,15 +71,15 @@ async def validate_placements(request: ValidateRequest):
     Used for post-generation nudging validation.
     """
     from solver import RulesEngine
-    
+
     rules_engine = RulesEngine()
     checks = rules_engine.validate_placements(
         placements=request.placements,
         room=request.room,
         assets=request.assets,
-        rules=request.rules or []
+        rules=request.rules or [],
     )
-    
+
     return ValidateResponse(checks=checks)
 
 
@@ -92,10 +91,10 @@ async def solve_from_backend_data(backend_data: dict):
     """
     # Transform backend data to solver format
     solver_request_data = ai_helper.prepare_solver_request(backend_data)
-    
+
     # Create request model
     request = SolveRequest(**solver_request_data)
-    
+
     # Solve
     placements, checks, rationale, solver_ms = solver.solve(
         room=request.room,
@@ -103,17 +102,18 @@ async def solve_from_backend_data(backend_data: dict):
         rotations_allowed=request.rotations_allowed,
         seed=request.seed,
         rules=request.rules,
-        style=request.style or "modern"
+        style=request.style or "modern",
     )
-    
+
     # Format response for backend consumption
     formatted_response = ai_helper.format_response_for_backend(
         placements, checks, rationale, solver_ms
     )
-    
+
     return formatted_response
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

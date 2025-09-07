@@ -1,12 +1,13 @@
 """
 Data models for the Lumea Solver
 """
+
 from pydantic import BaseModel
-from typing import List, Dict, Optional
 
 
 class Asset(BaseModel):
     """Furniture asset definition"""
+
     key: str
     w_cm: int
     d_cm: int
@@ -14,22 +15,25 @@ class Asset(BaseModel):
 
 class Room(BaseModel):
     """Room dimensions"""
+
     w_cm: int
     h_cm: int
 
 
 class SolveRequest(BaseModel):
     """Request model for solving layout"""
+
     room: Room
-    assets: List[Asset]
-    rotations_allowed: Dict[str, List[int]]
+    assets: list[Asset]
+    rotations_allowed: dict[str, list[int]]
     seed: int
-    rules: List[str]
-    style: Optional[str] = "modern"
+    rules: list[str]
+    style: str | None = "modern"
 
 
 class Placement(BaseModel):
     """Furniture placement result"""
+
     key: str
     x_cm: int
     y_cm: int
@@ -38,6 +42,7 @@ class Placement(BaseModel):
 
 class ComplianceCheck(BaseModel):
     """Rule compliance check result"""
+
     rule_key: str
     passed: bool
     message: str
@@ -45,28 +50,32 @@ class ComplianceCheck(BaseModel):
 
 class SolveResponse(BaseModel):
     """Response model for solved layout"""
-    placements: List[Placement]
-    checks: List[ComplianceCheck]
-    rationale: Dict[str, List[str]]
+
+    placements: list[Placement]
+    checks: list[ComplianceCheck]
+    rationale: dict[str, list[str]]
     solver_ms: int
 
 
 class ValidateRequest(BaseModel):
     """Request model for validating placements"""
-    placements: List[Placement]
+
+    placements: list[Placement]
     room: Room
-    assets: List[Asset]
-    rules: Optional[List[str]] = ["no-collision", "in-bounds"]
+    assets: list[Asset]
+    rules: list[str] | None = ["no-collision", "in-bounds"]
 
 
 class ValidateResponse(BaseModel):
     """Response model for validation"""
-    checks: List[ComplianceCheck]
+
+    checks: list[ComplianceCheck]
 
 
 class HealthResponse(BaseModel):
     """Health check response"""
+
     status: str
     service: str
-    version: Optional[str] = "0.0.1"
-    uptime_seconds: Optional[int] = None
+    version: str | None = "0.0.1"
+    uptime_seconds: int | None = None

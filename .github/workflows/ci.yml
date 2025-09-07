@@ -131,6 +131,10 @@ jobs:
           ruff check .
           black --check .
 
+      - name: Python type checking
+        working-directory: apps/solver
+        run: python typecheck.py
+
       - name: Python tests
         working-directory: apps/solver
         run: pytest -v
