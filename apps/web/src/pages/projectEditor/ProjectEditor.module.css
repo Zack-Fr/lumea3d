@@ -809,7 +809,7 @@
 
 /* Right Sidebar (Properties Panel) */
 .rightSidebar {
-  width: 20rem;
+  width: 40rem;
   background: var(--glass-bg-primary);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
@@ -849,6 +849,8 @@
 
 .propertiesScrollArea {
   flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .propertiesContent {
@@ -856,6 +858,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  min-height: 0; /* Allow content to scroll when it overflows */
 }
 
 .propertySection {
@@ -1094,16 +1097,20 @@
 
 /* Responsive Design */
 @media (max-width: 1280px) {
-  .leftSidebar,
-  .rightSidebar {
+  .leftSidebar {
     width: 16rem;
+  }
+  .rightSidebar {
+    width: 20rem;
   }
 }
 
 @media (max-width: 1024px) {
-  .leftSidebar,
-  .rightSidebar {
+  .leftSidebar {
     width: 14rem;
+  }
+  .rightSidebar {
+    width: 18rem;
   }
 }
 
