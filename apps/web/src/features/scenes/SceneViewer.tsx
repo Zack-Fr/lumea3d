@@ -225,6 +225,12 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
     // Future: Refresh scene manifest or add asset to scene
   }, []);
 
+  const handleAssetAttach = useCallback((asset: any) => {
+    console.log('🔗 SceneViewer: Attach asset to scene:', asset);
+    // Future: Implement asset attachment to scene
+    // This would create a category and add the asset to the scene
+  }, []);
+
   // Scene viewer content
   const sceneViewerContent = (
     <div className="relative h-screen w-full">
@@ -265,6 +271,7 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
         isVisible={showAssetManagement}
         onToggleVisibility={() => setShowAssetManagement(!showAssetManagement)}
         onAssetSelected={(asset) => console.log('Asset selected:', asset)}
+        onAssetAttach={handleAssetAttach}
       />
       
       {/* Transform Controls Panel (appears when object selected) */}

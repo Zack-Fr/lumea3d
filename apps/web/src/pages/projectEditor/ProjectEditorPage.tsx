@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './ProjectEditor.module.css';
 
@@ -18,11 +18,17 @@ import PropertiesPanel from '../../components/projectEditor/PropertiesPanel';
 import GamificationOverlay from '../../components/projectEditor/GamificationOverlay';
 import Achievement from '../../components/projectEditor/Achievement';
 
+// Asset Import Components
+import { AssetImportModal } from '../../features/scenes/AssetImportModal';
+
 // Data Layer
 import { assetCategories } from '../../data/projectEditorData';
 
 const ProjectEditorPage: React.FC = () => {
   const navigate = useNavigate();
+  
+  // Asset Import Modal State
+  const [isAssetImportModalOpen, setIsAssetImportModalOpen] = useState(false);
 
   // Custom Hooks
   const {
@@ -107,6 +113,17 @@ const ProjectEditorPage: React.FC = () => {
     triggerAchievement(`✨ +15 XP - Added ${assetName} to scene!`);
   }, [triggerAchievement]);
 
+  // Asset import callback
+  const handleImportAsset = useCallback(() => {
+    setIsAssetImportModalOpen(true);
+  }, []);
+
+  const handleAssetImportComplete = useCallback((assetId: string) => {
+    console.log('✅ ProjectEditor: Asset imported:', assetId);
+    triggerAchievement('🎯 +20 XP - New 3D asset imported!');
+    setIsAssetImportModalOpen(false);
+  }, [triggerAchievement]);
+
   // Viewport click callback with achievement
   const handleViewportClickWithAchievement = useCallback(() => {
     handleViewportClick();
@@ -158,6 +175,7 @@ const ProjectEditorPage: React.FC = () => {
           selectedAsset={selectedAsset}
           onAssetSelect={handleAssetSelect}
           onAssetAdd={handleAssetAdd}
+          onImportAsset={handleImportAsset}
         />
 
         {/* Main Viewport Area */}
@@ -188,6 +206,13 @@ const ProjectEditorPage: React.FC = () => {
           />
         )}
       </div>
+
+      {/* Asset Import Modal */}
+      <AssetImportModal
+        isOpen={isAssetImportModalOpen}
+        onClose={() => setIsAssetImportModalOpen(false)}
+        onImportComplete={handleAssetImportComplete}
+      />
     </div>
   );
 };

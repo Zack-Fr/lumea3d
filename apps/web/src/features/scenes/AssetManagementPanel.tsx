@@ -7,7 +7,8 @@ import {
   Eye,
   EyeOff,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Plus
 } from 'lucide-react';
 import { AssetStatus, AssetLicense } from '@/api/sdk';
 import { assetsApi } from '../../services/assetsApi';
@@ -33,6 +34,7 @@ interface AssetManagementPanelProps {
   isVisible: boolean;
   onToggleVisibility: () => void;
   onAssetSelected?: (asset: Asset) => void;
+  onAssetAttach?: (asset: Asset) => void;
 }
 
 const STATUS_CONFIG = {
@@ -71,7 +73,8 @@ const LICENSE_LABELS = {
 export function AssetManagementPanel({ 
   isVisible, 
   onToggleVisibility,
-  onAssetSelected 
+  onAssetSelected,
+  onAssetAttach 
 }: AssetManagementPanelProps) {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(false);
@@ -243,6 +246,22 @@ export function AssetManagementPanel({
                         <Eye size={14} />
                       </button>
                       <button
+                        onClick={() => onAssetAttach?.(asset)}
+                        disabled={asset.status !== AssetStatus.READY}
+                        className={`p-1 rounded transition-colors ${
+                          asset.status === AssetStatus.READY
+                            ? 'hover:bg-green-600 text-green-400 hover:text-white'
+                            : 'cursor-not-allowed text-gray-500 opacity-50'
+                        }`}
+                        title={
+                          asset.status === AssetStatus.READY
+                            ? 'Attach asset to scene'
+                            : `Asset must be READY to attach (current: ${asset.status})`
+                        }
+                      >
+                        <Plus size={14} />
+                      </button>
+                      <button
                         onClick={() => handleDeleteAsset(asset.id)}
                         className="p-1 hover:bg-red-600 rounded transition-colors"
                         title="Delete asset"
@@ -252,10 +271,20 @@ export function AssetManagementPanel({
                     </div>
                   </div>
 
-                  {/* Status */}
-                  <div className={`inline-flex items-center space-x-1 px-2 py-1 rounded text-xs ${statusConfig.bg} ${statusConfig.color}`}>
-                    <StatusIcon size={12} className={asset.status === AssetStatus.PROCESSING ? 'animate-spin' : ''} />
-                    <span>{statusConfig.label}</span>
+                  {/* Status and Attach Action */}
+                  <div className="flex items-center justify-between mt-2">
+                    <div className={`inline-flex items-center space-x-1 px-2 py-1 rounded text-xs ${statusConfig.bg} ${statusConfig.color}`}>
+                      <StatusIcon size={12} className={asset.status === AssetStatus.PROCESSING ? 'animate-spin' : ''} />
+                      <span>{statusConfig.label}</span>
+                    </div>
+
+                    {/* Attach Status Indicator */}
+                    {asset.status === AssetStatus.READY && (
+                      <div className="flex items-center space-x-1 text-xs text-green-400">
+                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                        <span>Ready to attach</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* License */}

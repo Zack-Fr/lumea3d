@@ -35,10 +35,14 @@ export const useQuickActions = () => {
       case 'project':
         console.log('Creating new project...');
         onShowState?.('ai-processing');
+        // Navigate to project creation
+        window.location.href = '/app/projects/new';
         break;
       case 'upload':
-        console.log('Uploading asset...');
+        console.log('Opening asset upload...');
         onShowState?.('loading');
+        // Navigate to project editor where asset import is available
+        window.location.href = '/app/projects/demo';
         break;
       case 'messages':
         console.log('Opening messages...');

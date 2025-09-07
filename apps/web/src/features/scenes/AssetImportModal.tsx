@@ -1,6 +1,9 @@
 import { useState, useRef, useCallback } from 'react';
 import { X, Upload, Package, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { AssetStatus, AssetLicense } from '@/api/sdk';
+import { useAssetProcessing } from '@/hooks/useAssetProcessing';
+import AssetProcessingStatusCard from '@/components/asset/AssetProcessingStatusCard';
+import { assetsApi } from '@/services/assetsApi';
 
 interface AssetImportModalProps {
     isOpen: boolean;
@@ -64,6 +67,17 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
     message: '',
   });
 
+  // Enhanced asset processing hook
+  const {
+    status: processingStatus,
+    isPolling,
+    isRetrying,
+    startPolling,
+    stopPolling,
+    retryProcessing,
+    refreshStatus,
+  } = useAssetProcessing();
+
   const resetForm = useCallback(() => {
     setFormData({
       file: null,
@@ -79,15 +93,16 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, []);
+    stopPolling(); // Stop any active polling
+  }, [stopPolling]);
 
   const handleClose = useCallback(() => {
-    if (uploadProgress.stage === 'uploading' || uploadProgress.stage === 'processing') {
-      return; // Prevent closing during upload
+    if (uploadProgress.stage === 'uploading' || isPolling) {
+      return; // Prevent closing during upload or processing
     }
     resetForm();
     onClose();
-  }, [uploadProgress.stage, resetForm, onClose]);
+  }, [uploadProgress.stage, isPolling, resetForm, onClose]);
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -182,68 +197,80 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
 
       console.log('🚀 AssetImport: Starting upload process for:', formData.file.name);
 
-      // Step 1: Request upload URL
-      const uploadUrlResponse = await fetch('/api/assets/upload-url', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          filename: formData.file.name,
-          contentType: formData.file.type || 'model/gltf-binary',
-          fileSize: formData.file.size,
-          category: formData.category,
-          metadata: formData.metadata,
-        }),
+      // Step 1: Request upload URL using authenticated API service
+      const uploadData = await assetsApi.getUploadUrl({
+        filename: formData.file.name,
+        contentType: formData.file.type || 'model/gltf-binary',
+        fileSize: formData.file.size,
+        category: formData.category,
+        metadata: formData.metadata,
       });
 
-      if (!uploadUrlResponse.ok) {
-        throw new Error(`Failed to get upload URL: ${uploadUrlResponse.statusText}`);
-      }
-
-      const uploadData = await uploadUrlResponse.json();
-      console.log('📡 AssetImport: Upload URL received:', uploadData.asset_id);
+      console.log('📡 AssetImport: Upload URL received:', uploadData.assetId);
 
       setUploadProgress({
         stage: 'uploading',
         progress: 25,
         message: 'Uploading file...',
-        assetId: uploadData.asset_id,
+        assetId: uploadData.assetId,
       });
 
-      // Step 2: Upload file (this would be to S3 or similar storage)
-      // For now, we'll simulate the upload and create the asset record directly
-      const createAssetResponse = await fetch('/api/assets', {
-        method: 'POST',
+      // Step 2: Upload file to the presigned URL
+      // For now, we'll simulate the upload and trigger completion
+      const uploadResponse = await fetch(uploadData.uploadUrl, {
+        method: 'PUT',
+        body: formData.file,
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': formData.file.type || 'model/gltf-binary',
         },
-        body: JSON.stringify({
-          originalName: formData.file.name,
-          mimeType: formData.file.type || 'model/gltf-binary',
-          fileSize: formData.file.size,
-          status: AssetStatus.PROCESSING,
-          license: formData.license,
-          reportJson: formData.metadata,
-        }),
       });
 
-      if (!createAssetResponse.ok) {
-        throw new Error(`Failed to create asset: ${createAssetResponse.statusText}`);
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.statusText}`);
       }
 
-      const assetData = await createAssetResponse.json();
-      console.log('✅ AssetImport: Asset created:', assetData.id);
+      console.log('📤 AssetImport: File uploaded to storage');
+
+      // Step 3: Notify upload completion to trigger processing
+      await assetsApi.notifyUploadComplete(uploadData.assetId);
+
+      console.log('✅ AssetImport: Upload completion notified');
 
       setUploadProgress({
         stage: 'processing',
         progress: 75,
         message: 'Processing 3D model...',
-        assetId: assetData.id,
+        assetId: uploadData.assetId,
       });
 
-      // Step 3: Poll for processing completion
-      await pollAssetProcessing(assetData.id);
+      // Step 4: Start enhanced polling with the new hook
+      startPolling(uploadData.assetId, {
+        pollInterval: 5000,
+        maxPollAttempts: 60,
+        onStatusUpdate: (status) => {
+          console.log('🔄 AssetImport: Processing status update:', status);
+        },
+        onComplete: (status) => {
+          console.log('✅ AssetImport: Processing completed:', status);
+          setUploadProgress({
+            stage: 'complete',
+            progress: 100,
+            message: 'Import completed successfully!',
+            assetId: status.assetId,
+          });
+          onImportComplete?.(status.assetId);
+        },
+        onError: (status) => {
+          console.error('❌ AssetImport: Processing failed:', status);
+          setUploadProgress({
+            stage: 'error',
+            progress: 0,
+            message: 'Processing failed',
+            errorDetails: status.errorMessage || 'Unknown processing error',
+            assetId: status.assetId,
+          });
+        },
+      });
 
     } catch (error) {
       console.error('❌ AssetImport: Upload failed:', error);
@@ -254,71 +281,14 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
         errorDetails: error instanceof Error ? error.message : 'Unknown error',
       });
     }
-  }, [formData, validateForm]);
-
-  const pollAssetProcessing = useCallback(async (assetId: string) => {
-    const maxAttempts = 30; // 5 minutes with 10-second intervals
-    let attempts = 0;
-
-    const poll = async (): Promise<void> => {
-      try {
-        const response = await fetch(`/api/assets/${assetId}/status`);
-        if (!response.ok) {
-          throw new Error(`Failed to check asset status: ${response.statusText}`);
-        }
-
-        const statusData = await response.json();
-        console.log('🔄 AssetImport: Processing status:', statusData.status);
-
-        if (statusData.status === AssetStatus.READY) {
-          setUploadProgress({
-            stage: 'complete',
-            progress: 100,
-            message: 'Import completed successfully!',
-            assetId,
-          });
-
-          // Notify parent component
-          onImportComplete?.(assetId);
-          return;
-        }
-
-        if (statusData.status === AssetStatus.FAILED) {
-          throw new Error(statusData.errorMessage || 'Processing failed');
-        }
-
-        // Still processing
-        attempts++;
-        if (attempts >= maxAttempts) {
-          throw new Error('Processing timeout - please check asset status later');
-        }
-
-        setUploadProgress(prev => ({
-          ...prev,
-          progress: Math.min(75 + (attempts / maxAttempts) * 20, 95),
-          message: `Processing 3D model... (${attempts}/${maxAttempts})`,
-        }));
-
-        // Continue polling
-        setTimeout(poll, 10000); // Poll every 10 seconds
-      } catch (error) {
-        console.error('❌ AssetImport: Processing check failed:', error);
-        setUploadProgress({
-          stage: 'error',
-          progress: 0,
-          message: 'Processing failed',
-          errorDetails: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
-    };
-
-    poll();
-  }, [onImportComplete]);
+  }, [formData, validateForm, startPolling, onImportComplete]);
 
   if (!isOpen) return null;
 
   const canSubmit = uploadProgress.stage === 'idle' && validateForm() === null;
-  const isUploading = uploadProgress.stage === 'uploading' || uploadProgress.stage === 'processing';
+  const isUploading = uploadProgress.stage === 'uploading' || isPolling;
+  const isProcessing = isPolling || uploadProgress.stage === 'processing';
+  const showEnhancedStatus = processingStatus && (isProcessing || processingStatus.status !== AssetStatus.READY);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -438,7 +408,7 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
             </div>
           </div>
 
-          {/* Upload Progress */}
+          {/* Upload Progress - Enhanced with Processing Status */}
           {uploadProgress.stage !== 'idle' && (
             <div className="bg-gray-700 rounded-lg p-4">
               <div className="flex items-center space-x-3 mb-3">
@@ -475,9 +445,20 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
             </div>
           )}
 
+          {/* Enhanced Processing Status Card */}
+          {showEnhancedStatus && (
+            <AssetProcessingStatusCard
+              status={processingStatus}
+              isRetrying={isRetrying}
+              onRetry={retryProcessing}
+              onRefresh={refreshStatus}
+              className="mt-4"
+            />
+          )}
+
           {/* Actions */}
           <div className="flex justify-end space-x-3 pt-4 border-t border-gray-700">
-            {!isUploading && (
+            {!isUploading && !isPolling && (
               <button
                 type="button"
                 onClick={handleClose}
@@ -487,7 +468,7 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
               </button>
             )}
             
-            {uploadProgress.stage === 'complete' ? (
+            {uploadProgress.stage === 'complete' || (processingStatus?.status === AssetStatus.READY) ? (
               <button
                 type="button"
                 onClick={handleClose}

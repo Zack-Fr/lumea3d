@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useCallback, useMemo, useEffect } from 'react'
 import { api } from '../services/authApi'
 import { updateApiClientToken } from '../services/scenesApi'
+import { updateAssetApiToken } from '../services/assetsApi'
 
 export enum RoleEnum {
   GUEST = 'GUEST',
@@ -84,6 +85,7 @@ const [state, setState] = useState<AuthState>(() => {
   useEffect(() => {
     if (state.token) {
       updateApiClientToken(state.token)
+      updateAssetApiToken(state.token)
     }
   }, [state.token])
 

@@ -13,6 +13,7 @@ interface LeftSidebarProps {
   selectedAsset: number | null;
   onAssetSelect: (assetId: number) => void;
   onAssetAdd: (assetName: string) => void;
+  onImportAsset?: () => void;
 }
 
 const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
@@ -21,7 +22,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
   onToolChange,
   selectedAsset,
   onAssetSelect,
-  onAssetAdd
+  onAssetAdd,
+  onImportAsset
 }) => {
   const getTabIcon = (categoryId: string) => {
     switch (categoryId) {
@@ -39,7 +41,13 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
       <div className={styles.sidebarHeader}>
         <div className={styles.sidebarTitleRow}>
           <h2 className={styles.sidebarTitle}>Assets & Materials</h2>
-          <Button variant="ghost" size="sm" className={styles.addButton}>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className={styles.addButton}
+            onClick={onImportAsset}
+            title="Import new 3D asset"
+          >
             <Plus className="w-4 h-4" />
           </Button>
         </div>
