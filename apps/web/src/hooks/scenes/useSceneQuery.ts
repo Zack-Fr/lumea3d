@@ -6,25 +6,58 @@ export interface UseSceneManifestOptions {
   enabled?: boolean;
   refetchInterval?: number;
   onError?: (error: SceneApiError) => void;
+  /** Categories to include in manifest. If not provided, all categories are included */
+  categories?: string[];
+  /** Include additional category metadata like descriptions, tags, and configuration */
+  includeMetadata?: boolean;
+  /** Custom query key suffix for cache separation when using filters */
+  querySuffix?: string;
 }
 
 /**
- * Hook to fetch scene manifest using flat route
+ * Hook to fetch scene manifest using flat route with optional category filtering
  */
 export function useSceneManifest(sceneId: string, options: UseSceneManifestOptions = {}) {
   const { token } = useAuth();
+  const { 
+    enabled = true, 
+    refetchInterval, 
+    onError, 
+    categories, 
+    includeMetadata = false,
+    querySuffix = ''
+  } = options;
+
+  // Create cache key that includes filters for proper cache separation
+  const queryKey = [
+    'scene-manifest', 
+    sceneId,
+    categories?.sort().join(',') || 'all',
+    includeMetadata ? 'with-metadata' : 'no-metadata',
+    querySuffix
+  ].filter(Boolean);
   
   return useQuery({
-    queryKey: ['scene-manifest', sceneId],
+    queryKey,
     queryFn: () => {
       if (!token) {
         throw new SceneApiError(401, 'Authentication required');
       }
-      return scenesApi.getManifest(sceneId);
+
+      console.log('🔄 useSceneManifest: Loading manifest', {
+        sceneId,
+        categories: categories?.length ? categories : 'all',
+        includeMetadata
+      });
+
+      return scenesApi.getManifest(sceneId, {
+        categories,
+        includeMetadata
+      });
     },
-    enabled: !!sceneId && !!token && (options.enabled !== false),
-    refetchInterval: options.refetchInterval,
-    onError: options.onError,
+    enabled: !!sceneId && !!token && enabled,
+    refetchInterval,
+    onError,
     staleTime: 30000, // 30 seconds
     retry: (failureCount, error: unknown) => {
       // Don't retry on auth errors
@@ -78,6 +111,39 @@ export function useSceneVersion(sceneId: string, options: { enabled?: boolean } 
     enabled: !!sceneId && !!token && (options.enabled !== false),
     staleTime: 5000, // 5 seconds - version changes frequently
     refetchInterval: 10000, // Check for version updates every 10 seconds
+    retry: (failureCount, error) => {
+      if (error instanceof SceneApiError && [401, 403].includes(error.statusCode)) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+  });
+}
+
+/**
+ * Hook to fetch available categories in a scene
+ */
+export function useSceneCategories(sceneId: string, options: { enabled?: boolean } = {}) {
+  const { token } = useAuth();
+  
+  return useQuery({
+    queryKey: ['scene-categories', sceneId],
+    queryFn: async () => {
+      if (!token) {
+        throw new SceneApiError(401, 'Authentication required');
+      }
+
+      console.log('🔄 useSceneCategories: Loading categories for scene:', sceneId);
+      
+      const response = await scenesApi.getCategories(sceneId);
+      const categories = response?.categories || [];
+      
+      console.log('✅ useSceneCategories: Loaded categories:', categories.length);
+      
+      return categories;
+    },
+    enabled: !!sceneId && !!token && (options.enabled !== false),
+    staleTime: 300000, // 5 minutes - categories don't change often
     retry: (failureCount, error) => {
       if (error instanceof SceneApiError && [401, 403].includes(error.statusCode)) {
         return false;

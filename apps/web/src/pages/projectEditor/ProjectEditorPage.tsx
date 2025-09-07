@@ -21,10 +21,27 @@ import Achievement from '../../components/projectEditor/Achievement';
 // Asset Import Components
 import { AssetImportModal } from '../../features/scenes/AssetImportModal';
 
-// Data Layer
+// Scene Context
+import { SceneProvider, useSceneParams } from '../../contexts/SceneContext';
+
+// Data Layer (fallback for when no scene is loaded)
 import { assetCategories } from '../../data/projectEditorData';
 
 const ProjectEditorPage: React.FC = () => {
+  // Extract scene parameters from URL
+  const { projectId, sceneId } = useSceneParams();
+
+  return (
+    <SceneProvider 
+      defaultProjectId={projectId || undefined} 
+      defaultSceneId={sceneId || undefined}
+    >
+      <ProjectEditorContent />
+    </SceneProvider>
+  );
+};
+
+const ProjectEditorContent: React.FC = () => {
   const navigate = useNavigate();
   
   // Asset Import Modal State

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "../ui/Button";
 import { Separator } from "../ui/Separator";
 import { Badge } from "../ui/Badge";
@@ -11,8 +11,11 @@ import {
   Sun,
   Moon,
   Settings,
-  Sparkles
+  Sparkles,
+  ChevronDown,
+  Folder
 } from "lucide-react";
+import { useSceneContext } from '../../contexts/SceneContext';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 
 interface TopBarProps {
@@ -40,6 +43,38 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
   onPropertiesToggle,
   onAIAssist
 }) => {
+  const { sceneId, setScene } = useSceneContext();
+  const [showSceneSelector, setShowSceneSelector] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowSceneSelector(false);
+      }
+    };
+
+    if (showSceneSelector) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showSceneSelector]);
+
+  // Mock scene list - in real app this would come from an API
+  const availableScenes = [
+    { id: 'living-room-modern', name: 'Living Room (Modern)', projectId: 'project-1' },
+    { id: 'bedroom-cozy', name: 'Bedroom (Cozy)', projectId: 'project-1' },
+    { id: 'kitchen-industrial', name: 'Kitchen (Industrial)', projectId: 'project-2' },
+    { id: 'office-minimal', name: 'Office (Minimal)', projectId: 'project-2' }
+  ];
+
+  const currentScene = availableScenes.find(scene => scene.id === sceneId);
+
+  const handleSceneSelect = (scene: typeof availableScenes[0]) => {
+    setScene(scene.projectId, scene.id);
+    setShowSceneSelector(false);
+  };
   return (
     <header className={styles.topBar}>
       <div className={styles.topBarLeft}>
@@ -51,6 +86,57 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
         >
           <ArrowLeft className="w-4 h-4 mr-2" />Back</Button>
         <Separator orientation="vertical" className={styles.topBarSeparator} />
+        
+        {/* Scene Selector */}
+        <div ref={dropdownRef} className={styles.sceneSelector} style={{ position: 'relative' }}>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => setShowSceneSelector(!showSceneSelector)}
+            className={styles.sceneSelectorButton}
+          >
+            <Folder className="w-4 h-4 mr-2" />
+            {currentScene ? currentScene.name : sceneId || 'Select Scene'}
+            <ChevronDown className="w-4 h-4 ml-2" />
+          </Button>
+          
+          {showSceneSelector && (
+            <div className={styles.sceneSelectorDropdown} style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              backgroundColor: 'var(--background)',
+              border: '1px solid var(--border)',
+              borderRadius: '6px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              zIndex: 50,
+              minWidth: '200px',
+              padding: '4px'
+            }}>
+              {availableScenes.map((scene) => (
+                <button
+                  key={scene.id}
+                  onClick={() => handleSceneSelect(scene)}
+                  className={styles.sceneOption}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    textAlign: 'left',
+                    border: 'none',
+                    borderRadius: '4px',
+                    backgroundColor: scene.id === sceneId ? 'var(--accent)' : 'transparent',
+                    color: scene.id === sceneId ? 'var(--accent-foreground)' : 'var(--foreground)',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  {scene.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        
         <h1 className={styles.topBarTitle}>3D Scene Editor</h1>
         <Badge className={styles.liveBadge}>Live</Badge>
       </div>

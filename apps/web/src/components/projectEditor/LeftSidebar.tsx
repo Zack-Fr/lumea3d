@@ -1,8 +1,9 @@
 import React from 'react';
 import { Button } from "../ui/Button";
 import { ScrollArea } from "../ui/ScrollArea";
-import { Plus, Search, Box, Palette, Image } from "lucide-react";
+import { Plus, Search, Box, Palette, Image, Eye, EyeOff, Filter } from "lucide-react";
 import { AssetCategory } from '../../types/projectEditor';
+import { useSceneContext } from '../../contexts/SceneContext';
 import AssetCard from './AssetCard';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 
@@ -25,6 +26,14 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
   onAssetAdd,
   onImportAsset
 }) => {
+  const { 
+    sceneId, 
+    categories: sceneCategories, 
+    enabledCategories, 
+    toggleCategory,
+    isLoading
+  } = useSceneContext();
+
   const getTabIcon = (categoryId: string) => {
     switch (categoryId) {
       case 'models': return Box;
@@ -34,6 +43,124 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
     }
   };
 
+  const getCategoryIcon = (categoryName: string) => {
+    const lowerName = categoryName.toLowerCase();
+    if (lowerName.includes('shell') || lowerName.includes('structure')) return Box;
+    if (lowerName.includes('lighting') || lowerName.includes('light')) return Palette;
+    if (lowerName.includes('furniture') || lowerName.includes('seating')) return Box;
+    if (lowerName.includes('decoration') || lowerName.includes('accessory')) return Image;
+    return Filter;
+  };
+
+  // If scene is loaded, show category filters
+  if (sceneId && sceneCategories.length > 0) {
+    return (
+      <aside className={styles.leftSidebar}>
+        <div className={styles.sidebarHeader}>
+          <div className={styles.sidebarTitleRow}>
+            <h2 className={styles.sidebarTitle}>Scene Categories</h2>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className={styles.addButton}
+              onClick={onImportAsset}
+              title="Import new 3D asset"
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+          
+          <div className={styles.searchContainer}>
+            <Search className={styles.searchIcon} />
+            <input
+              type="text"
+              placeholder="Search categories..."
+              className={styles.searchInput}
+            />
+          </div>
+        </div>
+
+        <ScrollArea className={styles.assetsScrollArea}>
+          <div className={styles.assetsContainer}>
+            <div className={styles.categoryFilters}>
+              <div className={styles.categoryFiltersHeader}>
+                <Filter className="w-4 h-4" />
+                <span className={styles.categoryFiltersTitle}>
+                  Filter Categories ({sceneCategories.length} available)
+                </span>
+              </div>
+              
+              {isLoading && (
+                <div className={styles.categoryLoadingState}>
+                  <span>Loading categories...</span>
+                </div>
+              )}
+              
+              <div className={styles.categoryList}>
+                {sceneCategories.map((categoryName) => {
+                  const isEnabled = enabledCategories.includes(categoryName) || enabledCategories.length === 0;
+                  const IconComponent = getCategoryIcon(categoryName);
+                  
+                  return (
+                    <div
+                      key={categoryName}
+                      className={`${styles.categoryFilterItem} ${isEnabled ? styles.categoryFilterEnabled : styles.categoryFilterDisabled}`}
+                      onClick={() => toggleCategory(categoryName)}
+                    >
+                      <div className={styles.categoryFilterLeft}>
+                        <IconComponent className="w-4 h-4" />
+                        <span className={styles.categoryFilterName}>
+                          {categoryName.charAt(0).toUpperCase() + categoryName.slice(1)}
+                        </span>
+                      </div>
+                      <div className={styles.categoryFilterToggle}>
+                        {isEnabled ? (
+                          <Eye className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <EyeOff className="w-4 h-4 text-gray-400" />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              <div className={styles.categoryFiltersFooter}>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    // Enable all categories
+                    sceneCategories.forEach(cat => {
+                      if (!enabledCategories.includes(cat)) {
+                        toggleCategory(cat);
+                      }
+                    });
+                  }}
+                  className={styles.categoryFilterButton}
+                >
+                  Show All
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    // Disable all categories
+                    enabledCategories.forEach(cat => toggleCategory(cat));
+                  }}
+                  className={styles.categoryFilterButton}
+                >
+                  Hide All
+                </Button>
+              </div>
+            </div>
+          </div>
+        </ScrollArea>
+      </aside>
+    );
+  }
+
+  // Fallback to original asset categories when no scene is loaded
   const currentCategory = assetCategories.find(cat => cat.id === selectedTool) || assetCategories[0];
 
   return (
