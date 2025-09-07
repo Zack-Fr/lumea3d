@@ -31,6 +31,9 @@ const ProjectEditorPage: React.FC = () => {
   // Extract scene parameters from URL
   const { projectId, sceneId } = useSceneParams();
 
+  // Log for debugging
+  console.log('ProjectEditorPage loaded with:', { projectId, sceneId });
+
   return (
     <SceneProvider 
       defaultProjectId={projectId || undefined} 

@@ -227,10 +227,18 @@ export const scenesApi = {
     opts?: { categories?: string[]; includeMetadata?: boolean }
   ): Promise<SceneManifestV2> {
     const api = getScenesApi();
+    const token = getCurrentToken();
+    
+    // Manually add Authorization header since the generated client might not handle it properly
+    const headers = token ? {
+      Authorization: `Bearer ${token}`
+    } : {};
+    
     const response = await api.flatScenesControllerGenerateManifest(
       sceneId,
       opts?.categories?.length ? opts.categories.join(',') : undefined,
-      opts?.includeMetadata ?? false
+      opts?.includeMetadata ?? false,
+      { headers }
     );
     // Cast the response to our expected type structure
     return response.data as unknown as SceneManifestV2;
@@ -377,8 +385,34 @@ export const scenesApi = {
    */
   async getCategories(sceneId: string): Promise<any> {
     const api = getScenesApi();
-    const response = await api.flatScenesControllerGetSceneCategories(sceneId);
-    return response.data;
+    const token = getCurrentToken();
+    
+    console.log('🔐 SCENE_API: getCategories called', {
+      sceneId,
+      hasToken: !!token,
+      tokenPrefix: token?.substring(0, 20) + '...'
+    });
+    
+    try {
+      // Manually add Authorization header since the generated client might not handle it properly
+      const headers = token ? {
+        Authorization: `Bearer ${token}`
+      } : {};
+      
+      console.log('🔐 SCENE_API: Request headers:', headers);
+      
+      const response = await api.flatScenesControllerGetSceneCategories(sceneId, { headers });
+      console.log('✅ SCENE_API: getCategories success');
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ SCENE_API: getCategories failed:', error);
+      console.error('❌ SCENE_API: Error details:', {
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        data: error?.response?.data
+      });
+      throw error;
+    }
   },
 
   /**

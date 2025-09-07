@@ -23,10 +23,14 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
   // Get scene data from context
   const { 
     sceneId, 
+    projectId,
     isLoading, 
     loading, 
     error 
   } = useSceneContext();
+
+  // Log for debugging
+  console.log('ViewportCanvas scene state:', { sceneId, projectId, isLoading, error });
 
   // Show loading state while scene is loading
   if (isLoading || !sceneId) {
@@ -70,12 +74,14 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
                   <>
                     <p className={styles.viewportTitle}>3D Scene Viewport</p>
                     <p className={styles.viewportDescription}>
-                      {sceneId ? `Select a scene to load` : 'No scene selected'}
+                      {sceneId ? `Loading scene ${sceneId}...` : 'No scene selected'}
                     </p>
                     <div className={styles.viewportInstructions}>
-                      <span>WASD to move</span>
-                      <span>•</span>
-                      <span>Mouse to look</span>
+                      {sceneId ? (
+                        <span>Scene will load shortly...</span>
+                      ) : (
+                        <span>Please select a project with a scene</span>
+                      )}
                     </div>
                   </>
                 )}
@@ -188,22 +194,25 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
 
         {/* Scene Content */}
         <Suspense fallback={null}>
-          {sceneId && (
-            <StagedSceneLoader 
-              sceneId={sceneId}
-              onManifestLoaded={(loadedManifest) => {
-                console.log('🎯 3D Scene loaded:', loadedManifest);
-              }}
-              onLoadingStateChange={(loading) => {
-                console.log('🔄 3D Scene loading state:', loading);
-              }}
-            />
-          )}
+          {/* 3D scene content will be rendered here */}
         </Suspense>
 
         {/* Camera Controls */}
         {/* TODO: Integrate WASD controls with Three.js camera */}
       </Canvas>
+
+      {/* Scene Loading UI */}
+      {sceneId && (
+        <StagedSceneLoader 
+          sceneId={sceneId}
+          onManifestLoaded={(loadedManifest) => {
+            console.log('🎯 3D Scene loaded:', loadedManifest);
+          }}
+          onLoadingStateChange={(loading) => {
+            console.log('🔄 3D Scene loading state:', loading);
+          }}
+        />
+      )}
 
       {/* WASD Movement Indicator */}
       {isWASDActive && (
