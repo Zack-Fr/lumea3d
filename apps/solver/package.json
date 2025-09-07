@@ -12,7 +12,7 @@
     "format": "black .",
     "install": "pip install -r requirements.txt",
     "install:dev": "pip install -r requirements.txt && pip install pytest-cov",
-    "typecheck": "mypy . --ignore-missing-imports",
+    "typecheck": "python typecheck.py",
     "clean": "find . -type d -name '__pycache__' -exec rm -rf {} + && find . -name '*.pyc' -delete"
   },
   "keywords": ["fastapi", "ortools", "constraint-satisfaction", "interior-design", "layout-optimization"],

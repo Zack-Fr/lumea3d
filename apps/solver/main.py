@@ -54,7 +54,7 @@ async def solve_layout(request: SolveRequest):
         rotations_allowed=request.rotations_allowed,
         seed=request.seed,
         rules=request.rules,
-        style=request.style
+        style=request.style or "modern"
     )
     
     return SolveResponse(
@@ -78,7 +78,7 @@ async def validate_placements(request: ValidateRequest):
         placements=request.placements,
         room=request.room,
         assets=request.assets,
-        rules=request.rules
+        rules=request.rules or []
     )
     
     return ValidateResponse(checks=checks)
@@ -103,7 +103,7 @@ async def solve_from_backend_data(backend_data: dict):
         rotations_allowed=request.rotations_allowed,
         seed=request.seed,
         rules=request.rules,
-        style=request.style
+        style=request.style or "modern"
     )
     
     # Format response for backend consumption
