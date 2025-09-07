@@ -62,23 +62,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Type checking
-        run: pnpm typecheck
-
-      - name: Linting
-        run: pnpm lint
-
-      - name: Build packages
-        run: pnpm build
-
-      - name: Validate OpenAPI generation (optional)
-        run: |
-          echo "Testing OpenAPI generation tools availability..."
-          npx openapi-generator-cli version || echo "OpenAPI generator not needed for CI"
-          npx openapi-typescript --version || echo "OpenAPI TypeScript not needed for CI"
-          echo "OpenAPI tools check completed"
-        continue-on-error: true
-
       - name: Generate Prisma client
         working-directory: apps/api
         run: pnpm prisma:generate
@@ -90,11 +73,28 @@ jobs:
         run: pnpm prisma:deploy
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lumea_test
-
+      - name: Build packages
+        run: pnpm build
       - name: Run tests
         run: pnpm test
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lumea_test
+
+      - name: Type checking
+        run: pnpm typecheck
+
+      - name: Linting
+        run: pnpm lint
+
+      - name: Validate OpenAPI generation (optional)
+        run: |
+          echo "Testing OpenAPI generation tools availability..."
+          npx openapi-generator-cli version || echo "OpenAPI generator not needed for CI"
+          npx openapi-typescript --version || echo "OpenAPI TypeScript not needed for CI"
+          echo "OpenAPI tools check completed"
+        continue-on-error: true
+
+
 
   # Job 2: Python Solver Tests
   solver-tests:
