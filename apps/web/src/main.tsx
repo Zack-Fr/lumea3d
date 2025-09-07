@@ -4,6 +4,8 @@ import App from './App.tsx'
 import { QueryProvider } from './providers/QueryProvider.tsx'
 import { AuthProvider } from './providers/AuthProvider.tsx'
 import './index.css'
+// Import R3F setup
+import './r3f-setup'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

@@ -2,6 +2,7 @@ import { createContext, useContext, useState, ReactNode, useCallback, useMemo, u
 import { api } from '../services/authApi'
 import { updateApiClientToken } from '../services/scenesApi'
 import { updateAssetApiToken } from '../services/assetsApi'
+import { updateDashboardApiToken } from '../services/dashboardApi'
 
 export enum RoleEnum {
   GUEST = 'GUEST',
@@ -83,11 +84,24 @@ const [state, setState] = useState<AuthState>(() => {
 
   // Update API client token whenever auth token changes
   useEffect(() => {
+    console.log('🔐 AUTH_PROVIDER: Token changed, updating API clients:', {
+      hasToken: !!state.token,
+      tokenLength: state.token?.length,
+      tokenPrefix: state.token?.substring(0, 20) + '...'
+    });
+    
     if (state.token) {
-      updateApiClientToken(state.token)
-      updateAssetApiToken(state.token)
+      console.log('🔐 AUTH_PROVIDER: Setting token for all API services');
+      updateApiClientToken(state.token);
+      updateAssetApiToken(state.token);
+      updateDashboardApiToken(state.token);
+    } else {
+      console.log('🔐 AUTH_PROVIDER: Clearing tokens from all API services');
+      updateApiClientToken(null);
+      updateAssetApiToken(null);
+      updateDashboardApiToken(null);
     }
-  }, [state.token])
+  }, [state.token]);
 
   const clearAuthData = () => {
     setState({
@@ -98,6 +112,11 @@ const [state, setState] = useState<AuthState>(() => {
     })
     localStorage.removeItem(AUTH_TOKEN_KEY)
     localStorage.removeItem(AUTH_USER_KEY)
+    
+    // Clear API tokens
+    updateApiClientToken(null)
+    updateAssetApiToken(null)
+    updateDashboardApiToken(null)
   }
 
   const login = useCallback (async (email: string, password: string) => {

@@ -106,16 +106,20 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     enabled: !!sceneId && !!token, // Only enable when we have both sceneId and auth token
     priorityCategories,
     onStageComplete: (stageName, categories) => {
-      console.log(`🎯 Scene stage completed: ${stageName}`, categories);
+      console.log(`Scene stage completed: ${stageName}`, categories);
     },
     onComplete: (completeManifest) => {
-      console.log('🎉 Scene loading complete:', completeManifest);
+      console.log('Scene loading complete:', completeManifest);
     },
     onError: (err) => {
-      console.error('❌ Scene loading error:', err);
+      console.error('Scene loading error:', err);
       const errorMessage = err?.message || String(err);
       if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-        console.error('🔐 Authentication issue detected. Please check if user is logged in.');
+        console.error('Authentication issue detected. Please check if user is logged in.');
+        console.error('Scene ID being requested:', sceneId);
+        console.error('Token available:', !!token);
+      } else if (errorMessage.includes('404') || errorMessage.includes('Not found')) {
+        console.error('Scene not found. Scene ID may not exist:', sceneId);
       }
     }
   });
@@ -130,7 +134,7 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
 
   // Scene actions
   const setScene = useCallback((newProjectId: string, newSceneId: string) => {
-    console.log('🎬 Loading scene:', { projectId: newProjectId, sceneId: newSceneId });
+    console.log('Loading scene:', { projectId: newProjectId, sceneId: newSceneId });
     setProjectId(newProjectId);
     setSceneId(newSceneId);
     
@@ -139,7 +143,7 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
   }, []);
 
   const clearScene = useCallback(() => {
-    console.log('🧹 Clearing scene');
+    console.log('Clearing scene');
     setProjectId(null);
     setSceneId(null);
     setEnabledCategories([]);
@@ -152,18 +156,18 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
         ? prev.filter(id => id !== categoryId)
         : [...prev, categoryId];
       
-      console.log(`🏷️ Category ${categoryId} ${isEnabled ? 'disabled' : 'enabled'}`, newCategories);
+      console.log(`Category ${categoryId} ${isEnabled ? 'disabled' : 'enabled'}`, newCategories);
       return newCategories;
     });
   }, []);
 
   const setPriorityCategories = useCallback((categories: string[]) => {
-    console.log('⚡ Priority categories updated:', categories);
+    console.log('Priority categories updated:', categories);
     setPriorityCategoriesState(categories);
   }, []);
 
   const refreshScene = useCallback(() => {
-    console.log('🔄 Refreshing scene');
+    console.log('Refreshing scene');
     if (refreshManifest) {
       refreshManifest();
     }
@@ -257,6 +261,8 @@ export const useSceneParams = () => {
       };
     }
     
+    // No scene ID found in URL
+    console.log('No scene ID found in URL path:', path);
     return { projectId: null, sceneId: null };
   }, []);
 

@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
@@ -31,8 +31,17 @@ import { useProjects } from "../../hooks/useProjects";
 // import { useActivity, useDeadlines } from "../../hooks/useActivityAndDeadlines";
 import { useAchievements, useQuickActions } from "../../hooks/useAchievementsAndActions";
 
+// API hooks and utilities
+import { useDashboardData } from "../../hooks/useDashboardApi";
+import { useUserProfile } from "../../hooks/useDashboardApi";
+import {
+  transformProjectsForDashboard,
+  calculateUserStatsFromProjects,
+  calculatePipelineStagesFromProjects
+} from "../../utils/dashboardTransformers";
+
 // Data and types
-import { PROJECTS, PIPELINE_STAGES, USER_STATS } from "../../data/dashboardData";
+// import { PROJECTS, PIPELINE_STAGES, USER_STATS } from "../../data/dashboardData";
 
 // Atomic components
 import ProjectCard from "../../components/dashboard/ProjectCard";
@@ -48,14 +57,46 @@ const UserDashboardPage = memo(() => {
   const navigate = useNavigate();
   const { logout } = useAuth();
 
+  // Fetch dashboard data from API
+  const { userProfile, projects: apiProjects, isLoading, error, isAuthenticationError } = useDashboardData();
+
+  // Transform API data to dashboard format
+  const transformedProjects = transformProjectsForDashboard(apiProjects);
+  const calculatedUserStats = calculateUserStatsFromProjects(apiProjects, userProfile);
+  const pipelineStages = calculatePipelineStagesFromProjects(apiProjects);
+
+  // Handle authentication errors - automatically logout and redirect
+  useEffect(() => {
+    if (isAuthenticationError) {
+      console.log('Authentication failed, logging out and redirecting to login...');
+      logout();
+      navigate(PATHS.landing);
+    }
+  }, [isAuthenticationError, logout, navigate]);
+
+  // Combine API stats with calculated stats
+  const userStats = {
+    ...calculatedUserStats,
+    achievements: [], // Keep static for now
+    recentActivity: [], // Keep static for now
+    quickActions: [], // Keep static for now
+    upcomingDeadlines: [], // Keep static for now
+  };
+
   // Navigation handlers
-  const handleNavigate = useCallback((page: any) => {
+  const handleNavigate = useCallback((page: any, projectId?: string | number) => {
     switch (page) {
       case "landing":
         navigate(PATHS.landing);
         break;
       case "project":
-        navigate(ROUTES.projectNew('new'));
+        if (projectId) {
+          // Navigate to existing project
+          navigate(ROUTES.project(String(projectId)));
+        } else {
+          // Create new project
+          navigate(ROUTES.projectNew('new'));
+        }
         break;
       default:
         console.log("Unknown navigation target:", page);
@@ -76,12 +117,42 @@ const UserDashboardPage = memo(() => {
 
   const handleProjectCardClick = useCallback((project: any) => {
     onProjectClick(project);
-    handleNavigate("project");
+    handleNavigate("project", project.id);
   }, [onProjectClick, handleNavigate]);
 
   const handleQuickActionClick = useCallback((action: string) => {
     handleQuickAction(action, undefined);
   }, [handleQuickAction]);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className={styles.dashboard} role="main">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-white text-lg">Loading dashboard...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error && !isAuthenticationError) {
+    return (
+      <div className={styles.dashboard} role="main">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-red-400 text-lg">
+            Error loading dashboard: {error}
+            <button
+              onClick={() => window.location.reload()}
+              className="ml-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -93,7 +164,7 @@ const UserDashboardPage = memo(() => {
 
       {/* Left Sidebar - User Profile & Stats */}
       <LeftSidebar 
-        userStats={USER_STATS}
+        userStats={userStats}
         onAchievementClick={onAchievementClick}
         onQuickActionClick={handleQuickActionClick}
       />
@@ -107,8 +178,8 @@ const UserDashboardPage = memo(() => {
         />
 
         <MainContent 
-          projects={PROJECTS}
-          pipelineStages={PIPELINE_STAGES}
+          projects={transformedProjects}
+          pipelineStages={pipelineStages}
           onProjectClick={handleProjectCardClick}
           onNavigate={handleNavigate}
         />
@@ -136,7 +207,20 @@ const BackgroundEffects = memo(() => (
 ));
 
 interface LeftSidebarProps {
-  userStats: typeof USER_STATS;
+  userStats: {
+    totalProjects: number;
+    completedProjects: number;
+    activeClients: number;
+    totalEarnings: string;
+    rating: number;
+    experience: number;
+    level: number;
+    nextLevelExp: number;
+    achievements: any[];
+    recentActivity: any[];
+    quickActions: any[];
+    upcomingDeadlines: any[];
+  };
   onAchievementClick: (achievement: any) => void;
   onQuickActionClick: (action: string) => void;
 }
@@ -169,78 +253,112 @@ const LeftSidebar = memo(({ userStats, onAchievementClick, onQuickActionClick }:
 ));
 
 interface UserProfileCardProps {
-  userStats: typeof USER_STATS;
+  userStats: {
+    totalProjects: number;
+    completedProjects: number;
+    activeClients: number;
+    totalEarnings: string;
+    rating: number;
+    experience: number;
+    level: number;
+    nextLevelExp: number;
+    achievements: any[];
+    recentActivity: any[];
+    quickActions: any[];
+    upcomingDeadlines: any[];
+  };
 }
 
-const UserProfileCard = memo(({ userStats }: UserProfileCardProps) => (
-  <motion.div
-    initial={{ opacity: 0, x: -20 }}
-    animate={{ opacity: 1, x: 0 }}
-    className={styles.userProfileCard}
-  >
-    <div className={styles.userProfileHeader}>
-      <div className={styles.userAvatar}>
-        <Avatar className="w-12 h-12 ring-2 ring-[var(--glass-yellow)]">
-          <AvatarImage src="/placeholder-avatar.jpg" />
-          <AvatarFallback className="bg-[var(--glass-yellow)] text-[var(--glass-black)]">
-            JD
-          </AvatarFallback>
-        </Avatar>
-        <div className={styles.userOnlineIndicator}>
-          <div className={styles.userOnlineDot}></div>
-        </div>
-      </div>
-      <div className={styles.userInfo}>
-        <h3 className={styles.userName}>John Doe</h3>
-        <p className={styles.userRole}>Interior Designer</p>
-        <div className={styles.userRating}>
-          <div className={styles.userRatingStars}>
-            {[...Array(5)].map((_, i) => (
-              <Star 
-                key={i} 
-                className={styles.userRatingStar} 
-                aria-hidden="true"
-              />
-            ))}
+const UserProfileCard = memo(({ userStats }: UserProfileCardProps) => {
+  // Get user profile from API
+  const { userProfile, isAuthenticationError } = useUserProfile();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  // Handle authentication errors in this component
+  useEffect(() => {
+    if (isAuthenticationError) {
+      console.log('Authentication failed in UserProfileCard, logging out...');
+      logout();
+      navigate(PATHS.landing);
+    }
+  }, [isAuthenticationError, logout, navigate]);
+
+  const displayName = userProfile?.displayName || userProfile?.email?.split('@')[0] || 'User';
+  const userRole = userProfile?.role === 'DESIGNER' ? 'Interior Designer' :
+                   userProfile?.role === 'CLIENT' ? 'Client' :
+                   userProfile?.role === 'ADMIN' ? 'Administrator' : 'User';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className={styles.userProfileCard}
+    >
+      <div className={styles.userProfileHeader}>
+        <div className={styles.userAvatar}>
+          <Avatar className="w-12 h-12 ring-2 ring-[var(--glass-yellow)]">
+            <AvatarImage src="/placeholder-avatar.jpg" />
+            <AvatarFallback className="bg-[var(--glass-yellow)] text-[var(--glass-black)]">
+              {displayName.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className={styles.userOnlineIndicator}>
+            <div className={styles.userOnlineDot}></div>
           </div>
-          <span className={styles.userRatingValue}>{userStats.rating}</span>
-          <span className={styles.userRatingCount}>(127 reviews)</span>
+        </div>
+        <div className={styles.userInfo}>
+          <h3 className={styles.userName}>{displayName}</h3>
+          <p className={styles.userRole}>{userRole}</p>
+          <div className={styles.userRating}>
+            <div className={styles.userRatingStars}>
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={styles.userRatingStar}
+                  aria-hidden="true"
+                />
+              ))}
+            </div>
+            <span className={styles.userRatingValue}>{userStats.rating}</span>
+            <span className={styles.userRatingCount}>(127 reviews)</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div className={styles.userStats}>
-      <div className={styles.userLevel}>
-        <span className={styles.userLevelLabel}>Level {userStats.level}</span>
-        <span className={styles.userLevelValue}>{userStats.experience} XP</span>
+      <div className={styles.userStats}>
+        <div className={styles.userLevel}>
+          <span className={styles.userLevelLabel}>Level {userStats.level}</span>
+          <span className={styles.userLevelValue}>{userStats.experience} XP</span>
+        </div>
+        <Progress
+          value={(userStats.experience % 1000) / 10}
+          className={styles.userProgressBar}
+          aria-label={`Experience progress: ${userStats.experience} XP`}
+        />
+        <p className={styles.userProgressText}>
+          {userStats.nextLevelExp} XP to next level
+        </p>
       </div>
-      <Progress
-        value={(userStats.experience % 1000) / 10}
-        className={styles.userProgressBar}
-        aria-label={`Experience progress: ${userStats.experience} XP`}
-      />
-      <p className={styles.userProgressText}>
-        {userStats.nextLevelExp} XP to next level
-      </p>
-    </div>
 
-    <Separator className="my-4 bg-[var(--glass-border-dim)]" />
+      <Separator className="my-4 bg-[var(--glass-border-dim)]" />
 
-    <div className={styles.userStatsGrid}>
-      <div className={styles.userStatItem}>
-        <span className={styles.userStatValue}>{userStats.totalProjects}</span>
-        <span className={styles.userStatLabel}>Total Projects</span>
+      <div className={styles.userStatsGrid}>
+        <div className={styles.userStatItem}>
+          <span className={styles.userStatValue}>{userStats.totalProjects}</span>
+          <span className={styles.userStatLabel}>Total Projects</span>
+        </div>
+        <div className={styles.userStatItem}>
+          <span className={styles.userStatValue}>{userStats.totalEarnings}</span>
+          <span className={styles.userStatLabel}>Total Earnings</span>
+        </div>
       </div>
-      <div className={styles.userStatItem}>
-        <span className={styles.userStatValue}>{userStats.totalEarnings}</span>
-        <span className={styles.userStatLabel}>Total Earnings</span>
-      </div>
-    </div>
-  </motion.div>
-));
+    </motion.div>
+  );
+});
 
 interface AchievementsSectionProps {
-  achievements: typeof USER_STATS.achievements;
+  achievements: any[];
   onAchievementClick: (achievement: any) => void;
 }
 
@@ -268,7 +386,7 @@ const AchievementsSection = memo(({ achievements, onAchievementClick }: Achievem
 ));
 
 interface QuickActionsSectionProps {
-  quickActions: typeof USER_STATS.quickActions;
+  quickActions: any[];
   onQuickActionClick: (action: string) => void;
 }
 
@@ -300,40 +418,47 @@ interface TopNavigationProps {
   onLogout: () => void;
 }
 
-const TopNavigation = memo(({ onNavigate, onLogout }: TopNavigationProps) => (
-  <header className="relative z-50 px-6 py-4 border-b border-[var(--glass-border-dim)]">
-    <div className="glass-strong rounded-2xl px-6 py-4 flex items-center justify-between">
-      <button
-        className="flex items-center space-x-3 cursor-pointer group"
-        onClick={() => onNavigate("landing")}
-        aria-label="Navigate to landing page"
-      >
-        <div className="w-10 h-10 bg-gradient-to-br from-[var(--glass-yellow)] to-[var(--glass-yellow-dark)] rounded-xl flex items-center justify-center glow-yellow group-hover:glow-yellow-strong transition-all duration-300">
-          <Home className="w-5 h-5 text-[var(--glass-black)]" />
-        </div>
-        <span className="text-2xl font-bold text-white group-hover:text-[var(--glass-yellow)] transition-colors">Lumea</span>
-      </button>
+const TopNavigation = memo(({ onNavigate, onLogout }: TopNavigationProps) => {
+  const { userProfile } = useUserProfile();
+  const displayName = userProfile?.displayName || userProfile?.email?.split('@')[0] || 'User';
 
-      <div className="flex items-center space-x-4">
-        <Avatar className="cursor-pointer ring-2 ring-[var(--glass-border-light)]">
-          <AvatarImage src="/placeholder-avatar.jpg" />
-          <AvatarFallback className="bg-[var(--glass-yellow)] text-[var(--glass-black)]">JD</AvatarFallback>
-        </Avatar>
-        <Button 
-          variant="ghost" 
-          onClick={onLogout}
-          className="text-[var(--glass-gray)] hover:text-white hover:bg-white/10"
+  return (
+    <header className="relative z-50 px-6 py-4 border-b border-[var(--glass-border-dim)]">
+      <div className="glass-strong rounded-2xl px-6 py-4 flex items-center justify-between">
+        <button
+          className="flex items-center space-x-3 cursor-pointer group"
+          onClick={() => onNavigate("landing")}
+          aria-label="Navigate to landing page"
         >
-          <LogOut className="w-4 h-4" />
-        </Button>
+          <div className="w-10 h-10 bg-gradient-to-br from-[var(--glass-yellow)] to-[var(--glass-yellow-dark)] rounded-xl flex items-center justify-center glow-yellow group-hover:glow-yellow-strong transition-all duration-300">
+            <Home className="w-5 h-5 text-[var(--glass-black)]" />
+          </div>
+          <span className="text-2xl font-bold text-white group-hover:text-[var(--glass-yellow)] transition-colors">Lumea</span>
+        </button>
+
+        <div className="flex items-center space-x-4">
+          <Avatar className="cursor-pointer ring-2 ring-[var(--glass-border-light)]">
+            <AvatarImage src="/placeholder-avatar.jpg" />
+            <AvatarFallback className="bg-[var(--glass-yellow)] text-[var(--glass-black)]">
+              {displayName.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <Button
+            variant="ghost"
+            onClick={onLogout}
+            className="text-[var(--glass-gray)] hover:text-white hover:bg-white/10"
+          >
+            <LogOut className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
-    </div>
-  </header>
-));
+    </header>
+  );
+});
 
 interface MainContentProps {
-  projects: typeof PROJECTS;
-  pipelineStages: typeof PIPELINE_STAGES;
+  projects: any[];
+  pipelineStages: any[];
   onProjectClick: (project: any) => void;
   onNavigate: (page: any) => void;
 }
@@ -360,25 +485,30 @@ const MainContent = memo(({ projects, pipelineStages, onProjectClick, onNavigate
   </main>
 ));
 
-const WelcomeSection = memo(() => (
-  <div className="mb-8">
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="glass-strong rounded-2xl p-6 glow-yellow"
-    >
-      <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-2">
-        Welcome back, John! 👋
-      </h1>
-      <p className="text-[var(--glass-gray)] text-lg">
-        Here's what's happening with your projects today.
-      </p>
-    </motion.div>
-  </div>
-));
+const WelcomeSection = memo(() => {
+  const { userProfile } = useUserProfile();
+  const displayName = userProfile?.displayName || userProfile?.email?.split('@')[0] || 'User';
+
+  return (
+    <div className="mb-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-strong rounded-2xl p-6 glow-yellow"
+      >
+        <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-2">
+          Welcome back, {displayName}! 👋
+        </h1>
+        <p className="text-[var(--glass-gray)] text-lg">
+          Here's what's happening with your projects today.
+        </p>
+      </motion.div>
+    </div>
+  );
+});
 
 interface PipelineSectionProps {
-  pipelineStages: typeof PIPELINE_STAGES;
+  pipelineStages: any[];
 }
 
 const PipelineSection = memo(({ pipelineStages }: PipelineSectionProps) => (
@@ -414,7 +544,7 @@ const PipelineSection = memo(({ pipelineStages }: PipelineSectionProps) => (
 ));
 
 interface ProjectsSectionProps {
-  projects: typeof PROJECTS;
+  projects: any[];
   onProjectClick: (project: any) => void;
   onNavigate: (page: string) => void;
 }
@@ -447,31 +577,35 @@ const ProjectsSection = memo(({ projects, onProjectClick, onNavigate }: Projects
   </div>
 ));
 
-const StatsSection = memo(() => (
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <StatsCard 
-      icon={Users}
-      label="Active Clients"
-      value="8"
-      trend="+2 this month"
-      iconColor="blue"
-    />
-    <StatsCard 
-      icon={CheckCircle}
-      label="Completed Projects"
-      value="23"
-      trend="+4 this month"
-      iconColor="green"
-    />
-    <StatsCard 
-      icon={ArrowRight}
-      label="Total Earnings"
-      value="$47,500"
-      trend="+$12.5k this month"
-      iconColor="orange"
-    />
-  </div>
-));
+const StatsSection = memo(() => {
+  const { userStats } = useDashboardData();
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <StatsCard
+        icon={Users}
+        label="Active Clients"
+        value={userStats?.activeClients?.toString() || "0"}
+        trend="+2 this month"
+        iconColor="blue"
+      />
+      <StatsCard
+        icon={CheckCircle}
+        label="Completed Projects"
+        value={userStats?.completedProjects?.toString() || "0"}
+        trend="+4 this month"
+        iconColor="green"
+      />
+      <StatsCard
+        icon={ArrowRight}
+        label="Total Earnings"
+        value={userStats?.totalEarnings || "$0"}
+        trend="+$12.5k this month"
+        iconColor="orange"
+      />
+    </div>
+  );
+});
 
 interface StatsCardProps {
   icon: React.ComponentType<{ className?: string }>;
@@ -505,8 +639,8 @@ const StatsCard = memo(({ icon: Icon, label, value, trend, iconColor }: StatsCar
 ));
 
 interface RightSidebarProps {
-  recentActivity: typeof USER_STATS.recentActivity;
-  upcomingDeadlines: typeof USER_STATS.upcomingDeadlines;
+  recentActivity: any[];
+  upcomingDeadlines: any[];
   viewAllActivity: boolean;
   onToggleViewAll: () => void;
   onDeadlineClick: (deadline: any) => void;
@@ -547,7 +681,7 @@ const RightSidebar = memo(({
 ));
 
 interface ActivitySectionProps {
-  recentActivity: typeof USER_STATS.recentActivity;
+  recentActivity: any[];
   viewAllActivity: boolean;
   onToggleViewAll: () => void;
 }
@@ -582,7 +716,7 @@ const ActivitySection = memo(({ recentActivity, viewAllActivity, onToggleViewAll
 ));
 
 interface DeadlinesSectionProps {
-  upcomingDeadlines: typeof USER_STATS.upcomingDeadlines;
+  upcomingDeadlines: any[];
   onDeadlineClick: (deadline: any) => void;
 }
 
