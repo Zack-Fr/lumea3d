@@ -76,6 +76,30 @@ async function bootstrap() {
   });
 
   // Swagger documentation
+  // Compute Swagger base URL. Prefer explicit environment variable when present.
+  // If not set, attempt to detect a global prefix or fall back to localhost.
+  let swaggerBase = process.env.API_PUBLIC_URL;
+
+  if (!swaggerBase) {
+    // Try to detect a global prefix set via app.setGlobalPrefix('api') by reading the internal config.
+    try {
+      // Nest does not expose a public getter; access internal config cautiously.
+      // @ts-ignore
+      const globalPrefix = (app as any).getHttpServer?.()?.context?.globalPrefix || (process.env.GLOBAL_PREFIX || undefined);
+      if (globalPrefix) {
+        // ensure it starts with '/'
+        const prefix = globalPrefix.startsWith('/') ? globalPrefix : `/${globalPrefix}`;
+        swaggerBase = `http://localhost:3001${prefix}`;
+      }
+    } catch (e) {
+      // ignore and fallback
+    }
+  }
+
+  if (!swaggerBase) {
+    swaggerBase = 'http://localhost:3001';
+  }
+
   const config = new DocumentBuilder()
     .setTitle('Lumea API')
     .setDescription(`
@@ -108,8 +132,7 @@ async function bootstrap() {
       'support@lumea.dev'
     )
     .setLicense('MIT', 'https://opensource.org/licenses/MIT')
-    .addServer('http://localhost:3000', 'Development Server')
-    .addServer('https://api.lumea.dev', 'Production Server')
+  .addServer(swaggerBase, 'Primary API Server')
     .addBearerAuth(
       {
         type: 'http',

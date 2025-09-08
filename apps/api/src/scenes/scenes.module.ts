@@ -16,11 +16,13 @@ import { ScenesAuthGuard } from '../shared/guards/scenes-auth.guard';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
 import { StorageModule } from '../storage/storage.module';
+import { AssetsModule } from '../assets/assets.module';
 
 @Module({
   imports: [
     PrismaModule,
     StorageModule,
+    AssetsModule,
     forwardRef(() => AuthModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
