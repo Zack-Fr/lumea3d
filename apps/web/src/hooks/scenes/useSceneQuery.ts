@@ -121,7 +121,7 @@ export function useSceneVersion(sceneId: string, options: { enabled?: boolean } 
 }
 
 /**
- * Hook to fetch available categories in a scene
+ * Hook to fetch available categories in a scene (alias route)
  */
 export function useSceneCategories(sceneId: string, options: { enabled?: boolean } = {}) {
   const { token } = useAuth();
@@ -136,7 +136,9 @@ export function useSceneCategories(sceneId: string, options: { enabled?: boolean
       console.log('🔄 useSceneCategories: Loading categories for scene:', sceneId);
       
       const response = await scenesApi.getCategories(sceneId);
-      const categories = response?.categories || [];
+      // Backend returns array directly, but API client expects { categories: [...] }
+      // Handle both formats for compatibility
+      const categories = Array.isArray(response) ? response : (response?.categories || []);
       
       console.log('✅ useSceneCategories: Loaded categories:', categories.length);
       

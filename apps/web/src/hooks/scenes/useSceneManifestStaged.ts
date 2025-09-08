@@ -98,7 +98,9 @@ export function useSceneManifestStaged(
       if (!token) throw new SceneApiError(401, 'Authentication required');
       
       const response = await scenesApi.getCategories(sceneId);
-      return response?.categories || [];
+      // Backend returns array directly, but API client expects { categories: [...] }
+      // Handle both formats for compatibility
+      return Array.isArray(response) ? response : (response?.categories || []);
     },
     enabled: !!sceneId && !!token && enabled && state.stage === 'discovering',
     retry: (failureCount, error: unknown) => {
