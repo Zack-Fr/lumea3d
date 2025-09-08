@@ -21,8 +21,12 @@ export class ScenesAuthGuard implements CanActivate {
     const user = request.user as any; // Set by JwtAuthGuard
     const sceneId = request.params.sceneId;
 
-    if (!user || !sceneId) {
-      throw new ForbiddenException('Missing authentication or scene ID');
+    if (!user || !user.id) {
+      throw new ForbiddenException('Missing authentication');
+    }
+
+    if (!sceneId || typeof sceneId !== 'string') {
+      throw new ForbiddenException('Missing or invalid scene ID');
     }
 
     // Get the scene and its project
@@ -37,7 +41,7 @@ export class ScenesAuthGuard implements CanActivate {
 
     // Check if user has access to the project
     const hasAccess = await this.authz.userHasProjectAccess(
-      user.userId,
+      user.id,
       scene.projectId,
       request.method,
     );

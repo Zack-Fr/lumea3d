@@ -18,6 +18,10 @@ export class AuthzService {
     projectId: string,
     method: string,
   ): Promise<boolean> {
+    // Input validation
+    if (!userId || typeof userId !== 'string') return false;
+    if (!projectId || typeof projectId !== 'string') return false;
+
     const member = await this.prisma.projectMember.findUnique({
       where: { userId_projectId: { userId, projectId } },
       select: { role: true },

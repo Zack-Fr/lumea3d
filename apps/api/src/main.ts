@@ -179,7 +179,7 @@ async function bootstrap() {
     ],
   });
 
-  const port = process.env.PORT || 3000;
+  const port = process.env.PORT || 3001;
   await app.listen(port);
   console.log(`🚀 Lumea API running on port ${port}`);
   console.log(`📚 API documentation available at http://localhost:${port}/docs (Swagger server: ${swaggerBase})`);
