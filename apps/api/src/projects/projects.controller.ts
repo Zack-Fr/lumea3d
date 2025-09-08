@@ -18,6 +18,7 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { ProjectsService, ProjectWithScenes, ProjectCreationResult } from './projects.service';
+import { CreateProjectResponseDto } from './dto/create-project-response.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { CurrentUser } from '../auth/shared/decorators/current-user.decorator';
 
@@ -35,49 +36,7 @@ export class ProjectsController {
     description: 'Creates a new project with auto-membership (ADMIN role) and optional initial scene configuration'
   })
   @ApiBody({ type: CreateProjectDto })
-  @ApiResponse({ 
-    status: 201, 
-    description: 'Project created successfully with auto-membership and initial scene',
-    schema: {
-      type: 'object',
-      properties: {
-        projectId: { type: 'string', format: 'uuid' },
-        sceneId: { type: 'string', format: 'uuid' },
-        project: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', format: 'uuid' },
-            name: { type: 'string' },
-            userId: { type: 'string', format: 'uuid' },
-            createdAt: { type: 'string', format: 'date-time' },
-            updatedAt: { type: 'string', format: 'date-time' },
-          },
-        },
-        scene: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', format: 'uuid' },
-            name: { type: 'string' },
-            projectId: { type: 'string', format: 'uuid' },
-            version: { type: 'number' },
-            spawnPositionX: { type: 'number' },
-            spawnPositionY: { type: 'number' },
-            spawnPositionZ: { type: 'number' },
-            spawnYawDeg: { type: 'number' },
-            exposure: { type: 'number' },
-          },
-        },
-        membership: {
-          type: 'object',
-          properties: {
-            userId: { type: 'string', format: 'uuid' },
-            projectId: { type: 'string', format: 'uuid' },
-            role: { type: 'string', enum: ['CLIENT', 'DESIGNER', 'ADMIN'] },
-          },
-        },
-      },
-    },
-  })
+  @ApiResponse({ status: 201, description: 'Project created successfully with auto-membership and initial scene', type: CreateProjectResponseDto })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async create(
