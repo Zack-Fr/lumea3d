@@ -1,9 +1,9 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { once as logOnce, log } from '../../utils/logger';
+import React, { useState, useCallback } from 'react';
 import { useSceneManifestStaged } from '../../hooks/scenes/useSceneManifestStaged';
 import { useSceneCategories } from '../../hooks/scenes/useSceneQuery';
 import { GLBPreloader, useSceneMetrics } from './GLBPreloader';
 import type { SceneManifestV2 } from '../../services/scenesApi';
+import { log } from '../../utils/logger';
 
 interface StagedSceneLoaderProps {
   sceneId: string;
@@ -45,20 +45,19 @@ export function StagedSceneLoader({
     error,
     metrics,
     refresh
-  } = useSceneManifestStaged(sceneId, {
-    priorityCategories: useMemo(() => ['shell', 'lighting', 'environment'], []),
-    secondaryCategories: useMemo(() => ['furniture', 'seating', 'tables', 'storage'], []),
+    } = useSceneManifestStaged(sceneId, {
+    priorityCategories: ['shell', 'lighting', 'environment'],
+    secondaryCategories: ['furniture', 'seating', 'tables', 'storage'],
     includeMetadata: true,
     onStageComplete: (stageName, categories) => {
-      logOnce(`staged:stage-complete:${stageName}`, 'info', `🎯 Stage "${stageName}" completed (logged once)`);
-      log('debug', 'StagedSceneLoader stage categories', categories);
+      log('info', `🎯 Stage "${stageName}" completed: ${Array.isArray(categories) ? categories.map((c:any)=>c.categoryKey||c.key||c).join(',') : ''}`);
     },
     onComplete: (finalManifest) => {
-      logOnce('staged:all-complete', 'info', '🎉 All stages completed!');
+      log('info', '🎉 All stages completed!');
       onManifestLoaded?.(finalManifest);
     },
     onError: (error) => {
-      console.error('❌ Staged loading failed:', error);
+      log('error', '❌ Staged loading failed:', String(error));
     }
   });
 
@@ -67,7 +66,7 @@ export function StagedSceneLoader({
 
   // Handle loading state changes
   React.useEffect(() => {
-    onLoadingStateChange?.(isLoading || categoriesLoading);
+    onLoadingStateChange?.(Boolean(isLoading) || Boolean(categoriesLoading));
   }, [isLoading, categoriesLoading, onLoadingStateChange]);
 
   const handleRefresh = useCallback(() => {
@@ -171,7 +170,7 @@ export function StagedSceneLoader({
         {stage !== 'complete' && stage !== 'error' && (
           <div className="mt-2 text-xs text-gray-500">
               Stage: {stage} | Categories loaded: {Array.isArray(loadedCategories) ? loadedCategories.length : 0}/{Array.isArray(discoveredCategories) ? discoveredCategories.length : 0}
-          </div>
+            </div>
         )}
       </div>
 
@@ -181,19 +180,20 @@ export function StagedSceneLoader({
           <h2 className="font-semibold text-gray-900 mb-3">Available Categories</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
             {(Array.isArray(availableCategories) ? availableCategories : []).map((category: any) => {
-              const isLoaded = Array.isArray(loadedCategories) ? loadedCategories.includes(category.categoryKey) : false;
+              const key = category?.categoryKey || category?.key || String(category);
+              const isLoaded = Array.isArray(loadedCategories) ? loadedCategories.includes(key) : false;
               return (
                 <div
-                  key={category.categoryKey}
+                  key={key}
                   className={`p-2 rounded border text-sm ${
                     isLoaded 
                       ? 'bg-green-50 border-green-200 text-green-800' 
                       : 'bg-gray-50 border-gray-200 text-gray-600'
                   }`}
                 >
-                  <div className="font-medium">{category.categoryKey}</div>
+                  <div className="font-medium">{key}</div>
                   <div className="text-xs opacity-75">
-                    {category.itemCount || 0} items
+                    {category?.itemCount || 0} items
                   </div>
                 </div>
               );
@@ -208,28 +208,28 @@ export function StagedSceneLoader({
           <h2 className="font-semibold text-gray-900 mb-3">Scene Performance</h2>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{sceneMetrics?.totalCategories ?? 0}</div>
-                <div className="text-sm text-gray-600">Categories</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{sceneMetrics?.totalItems ?? 0}</div>
-                <div className="text-sm text-gray-600">Items</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{metrics?.totalLoadTime ?? 0}ms</div>
-                <div className="text-sm text-gray-600">Load Time</div>
-              </div>
-              <div className="text-center">
-                <div 
-                  className="text-2xl font-bold"
-                  style={{ color: getPerformanceColor(sceneMetrics?.performance?.performanceScore ?? '') }}
-                >
-                  {sceneMetrics?.performance?.performanceScore ?? 'n/a'}
-                </div>
-                <div className="text-sm text-gray-600">Performance</div>
-              </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{sceneMetrics?.totalCategories ?? 0}</div>
+              <div className="text-sm text-gray-600">Categories</div>
             </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{sceneMetrics?.totalItems ?? 0}</div>
+              <div className="text-sm text-gray-600">Items</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">{metrics?.totalLoadTime ?? 0}ms</div>
+              <div className="text-sm text-gray-600">Load Time</div>
+            </div>
+            <div className="text-center">
+              <div 
+                className="text-2xl font-bold"
+                style={{ color: getPerformanceColor(sceneMetrics?.performance?.performanceScore ?? 'unknown') }}
+              >
+                {sceneMetrics?.performance?.performanceScore ?? 'unknown'}
+              </div>
+              <div className="text-sm text-gray-600">Performance</div>
+            </div>
+          </div>
 
           {showAdvancedMetrics && (
             <div className="space-y-3">
@@ -250,7 +250,7 @@ export function StagedSceneLoader({
                 <div className="space-y-1 max-h-40 overflow-y-auto">
                   {(sceneMetrics?.categoryStats ?? [])
                     .slice()
-                    .sort((a, b) => b.loadTime - a.loadTime)
+                    .sort((a, b) => (b.loadTime || 0) - (a.loadTime || 0))
                     .map((cat) => (
                       <div key={cat.key} className="flex justify-between text-sm">
                         <span>{cat.key} ({cat.itemCount} items):</span>
@@ -265,15 +265,14 @@ export function StagedSceneLoader({
       )}
 
       {/* GLB Preloader (hidden component for performance) */}
-      {manifest && (
+          {manifest && (
         <GLBPreloader 
           manifest={manifest}
           progressive={true}
           priorityCategories={['shell', 'lighting', 'environment']}
           loadDelay={100}
           onStageComplete={(stage, categories) => {
-            logOnce(`glb:stage:${stage}`, 'info', `🎯 GLB Preloader: ${stage} stage completed (logged once)`);
-            log('debug', 'GLB_PRELOADER stage categories', categories);
+            log('info', `🎯 GLB Preloader: ${stage} stage completed ${Array.isArray(categories) ? categories.join(',') : ''}`);
           }}
         />
       )}
@@ -284,10 +283,10 @@ export function StagedSceneLoader({
           <h2 className="font-semibold text-gray-900 mb-3">Scene Data Preview</h2>
           <pre className="bg-gray-50 p-3 rounded text-xs overflow-auto max-h-40">
             {JSON.stringify({
-              scene: manifest.scene,
-              itemCount: manifest.items?.length ?? 0,
-              categoryCount: Object.keys(manifest.categories ?? {}).length,
-              generatedAt: manifest.generatedAt
+              scene: manifest?.scene,
+              itemCount: Array.isArray(manifest?.items) ? manifest.items.length : 0,
+              categoryCount: manifest?.categories ? Object.keys(manifest.categories).length : 0,
+              generatedAt: manifest?.generatedAt
             }, null, 2)}
           </pre>
         </div>

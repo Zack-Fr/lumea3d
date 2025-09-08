@@ -12,11 +12,12 @@ const onceCache = new Set<string>();
 export function log(level: LogLevel, msg: string, ...args: any[]) {
   if (!enabledLevels[level]) return;
   const prefix = level === 'debug' ? 'DEBUG' : level.toUpperCase();
-  // Use console methods per level
-  if (level === 'debug') console.debug(`${prefix}: ${msg}`, ...args);
-  else if (level === 'info') console.info(`${prefix}: ${msg}`, ...args);
-  else if (level === 'warn') console.warn(`${prefix}: ${msg}`, ...args);
-  else console.error(`${prefix}: ${msg}`, ...args);
+  // Prefer the original native console stored by consoleBridge to avoid recursion
+  const nativeConsole = (globalThis as any).__nativeConsole || console;
+  if (level === 'debug') nativeConsole.debug?.(`${prefix}: ${msg}`, ...args);
+  else if (level === 'info') nativeConsole.info?.(`${prefix}: ${msg}`, ...args);
+  else if (level === 'warn') nativeConsole.warn?.(`${prefix}: ${msg}`, ...args);
+  else nativeConsole.error?.(`${prefix}: ${msg}`, ...args);
 }
 
 export function once(key: string, level: LogLevel, msg: string, ...args: any[]) {

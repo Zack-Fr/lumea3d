@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { scenesApi, SceneApiError } from '../../services/scenesApi';
 import { useAuth } from '../../providers/AuthProvider';
-import { log, once as logOnce } from '../../utils/logger';
+import { log } from '../../utils/logger';
 import type { SceneManifestV2 } from '../../services/scenesApi';
 
 export interface StagedManifestLoadingState {
@@ -118,37 +118,37 @@ export function useSceneManifestStaged(
 
     try {
       setStageStartTime(Date.now());
-      
-  log('info', `🚀 StagedManifest: Loading ${stageName} stage with categories:`, categories);
-      
+
+      log('info', `🚀 StagedManifest: Loading ${stageName} stage with categories: ${Array.isArray(categories) ? categories.join(',') : ''}`);
+
       const manifest = await scenesApi.getManifest(sceneId, {
         categories: categories.length > 0 ? categories : undefined,
         includeMetadata
       });
 
       const stageTime = Date.now() - stageStartTime;
-      
+
       setState(prev => ({
         ...prev,
         manifest,
-        loadedCategories: [...new Set([...prev.loadedCategories, ...categories])],
+        loadedCategories: [...new Set([...(Array.isArray(prev.loadedCategories) ? prev.loadedCategories : []), ...(Array.isArray(categories) ? categories : [])])],
         metrics: {
           ...prev.metrics,
           stageTimings: {
             ...prev.metrics.stageTimings,
             [stageName]: stageTime
           },
-          itemCount: manifest.items.length,
-          categoryCount: Object.keys(manifest.categories).length
+          itemCount: Array.isArray(manifest?.items) ? manifest.items.length : prev.metrics.itemCount,
+          categoryCount: manifest && manifest.categories ? Object.keys(manifest.categories).length : prev.metrics.categoryCount
         }
       }));
 
-  log('info', `✅ StagedManifest: ${stageName} stage completed in ${stageTime}ms`);
+      log('info', `✅ StagedManifest: ${stageName} stage completed in ${stageTime}ms`);
       onStageComplete?.(stageName, manifest);
-      
+
       return manifest;
     } catch (error) {
-      console.error(`❌ StagedManifest: Failed to load ${stageName} stage:`, error);
+      log('error', `❌ StagedManifest: Failed to load ${stageName} stage: ${String(error)}`);
       throw error;
     }
   }, [token, sceneId, includeMetadata, stageStartTime, onStageComplete]);
@@ -173,7 +173,7 @@ export function useSceneManifestStaged(
         if (!categoriesData || state.stage !== 'discovering') return;
 
         const availableCategories = Array.isArray(categoriesData) 
-          ? categoriesData.map((cat: any) => cat.categoryKey || cat.key || cat.name || cat)
+          ? categoriesData.map((cat: any) => cat?.categoryKey || cat?.key || cat?.name || String(cat))
           : [];
 
         setState(prev => ({
@@ -229,7 +229,7 @@ export function useSceneManifestStaged(
         }
 
         // Stage 6: Final - load complete manifest
-        const finalManifest = await loadManifestStage([], 'complete');
+  const finalManifest = await loadManifestStage([], 'complete');
         
         const totalTime = Date.now() - startTime;
         setState(prev => ({
@@ -242,8 +242,7 @@ export function useSceneManifestStaged(
             totalLoadTime: totalTime
           }
         }));
-
-  logOnce('staged:complete', 'info', `🎉 StagedManifest: Complete! Total time: ${totalTime}ms`);
+        log('info', `🎉 StagedManifest: Complete! Total time: ${totalTime}ms`);
         
         if (finalManifest) {
           onComplete?.(finalManifest);
