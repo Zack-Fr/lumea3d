@@ -25,6 +25,8 @@ import {
   ApiHeader,
 } from '@nestjs/swagger';
 import { ScenesService } from './scenes.service';
+import { ProjectCategory3DService } from '../assets/project-category-3d.service';
+import { ProjectCategory3DQueryDto } from '../assets/dto/project-category-3d.dto';
 import { UpdateSceneDto } from './dto/update-scene.dto';
 import { CreateSceneItemDto } from './dto/create-scene-item.dto';
 import { UpdateSceneItemDto } from './dto/update-scene-item.dto';
@@ -45,7 +47,10 @@ interface RequestWithSceneContext extends Request {
 @UseGuards(JwtAuthGuard, ScenesAuthGuard)
 @Controller('scenes')
 export class FlatScenesController {
-  constructor(private readonly scenesService: ScenesService) {}
+  constructor(
+    private readonly scenesService: ScenesService,
+    private readonly projectCategory3DService: ProjectCategory3DService,
+  ) {}
 
   @Get(':sceneId')
   @ApiOperation({ 
@@ -363,9 +368,12 @@ export class FlatScenesController {
   async getSceneCategories(
     @Param('sceneId') sceneId: string,
     @Request() req: RequestWithSceneContext,
+    @Query() query?: ProjectCategory3DQueryDto,
   ) {
+    // Alias: return the canonical project categories payload for the scene's project
     const { projectId } = req.sceneContext;
-    return this.scenesService.getSceneCategories(projectId, sceneId, req.user.userId);
+    // Reuse the project categories service to ensure identical shape and ordering
+    return this.projectCategory3DService.findAll(projectId, req.user.userId, query);
   }
 
   @Get(':sceneId/delta')
