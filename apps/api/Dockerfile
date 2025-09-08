@@ -105,8 +105,8 @@ RUN chown -R lumea:lumea /app
 # Switch to non-root user
 USER lumea
 
-# Set working directory to API
-WORKDIR /app/apps/api
+# Set working directory to root so node_modules are accessible
+WORKDIR /app
 
 # Set production environment
 ENV NODE_ENV=production
@@ -118,5 +118,5 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=5 \
   CMD curl -f http://localhost:3001/health || exit 1
 
-# Start production server
-CMD ["node", "dist/src/main.js"]
+# Start production server - compiled main is at apps/api/dist/apps/api/src/main.js
+CMD ["node", "apps/api/dist/apps/api/src/main.js"]
