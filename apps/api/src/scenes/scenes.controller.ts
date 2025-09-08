@@ -64,7 +64,7 @@ export class ScenesController {
     @Body() createSceneDto: CreateSceneDto,
     @Request() req: any,
   ) {
-    return this.scenesService.create(projectId, req.user.userId, createSceneDto);
+    return this.scenesService.create(projectId, req.user.id, createSceneDto);
   }
 
   @Get()
@@ -73,7 +73,7 @@ export class ScenesController {
   @ApiResponse({ status: 200, description: 'Scenes retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Project not found' })
   findAll(@Param('projectId') projectId: string, @Request() req: any) {
-    return this.scenesService.findAll(projectId, req.user.userId);
+    return this.scenesService.findAll(projectId, req.user.id);
   }
 
   @Get(':sceneId')
@@ -87,7 +87,7 @@ export class ScenesController {
     @Param('sceneId') sceneId: string,
     @Request() req: any,
   ) {
-    return this.scenesService.findOne(projectId, sceneId, req.user.userId);
+    return this.scenesService.findOne(projectId, sceneId, req.user.id);
   }
 
   @Patch(':sceneId')
@@ -114,7 +114,7 @@ export class ScenesController {
     return this.scenesService.update(
       projectId,
       sceneId,
-      req.user.userId,
+      req.user.id,
       updateSceneDto,
       expectedVersion,
     );
@@ -132,7 +132,7 @@ export class ScenesController {
     @Param('sceneId') sceneId: string,
     @Request() req: any,
   ) {
-    return this.scenesService.remove(projectId, sceneId, req.user.userId);
+    return this.scenesService.remove(projectId, sceneId, req.user.id);
   }
 
   // Scene Items endpoints
@@ -153,7 +153,7 @@ export class ScenesController {
     return this.scenesService.addItem(
       projectId,
       sceneId,
-      req.user.userId,
+      req.user.id,
       createSceneItemDto,
     );
   }
@@ -177,7 +177,7 @@ export class ScenesController {
       projectId,
       sceneId,
       itemId,
-      req.user.userId,
+      req.user.id,
       updateSceneItemDto,
     );
   }
@@ -197,7 +197,7 @@ export class ScenesController {
     @Param('itemId') itemId: string,
     @Request() req: any,
   ) {
-    return this.scenesService.removeItem(projectId, sceneId, itemId, req.user.userId);
+    return this.scenesService.removeItem(projectId, sceneId, itemId, req.user.id);
   }
 
   // Scene Manifest endpoints
@@ -226,7 +226,7 @@ export class ScenesController {
     @Param('sceneId') sceneId: string,
     @Request() req: any,
   ): Promise<SceneManifestV2> {
-    return this.scenesService.generateManifest(projectId, sceneId, req.user.userId);
+    return this.scenesService.generateManifest(projectId, sceneId, req.user.id);
   }
 
   @Get(':sceneId/delta')
@@ -256,7 +256,7 @@ export class ScenesController {
       sceneId,
       parseInt(fromVersion),
       parseInt(toVersion),
-      req.user.userId,
+      req.user.id,
     );
   }
 
@@ -275,7 +275,7 @@ export class ScenesController {
     @Request() req: any,
   ): Promise<{ version: number }> {
     return this.scenesService
-      .getVersion(projectId, sceneId, req.user.userId)
+      .getVersion(projectId, sceneId, req.user.id)
       .then(version => ({ version }));
   }
 }
