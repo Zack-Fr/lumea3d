@@ -66,7 +66,7 @@ export class FlatScenesController {
     @Request() req: RequestWithSceneContext,
   ) {
     const { projectId } = req.sceneContext;
-    return this.scenesService.findOne(projectId, sceneId, req.user.userId);
+    return this.scenesService.findOne(projectId, sceneId, req.user.id);
   }
 
   @Patch(':sceneId')
@@ -106,7 +106,7 @@ export class FlatScenesController {
       return await this.scenesService.update(
         projectId,
         sceneId,
-        req.user.userId,
+        req.user.id,
         updateSceneDto,
         expectedVersion,
       );
@@ -133,7 +133,7 @@ export class FlatScenesController {
     @Request() req: RequestWithSceneContext,
   ) {
     const { projectId } = req.sceneContext;
-    return this.scenesService.remove(projectId, sceneId, req.user.userId);
+    return this.scenesService.remove(projectId, sceneId, req.user.id);
   }
 
   // Scene Items endpoints
@@ -175,7 +175,7 @@ export class FlatScenesController {
       return await this.scenesService.addItem(
         projectId,
         sceneId,
-        req.user.userId,
+        req.user.id,
         createSceneItemDto,
       );
     } catch (error) {
@@ -226,7 +226,7 @@ export class FlatScenesController {
         projectId,
         sceneId,
         itemId,
-        req.user.userId,
+        req.user.id,
         updateSceneItemDto,
       );
     } catch (error) {
@@ -273,7 +273,7 @@ export class FlatScenesController {
     const { projectId } = req.sceneContext;
     
     try {
-      return await this.scenesService.removeItem(projectId, sceneId, itemId, req.user.userId);
+      return await this.scenesService.removeItem(projectId, sceneId, itemId, req.user.id);
     } catch (error) {
       if (error.message?.includes('version conflict') || error.message?.includes('Version mismatch')) {
         throw new PreconditionFailedException('Scene has been modified by another user');
@@ -322,7 +322,7 @@ export class FlatScenesController {
     return this.scenesService.generateManifest(
       projectId, 
       sceneId, 
-      req.user.userId,
+      req.user.id,
       categoryFilter,
       includeMetadata || false,
     );
@@ -373,7 +373,7 @@ export class FlatScenesController {
     // Alias: return the canonical project categories payload for the scene's project
     const { projectId } = req.sceneContext;
     // Reuse the project categories service to ensure identical shape and ordering
-    return this.projectCategory3DService.findAll(projectId, req.user.userId, query);
+    return this.projectCategory3DService.findAll(projectId, req.user.id, query);
   }
 
   @Get(':sceneId/delta')
@@ -403,7 +403,7 @@ export class FlatScenesController {
       sceneId,
       parseInt(fromVersion),
       parseInt(toVersion),
-      req.user.userId,
+      req.user.id,
     );
   }
 
@@ -422,7 +422,7 @@ export class FlatScenesController {
   ): Promise<{ version: number }> {
     const { projectId } = req.sceneContext;
     return this.scenesService
-      .getVersion(projectId, sceneId, req.user.userId)
+      .getVersion(projectId, sceneId, req.user.id)
       .then(version => ({ version }));
   }
 }

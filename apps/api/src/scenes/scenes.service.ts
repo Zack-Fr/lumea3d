@@ -483,6 +483,27 @@ export class ScenesService {
       categoriesMap[category.categoryKey] = categoryData;
     }
 
+    // Debug: log discovered vs found category keys
+    try {
+      const foundKeys = categories.map(c => c.categoryKey);
+      console.debug(`[generateManifest] project=${projectId} scene=${sceneId} discoveredCategoryKeys=${JSON.stringify(categoryKeys)} foundCategoryKeys=${JSON.stringify(foundKeys)}`);
+    } catch (e) {
+      // ignore logging errors
+    }
+
+    // Ensure placeholders exist for any referenced category keys that weren't found in projectCategory3D
+    for (const key of categoryKeys) {
+      if (!categoriesMap[key]) {
+        console.warn(`[generateManifest] missing projectCategory for key='${key}' project='${projectId}' scene='${sceneId}' - adding placeholder`);
+        categoriesMap[key] = {
+          assetId: null,
+          variants: {},
+          metadata: includeMetadata ? { instancing: false, draco: false, meshopt: false, ktx2: false } : undefined,
+          _missing: true,
+        };
+      }
+    }
+
     // Filter scene items if category filter is applied
     const filteredItems = categoryFilter 
       ? scene.items.filter(item => categoryFilter.includes(item.categoryKey))

@@ -75,7 +75,7 @@ export class DownloadController {
     return this.downloadService.generateManifestDownloadUrls(
       projectId,
       sceneId,
-      req.user.userId,
+      req.user.id,
       downloadDto,
     );
   }
@@ -102,7 +102,7 @@ export class DownloadController {
     return this.downloadService.generateSceneDownloadUrls(
       projectId,
       sceneId,
-      req.user.userId,
+      req.user.id,
       batchDto,
     );
   }
@@ -148,7 +148,7 @@ export class DownloadController {
   ): Promise<AssetDownloadInfo> {
     return this.downloadService.generateAssetDownloadUrl(
       assetId,
-      req.user.userId,
+      req.user.id,
       downloadDto,
     );
   }
@@ -179,7 +179,7 @@ export class DownloadController {
   ): Promise<void> {
     const downloadInfo = await this.downloadService.generateAssetDownloadUrl(
       assetId,
-      req.user.userId,
+      req.user.id,
       downloadDto,
     );
 
@@ -215,7 +215,7 @@ export class DownloadController {
   ): Promise<void> {
     const metadata = await this.downloadService.getAssetMetadata(
       assetId,
-      req.user.userId,
+      req.user.id,
     );
 
     // Set caching headers

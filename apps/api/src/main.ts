@@ -164,7 +164,7 @@ async function bootstrap() {
       filter: true,
       showExtensions: true,
       showCommonExtensions: true,
-      docExpansion: 'none',
+  docExpansion: 'list',
       defaultModelExpandDepth: 3,
       defaultModelsExpandDepth: 3,
     },

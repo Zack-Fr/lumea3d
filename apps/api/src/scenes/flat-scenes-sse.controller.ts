@@ -56,7 +56,7 @@ export class FlatScenesSSEController {
     @Req() req: Request & { user: any; sceneContext: any },
     @Res() res: Response,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const projectId = req.sceneContext.projectId; // Set by ScenesAuthGuard
 
     try {
@@ -74,11 +74,11 @@ export class FlatScenesSSEController {
       });
 
       // Generate client ID if not provided
-      const id = clientId || `sse_flat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const clientIdGenerated = clientId || `sse_flat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       // Store client connection
       const client: SSEClient = {
-        id,
+        id: clientIdGenerated,
         userId,
         projectId,
         sceneId,
@@ -87,11 +87,11 @@ export class FlatScenesSSEController {
         lastEventId,
       };
 
-      this.clients.set(id, client);
+      this.clients.set(clientIdGenerated, client);
 
       // Send initial connection event
       this.sendEvent(client, 'connected', {
-        clientId: id,
+        clientId: clientIdGenerated,
         sceneId,
         projectId,
         resuming: !!lastEventId,
@@ -118,7 +118,7 @@ export class FlatScenesSSEController {
           }, this.generateEventId());
         }
       } else {
-        this.logger.log(`SSE client ${id} resuming from event ID: ${lastEventId}`);
+        this.logger.log(`SSE client ${clientIdGenerated} resuming from event ID: ${lastEventId}`);
         // In a full implementation, you might replay missed events here
         this.sendEvent(client, 'resumed', {
           lastEventId,
@@ -128,18 +128,18 @@ export class FlatScenesSSEController {
 
       // Handle client disconnect
       req.on('close', () => {
-        this.logger.log(`Flat SSE client ${id} disconnected`);
-        this.clients.delete(id);
+        this.logger.log(`Flat SSE client ${clientIdGenerated} disconnected`);
+        this.clients.delete(clientIdGenerated);
       });
 
       req.on('error', (error) => {
-        this.logger.error(`Flat SSE client ${id} error: ${error.message}`);
-        this.clients.delete(id);
+        this.logger.error(`Flat SSE client ${clientIdGenerated} error: ${error.message}`);
+        this.clients.delete(clientIdGenerated);
       });
 
       // Keep connection alive with periodic heartbeat
       const heartbeat = setInterval(() => {
-        if (this.clients.has(id)) {
+        if (this.clients.has(clientIdGenerated)) {
           this.sendEvent(client, 'heartbeat', { 
             timestamp: Date.now() 
           }, this.generateEventId());
@@ -149,7 +149,7 @@ export class FlatScenesSSEController {
         }
       }, 15000); // Every 15 seconds
 
-      this.logger.log(`Flat SSE client ${id} connected to scene ${sceneId} (project ${projectId})`);
+      this.logger.log(`Flat SSE client ${clientIdGenerated} connected to scene ${sceneId} (project ${projectId})`);
 
     } catch (error) {
       this.logger.error(`Flat SSE connection error: ${error.message}`);

@@ -52,7 +52,7 @@ export class ScenesSSEController {
     @Req() req: Request & { user: any },
     @Res() res: Response,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     try {
       // Verify access to the scene
