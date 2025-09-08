@@ -17,36 +17,45 @@ Write-Host "Using base URL: $BASE"
 
 function Invoke-Api($path) {
   $headers = @{}
-  if ($API_TOKEN) { $headers['Authorization'] = "Bearer $API_TOKEN" }
+  if ($API_TOKEN) { 
+    $headers['Authorization'] = "Bearer $API_TOKEN" 
+    Write-Host "Using authentication token for request to $path"
+  }
   try {
+    Write-Host "Making request to: $BASE$path"
     return Invoke-RestMethod -Uri "$BASE$path" -Headers $headers -UseBasicParsing
   } catch {
-    Write-Host "Request to $path failed: $_"
+    Write-Host "ERROR: Request to $path failed: $($_.Exception.Message)"
+    if ($_.Exception.Response) {
+      Write-Host "Response status: $($_.Exception.Response.StatusCode)"
+    }
     throw
   }
 }
 
 Write-Host "Fetching project categories: GET /projects/$ProjectId/categories"
 $proj = Invoke-Api "/projects/$ProjectId/categories"
-Write-Host "Project categories received: $($proj | ConvertTo-Json -Depth 3)"
+$projCount = if ($proj -is [array]) { $proj.Length } else { 1 }
+Write-Host "Project categories received (count: $projCount)"
 
 Write-Host "Fetching scene alias categories: GET /scenes/$SID/categories"
 $scene = Invoke-Api "/scenes/$SID/categories"
-Write-Host "Scene categories received: $($scene | ConvertTo-Json -Depth 3)"
+$sceneCount = if ($scene -is [array]) { $scene.Length } else { 1 }
+Write-Host "Scene categories received (count: $sceneCount)"
 
-# Compare JSON string representations for equality (order-sensitive). If you need order-insensitive compare, adjust accordingly.
-$projJson = $proj | ConvertTo-Json -Depth 6
-$sceneJson = $scene | ConvertTo-Json -Depth 6
+# Compare JSON string representations for equality (order-sensitive)
+$projJson = $proj | ConvertTo-Json -Depth 6 -Compress
+$sceneJson = $scene | ConvertTo-Json -Depth 6 -Compress
 
 if ($projJson -eq $sceneJson) {
-  Write-Host "OK: Project categories and scene alias categories match."
+  Write-Host "SUCCESS: Project categories and scene alias categories match."
   exit 0
 } else {
-  Write-Host "FAIL: Project categories and scene alias categories differ."
+  Write-Host "FAILURE: Project categories and scene alias categories differ."
   # Write diffs to help debugging
   Write-Host "--- Project JSON ---"
-  Write-Host $projJson
+  Write-Host ($proj | ConvertTo-Json -Depth 6)
   Write-Host "--- Scene JSON ---"
-  Write-Host $sceneJson
+  Write-Host ($scene | ConvertTo-Json -Depth 6)
   exit 2
 }

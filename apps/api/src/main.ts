@@ -76,28 +76,20 @@ async function bootstrap() {
   });
 
   // Swagger documentation
-  // Compute Swagger base URL. Prefer explicit environment variable when present.
-  // If not set, attempt to detect a global prefix or fall back to localhost.
+  // Compute Swagger base URL using API_PUBLIC_URL or detect global prefix
   let swaggerBase = process.env.API_PUBLIC_URL;
 
   if (!swaggerBase) {
-    // Try to detect a global prefix set via app.setGlobalPrefix('api') by reading the internal config.
-    try {
-      // Nest does not expose a public getter; access internal config cautiously.
-      // @ts-ignore
-      const globalPrefix = (app as any).getHttpServer?.()?.context?.globalPrefix || (process.env.GLOBAL_PREFIX || undefined);
-      if (globalPrefix) {
-        // ensure it starts with '/'
-        const prefix = globalPrefix.startsWith('/') ? globalPrefix : `/${globalPrefix}`;
-        swaggerBase = `http://localhost:3001${prefix}`;
-      }
-    } catch (e) {
-      // ignore and fallback
+    // Check if there's a global prefix set via environment variable
+    const globalPrefix = process.env.GLOBAL_PREFIX;
+    if (globalPrefix) {
+      // Ensure prefix starts with '/'
+      const prefix = globalPrefix.startsWith('/') ? globalPrefix : `/${globalPrefix}`;
+      swaggerBase = `http://localhost:3001${prefix}`;
+    } else {
+      // Fallback to default localhost
+      swaggerBase = 'http://localhost:3001';
     }
-  }
-
-  if (!swaggerBase) {
-    swaggerBase = 'http://localhost:3001';
   }
 
   const config = new DocumentBuilder()
