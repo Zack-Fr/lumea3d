@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Counter, Histogram, Gauge, register, collectDefaultMetrics } from 'prom-client';
 
 @Injectable()
-export class MetricsService {
+export class MetricsService implements OnModuleDestroy {
   private httpRequestsTotal: Counter<string>;
   private httpRequestDuration: Histogram<string>;
   private websocketConnections: Gauge<string>;
@@ -13,6 +13,7 @@ export class MetricsService {
   private assetProcessingDuration: Histogram<string>;
   private memoryUsage: Gauge<string>;
   private cpuUsage: Gauge<string>;
+  private systemMetricsInterval: NodeJS.Timeout | null = null;
 
   constructor() {
     // Collect default Node.js metrics
@@ -152,7 +153,8 @@ export class MetricsService {
 
   // System metrics
   private startSystemMetricsCollection() {
-    setInterval(() => {
+    // Keep the interval reference so it can be cleared on shutdown to avoid leaked handles in tests
+    this.systemMetricsInterval = setInterval(() => {
       const memUsage = process.memoryUsage();
       this.memoryUsage.set({ type: 'heap_used' }, memUsage.heapUsed);
       this.memoryUsage.set({ type: 'heap_total' }, memUsage.heapTotal);
@@ -164,6 +166,20 @@ export class MetricsService {
       const totalUsage = (cpuUsage.user + cpuUsage.system) / 1000000; // Convert to seconds
       this.cpuUsage.set(totalUsage);
     }, 10000); // Collect every 10 seconds
+  }
+
+  onModuleDestroy() {
+    if (this.systemMetricsInterval) {
+      clearInterval(this.systemMetricsInterval as NodeJS.Timeout);
+      this.systemMetricsInterval = null;
+    }
+
+    // Clear registered metrics to avoid global state between tests
+    try {
+      register.clear();
+    } catch (err) {
+      // ignore errors during shutdown
+    }
   }
 
   // Get metrics for Prometheus endpoint
