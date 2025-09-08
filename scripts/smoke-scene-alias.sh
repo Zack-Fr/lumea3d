@@ -23,10 +23,9 @@ invoke_api() {
   
   if [ -n "$API_TOKEN" ]; then
     headers="-H \"Authorization: Bearer $API_TOKEN\""
-    echo "Using authentication token for request to $path"
+    echo "Using authentication token for request to $path" >&2
   fi
   
-  echo "Making request to: $API_URL$path"
   if [ -n "$headers" ]; then
     eval "curl -s $headers \"$API_URL$path\""
   else
