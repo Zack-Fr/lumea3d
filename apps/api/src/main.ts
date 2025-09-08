@@ -77,17 +77,15 @@ async function bootstrap() {
 
   // Swagger documentation
   // Compute Swagger base URL. Prefer explicit environment variable when present.
-  // If not set, attempt to detect a global prefix or fall back to localhost.
+  // If not set, use app.getGlobalPrefix() if available, otherwise fall back to localhost:3001
   let swaggerBase = process.env.API_PUBLIC_URL;
 
   if (!swaggerBase) {
-    // Try to detect a global prefix set via app.setGlobalPrefix('api') by reading the internal config.
     try {
-      // Nest does not expose a public getter; access internal config cautiously.
-      // @ts-ignore
-      const globalPrefix = (app as any).getHttpServer?.()?.context?.globalPrefix || (process.env.GLOBAL_PREFIX || undefined);
+      // Nest exposes getGlobalPrefix on the INestApplication instance
+      // @ts-ignore - use cautiously in case of older Nest versions
+      const globalPrefix = (app as any).getGlobalPrefix?.();
       if (globalPrefix) {
-        // ensure it starts with '/'
         const prefix = globalPrefix.startsWith('/') ? globalPrefix : `/${globalPrefix}`;
         swaggerBase = `http://localhost:3001${prefix}`;
       }
@@ -96,9 +94,7 @@ async function bootstrap() {
     }
   }
 
-  if (!swaggerBase) {
-    swaggerBase = 'http://localhost:3001';
-  }
+  if (!swaggerBase) swaggerBase = 'http://localhost:3001';
 
   const config = new DocumentBuilder()
     .setTitle('Lumea API')
@@ -186,7 +182,7 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
   console.log(`🚀 Lumea API running on port ${port}`);
-  console.log(`📚 API documentation available at http://localhost:${port}/docs`);
+  console.log(`📚 API documentation available at http://localhost:${port}/docs (Swagger server: ${swaggerBase})`);
 }
 
 bootstrap();
