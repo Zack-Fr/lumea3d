@@ -144,7 +144,11 @@ export const toPathString = function (url: URL) {
  */
 export const createRequestFunction = function (axiosArgs: RequestArgs, globalAxios: AxiosInstance, BASE_PATH: string, configuration?: Configuration) {
     return <T = unknown, R = AxiosResponse<T>>(axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
-        const axiosRequestArgs = {...axiosArgs.options, url: (axios.defaults.baseURL ? '' : configuration?.basePath ?? basePath) + axiosArgs.url};
+
+        //forces absolute URLs so the client always targets the
+        // API server configured via Configuration.basePath or the SDK's BASE_PATH.
+        const resolvedBase = configuration?.basePath ?? basePath;
+        const axiosRequestArgs = { ...axiosArgs.options, url: resolvedBase + axiosArgs.url };
         return axios.request<T, R>(axiosRequestArgs);
     };
 }

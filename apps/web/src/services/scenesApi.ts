@@ -2,6 +2,7 @@ import {
   FlatScenesApi,
   Configuration
 } from '@/api/sdk';
+import axios, { type AxiosInstance } from 'axios';
 
 // Override the generated types with our actual data structure
 export interface SceneManifestV2 {
@@ -118,6 +119,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 // Create configuration and API instances
 let apiConfig: Configuration | null = null;
 let scenesApiInstance: FlatScenesApi | null = null;
+let internalAxiosInstance: AxiosInstance | null = null;
 
 function getApiConfig(): Configuration {
   if (!apiConfig) {
@@ -130,7 +132,9 @@ function getApiConfig(): Configuration {
 
 function getScenesApi(): FlatScenesApi {
   if (!scenesApiInstance) {
-    scenesApiInstance = new FlatScenesApi(getApiConfig());
+    // Create a dedicated axios instance without a global baseURL 
+    internalAxiosInstance = axios.create();
+    scenesApiInstance = new FlatScenesApi(getApiConfig(), API_BASE_URL, internalAxiosInstance);
   }
   return scenesApiInstance;
 }
@@ -149,6 +153,7 @@ export function updateApiClientToken(token: string | null) {
   
   // Reset instances to use new config
   scenesApiInstance = null;
+  internalAxiosInstance = null;
 }
 
 // Type definitions for existing interfaces
