@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { Object3D, Vector3, Euler } from 'three';
+import { log } from '../../utils/logger';
 
 export interface SelectedObject {
   id: string;
@@ -51,16 +52,16 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
     // Check if object has the required userData for selection
     const userData = object.userData;
     if (!userData || !userData.itemId || !userData.selectable) {
-      console.warn('⚠️ Object is not selectable:', object.name);
+      log('warn', '⚠️ Object is not selectable:', object.name);
       return;
     }
 
     if (userData.locked) {
-      console.warn('🔒 Object is locked:', userData.itemId);
+      log('warn', '🔒 Object is locked:', userData.itemId);
       return;
     }
 
-    console.log('🎯 Object selected:', userData.itemId);
+    log('info', '🎯 Object selected:', userData.itemId);
 
     const selectedObject: SelectedObject = {
       id: object.uuid,
@@ -80,7 +81,7 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
   }, []);
 
   const deselectObject = useCallback(() => {
-    console.log('🎯 Object deselected');
+  log('info', '🎯 Object deselected');
     setSelection(prev => ({
       ...prev,
       selectedObject: null,
@@ -89,7 +90,7 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
   }, []);
 
   const setTransformMode = useCallback((mode: 'translate' | 'rotate' | 'scale') => {
-    console.log('🔧 Transform mode changed to:', mode);
+  log('debug', '🔧 Transform mode changed to:', mode);
     setSelection(prev => ({
       ...prev,
       transformMode: mode,
@@ -122,7 +123,7 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
       object.scale.copy(scale);
     }
 
-    console.log('🔄 Object transform updated:', {
+    log('debug', '🔄 Object transform updated:', {
       itemId: selection.selectedObject.itemId,
       position: object.position.toArray(),
       rotation: object.rotation.toArray(),

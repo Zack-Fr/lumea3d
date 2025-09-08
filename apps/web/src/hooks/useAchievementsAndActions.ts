@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { log } from '../utils/logger';
 
 export interface Achievement {
   name: string;
@@ -33,25 +34,25 @@ export const useQuickActions = () => {
   const handleQuickAction = useCallback((action: string, onShowState?: (state: string) => void) => {
     switch (action) {
       case 'project':
-        console.log('Creating new project...');
+        log('info', 'Creating new project...');
         onShowState?.('ai-processing');
         // Navigate to project creation
         window.location.href = '/app/projects/new';
         break;
       case 'upload':
-        console.log('Opening asset upload...');
+  log('info', 'Opening asset upload...');
         onShowState?.('loading');
         // Navigate to project editor where asset import is available
         window.location.href = '/app/projects/demo';
         break;
       case 'messages':
-        console.log('Opening messages...');
+        log('info', 'Opening messages...');
         break;
       case 'settings':
-        console.log('Opening settings...');
+        log('info', 'Opening settings...');
         break;
       default:
-        console.log('Unknown action:', action);
+        log('warn', 'Unknown action:', action);
     }
   }, []);
 

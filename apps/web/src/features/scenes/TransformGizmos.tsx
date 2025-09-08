@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import { log } from '../../utils/logger';
 import { TransformControls } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 import { useSelection } from './SelectionContext';
@@ -41,7 +42,7 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
 
   // Handle transform start/end events
   const handleDragStart = () => {
-    console.log('🔧 Transform drag started');
+    log('debug', '🔧 Transform drag started');
     setIsTransforming(true);
     
     // Disable camera controls during transformation
@@ -51,7 +52,7 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
   };
 
   const handleDragEnd = () => {
-    console.log('🔧 Transform drag ended');
+    log('debug', '🔧 Transform drag ended');
     setIsTransforming(false);
     
     // Re-enable camera controls

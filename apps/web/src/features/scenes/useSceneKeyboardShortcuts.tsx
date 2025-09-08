@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
+import { log } from '../../utils/logger';
 
 export interface KeyboardShortcut {
   key: string;
@@ -63,7 +64,7 @@ export function useSceneKeyboardShortcuts({
         event.stopPropagation();
       }
       
-      console.log('⌨️ SceneShortcuts: Triggered:', matchingShortcut.description);
+  log('debug', '⌨️ SceneShortcuts: Triggered:', matchingShortcut.description);
       matchingShortcut.action();
     }
   }, [preventDefault]);

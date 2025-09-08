@@ -25,7 +25,9 @@ export default function CategoryFiltersTestPage() {
 
   const handleManifestLoaded = (manifest: SceneManifestV2) => {
     setLoadedManifest(manifest);
-    console.log('🎉 CategoryFiltersTest: Manifest loaded successfully', manifest);
+    // One-time success message for demo
+    // eslint-disable-next-line no-console
+    console.info('🎉 CategoryFiltersTest: Manifest loaded successfully (info)');
   };
 
   const handleLoadingStateChange = (loading: boolean) => {

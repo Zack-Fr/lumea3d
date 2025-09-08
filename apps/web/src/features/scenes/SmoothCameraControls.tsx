@@ -1,5 +1,6 @@
 import { useRef, useCallback } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
+import { log } from '../../utils/logger';
 import { Vector3, Euler, MathUtils } from 'three';
 import { useSelection } from './SelectionContext';
 
@@ -118,13 +119,13 @@ export function useSmoothCameraTransitions() {
       onComplete
     };
 
-    console.log(`🎥 Starting camera transition to (${targetPosition.x.toFixed(1)}, ${targetPosition.y.toFixed(1)}, ${targetPosition.z.toFixed(1)})`);
+  log('info', `🎥 Starting camera transition to (${targetPosition.x.toFixed(1)}, ${targetPosition.y.toFixed(1)}, ${targetPosition.z.toFixed(1)})`);
   }, [camera]);
 
   // Stop current transition
   const stopTransition = useCallback(() => {
     if (transitionRef.current) {
-      console.log('🛑 Camera transition stopped');
+  log('info', '🛑 Camera transition stopped');
       transitionRef.current = null;
       elapsedTime.current = 0;
     }
@@ -203,7 +204,7 @@ export function SmoothCameraControls({ enabled }: SmoothCameraControlsProps) {
       transitionRef.current = null;
       elapsedTime.current = 0;
       
-      console.log('✅ Camera transition completed');
+  log('info', '✅ Camera transition completed');
     }
   });
 

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { log } from '../utils/logger';
 
 export interface UserStats {
   totalProjects: number;
@@ -25,7 +26,7 @@ export const useDashboardStats = () => {
 
   const refreshStats = useCallback(() => {
     // Implementation for refreshing stats from API
-    console.log('Refreshing dashboard stats...');
+    log('info', 'Refreshing dashboard stats...');
   }, []);
 
   return {

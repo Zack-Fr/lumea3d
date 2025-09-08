@@ -1,6 +1,7 @@
 import { Canvas } from '@react-three/fiber';
 import { Environment, Stats } from '@react-three/drei';
 import { Suspense, useState, useCallback, useEffect } from 'react';
+import { log } from '../../utils/logger';
 import type { SceneManifestV2 } from '../../services/scenesApi';
 import { CategoryRenderer } from './CategoryRenderer';
 import { GLBPreloader, useSceneMetrics } from './GLBPreloader';
@@ -64,7 +65,7 @@ function SceneGraph({ manifest, controls, onFPSUpdate }: SceneGraphProps) {
     lodSystem.trackPerformance(stats.fps);
   }, [stats.fps, lodSystem]);
   
-  console.log('🏗️ SceneGraph rendering with categories:', categories.map(([key]) => ({
+  log('debug', '🏗️ SceneGraph rendering with categories:', categories.map(([key]) => ({
     key,
     itemCount: manifest.items.filter(item => item.category === key).length
   })));
@@ -166,11 +167,11 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
   const sceneHistory = useSceneHistory({
     maxHistorySize: 50,
     onUndo: (_manifest) => {
-      console.log('↶ SceneViewer: Undo applied');
+      log('info', '↶ SceneViewer: Undo applied');
       // Future: Apply manifest changes to scene
     },
     onRedo: (_manifest) => {
-      console.log('↷ SceneViewer: Redo applied');
+      log('info', '↷ SceneViewer: Redo applied');
       // Future: Apply manifest changes to scene
     }
   });
@@ -182,11 +183,11 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
   const shortcuts = createSceneEditorShortcuts({
     onUndo: sceneHistory.undo,
     onRedo: sceneHistory.redo,
-    onSave: () => console.log('💾 Manual save triggered'),
+  onSave: () => log('info', '💾 Manual save triggered'),
     onToggleGrid: () => updateControls({ showGrid: !controls.showGrid }),
-    onDeselectAll: () => console.log('🔲 Deselect all'),
-    onDelete: () => console.log('🗑️ Delete selected'),
-    onDuplicate: () => console.log('📋 Duplicate selected')
+    onDeselectAll: () => log('info', '🔲 Deselect all'),
+    onDelete: () => log('info', '🗑️ Delete selected'),
+    onDuplicate: () => log('info', '📋 Duplicate selected')
   });
 
   // Add shell UI toggle shortcut
@@ -221,12 +222,12 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
   }, []);
 
   const handleAssetImportComplete = useCallback((assetId: string) => {
-    console.log('✅ SceneViewer: Asset import completed:', assetId);
+  log('info', '✅ SceneViewer: Asset import completed:', assetId);
     // Future: Refresh scene manifest or add asset to scene
   }, []);
 
   const handleAssetAttach = useCallback((asset: any) => {
-    console.log('🔗 SceneViewer: Attach asset to scene:', asset);
+  log('info', '🔗 SceneViewer: Attach asset to scene:', asset);
     // Future: Implement asset attachment to scene
     // This would create a category and add the asset to the scene
   }, []);
@@ -270,7 +271,7 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
       <AssetManagementPanel
         isVisible={showAssetManagement}
         onToggleVisibility={() => setShowAssetManagement(!showAssetManagement)}
-        onAssetSelected={(asset) => console.log('Asset selected:', asset)}
+  onAssetSelected={(asset) => log('info', 'Asset selected:', asset)}
         onAssetAttach={handleAssetAttach}
       />
       
@@ -320,14 +321,14 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
           showPerformance={showPerformanceStats}
           onTogglePerformance={() => setShowPerformanceStats(!showPerformanceStats)}
           isPlaying={false}
-          onTogglePlayback={() => console.log('Toggle playback')}
-          onSave={() => console.log('Save scene')}
+          onTogglePlayback={() => log('info', 'Toggle playback')}
+          onSave={() => log('info', 'Save scene')}
           onUndo={sceneHistory.undo}
           onRedo={sceneHistory.redo}
           canUndo={sceneHistory.canUndo}
           canRedo={sceneHistory.canRedo}
           lightingMode="realistic"
-          onToggleLighting={() => console.log('Toggle lighting')}
+          onToggleLighting={() => log('info', 'Toggle lighting')}
           selectionMode="select"
           onToggleSelectionMode={() => console.log('Toggle selection mode')}
         />

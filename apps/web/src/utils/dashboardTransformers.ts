@@ -1,12 +1,20 @@
 import { Home, Palette, Users, CheckCircle } from 'lucide-react';
 import { DashboardProject, UserProfile } from '../services/dashboardApi';
 import { Project, PipelineStage } from '../types/dashboard';
+import { log } from '../utils/logger';
 
 /**
  * Transform API project data to dashboard project format
  */
 export const transformProjectsForDashboard = (apiProjects: DashboardProject[]): Project[] => {
-  return apiProjects.map(apiProject => {
+  // Defensive: deduplicate incoming projects by their string id to avoid duplicate React keys
+  const beforeCount = apiProjects.length;
+  const uniqueById = Array.from(new Map(apiProjects.map(p => [p.id, p])).values());
+  if (uniqueById.length !== beforeCount) {
+    log('warn', 'Duplicate projects detected in API response; removed duplicates before transforming', { before: beforeCount, after: uniqueById.length });
+  }
+
+  return uniqueById.map(apiProject => {
     // Determine project stage based on scenes and dates
     const hasScenes = apiProject.scenes3D && apiProject.scenes3D.length > 0;
     const createdDate = new Date(apiProject.createdAt);
@@ -45,6 +53,8 @@ export const transformProjectsForDashboard = (apiProjects: DashboardProject[]): 
     const thumbnail = `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000000000000000)}?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBpbnRlcmlvciUyMGxpdmluZyUyMHJvb218ZW58MXx8fHwxNzU1ODEyOTIyfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral`;
 
     return {
+      // Keep original string id for stable keys; numeric id preserved for legacy uses
+      originalId: apiProject.id,
       id: parseInt(apiProject.id, 10) || Math.floor(Math.random() * 1000), // Convert string ID to number
       name: apiProject.name,
       client: clientName,

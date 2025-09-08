@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { once as logOnce, log } from '../../utils/logger';
 import { useGLTF } from '@react-three/drei';
 import type { SceneManifestV2 } from '../../services/scenesApi';
 import { pickCategoryUrl } from './useSceneAssets';
@@ -40,8 +41,11 @@ export function GLBPreloader({
   loadDelay = 100,
   onStageComplete
 }: GLBPreloaderProps) {
-  // Compute categories safely. We still run hooks (useState/useEffect) even if manifest is missing
-  const categories = manifest && manifest.categories ? Object.entries(manifest.categories) : [];
+  // Compute categories safely and memoize to keep stable reference across renders
+  const categories = useMemo(() => {
+    if (!manifest || !manifest.categories) return [] as [string, any][];
+    return Object.entries(manifest.categories) as [string, any][];
+  }, [manifest]);
   
   const [preloadState, setPreloadState] = useState<PreloadingState>({
     stage: 'priority',
@@ -54,8 +58,8 @@ export function GLBPreloader({
 
   const preloadCategory = useCallback(async (categoryKey: string, category: any) => {
     try {
-      const url = pickCategoryUrl(category);
-      console.log(`📦 GLBPreloader: Preloading "${categoryKey}": ${url}`);
+  const url = pickCategoryUrl(category);
+  log('debug', `GLBPreloader: Preloading "${categoryKey}": ${url}`);
       
       // Use await to ensure the preload completes before moving to next
       await new Promise<void>((resolve) => {
@@ -75,7 +79,7 @@ export function GLBPreloader({
     categoriesToLoad: [string, any][],
     stageName: string
   ) => {
-    console.log(`🚀 GLBPreloader: Starting ${stageName} stage with ${categoriesToLoad.length} categories`);
+  logOnce(`glb:stage-start:${stageName}`, 'info', `🚀 GLBPreloader: Starting ${stageName} stage with ${categoriesToLoad.length} categories`);
     
     const startTime = Date.now();
     const loadedInStage: string[] = [];
@@ -106,7 +110,7 @@ export function GLBPreloader({
     }
     
     const stageTime = Date.now() - startTime;
-    console.log(`✅ GLBPreloader: ${stageName} stage completed in ${stageTime}ms`);
+  logOnce(`glb:stage-complete:${stageName}`, 'info', `✅ GLBPreloader: ${stageName} stage completed in ${stageTime}ms`);
     
     onStageComplete?.(stageName, loadedInStage);
     return loadedInStage;
@@ -115,19 +119,19 @@ export function GLBPreloader({
   useEffect(() => {
     if (!progressive) {
       // Simple non-progressive preloading
-      console.log('🚀 GLBPreloader: Starting simple preload of category GLBs');
+  logOnce('glb:simple-preload', 'info', '🚀 GLBPreloader: Starting simple preload of category GLBs');
       
       categories.forEach(([categoryKey, category]) => {
         const url = pickCategoryUrl(category);
-        console.log(`📦 Preloading category "${categoryKey}": ${url}`);
+  log('debug', `📦 Preloading category "${categoryKey}": ${url}`);
         useGLTF.preload(url);
       });
       
-      console.log(`✅ GLBPreloader: Initiated preload for ${categories.length} categories`);
+  logOnce('glb:initiated-preload', 'info', `✅ GLBPreloader: Initiated preload for ${categories.length} categories`);
       return;
     }
 
-    // Progressive preloading
+  // Progressive preloading
     async function progressivePreload() {
       try {
         setPreloadState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -163,11 +167,11 @@ export function GLBPreloader({
           progress: 1
         }));
 
-        console.log('🎉 GLBPreloader: Progressive preloading complete!');
+  logOnce('glb:progressive-complete', 'info', '🎉 GLBPreloader: Progressive preloading complete!');
 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error('❌ GLBPreloader: Progressive preloading failed:', error);
+  log('error', '❌ GLBPreloader: Progressive preloading failed:', error);
         
         setPreloadState(prev => ({
           ...prev,
@@ -179,12 +183,13 @@ export function GLBPreloader({
     }
 
     progressivePreload();
+  // Keep dependency array stable: categories is memoized, priorityCategories is expected to be stable (caller literal), preloadCategoriesWithDelay is memoized
   }, [categories, progressive, priorityCategories, preloadCategoriesWithDelay]);
   
   // Expose preloading state for debugging/monitoring
   useEffect(() => {
     if (progressive) {
-      console.log('📊 GLBPreloader State:', preloadState);
+      log('debug', 'GLBPreloader State', preloadState);
     }
   }, [preloadState, progressive]);
   
@@ -254,7 +259,7 @@ export function useSceneMetrics(manifest: SceneManifestV2 | null | undefined, lo
   };
   
   useEffect(() => {
-    console.log('📊 Enhanced Scene Metrics:', {
+    log('debug', 'Enhanced Scene Metrics', {
       categories: metrics.totalCategories,
       items: metrics.totalItems,
       instancing: metrics.instancingCategories,
@@ -263,11 +268,11 @@ export function useSceneMetrics(manifest: SceneManifestV2 | null | undefined, lo
     
     // Log performance warnings
     if (metrics.performance.totalLoadTime > 5000) {
-      console.warn('⚠️ Slow loading detected:', metrics.performance.totalLoadTime + 'ms');
+      log('warn', '⚠️ Slow loading detected:', metrics.performance.totalLoadTime + 'ms');
     }
     
     if (metrics.performance.slowestCategory.loadTime > 1000) {
-      console.warn('⚠️ Slow category detected:', 
+      log('warn', '⚠️ Slow category detected:', 
         metrics.performance.slowestCategory.key, 
         metrics.performance.slowestCategory.loadTime + 'ms'
       );

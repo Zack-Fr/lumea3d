@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { scenesApi, SceneApiError } from '../../services/scenesApi';
 import { useAuth } from '../../providers/AuthProvider';
+import { log, once as logOnce } from '../../utils/logger';
 import type { SceneManifestV2 } from '../../services/scenesApi';
 
 export interface StagedManifestLoadingState {
@@ -118,7 +119,7 @@ export function useSceneManifestStaged(
     try {
       setStageStartTime(Date.now());
       
-      console.log(`🚀 StagedManifest: Loading ${stageName} stage with categories:`, categories);
+  log('info', `🚀 StagedManifest: Loading ${stageName} stage with categories:`, categories);
       
       const manifest = await scenesApi.getManifest(sceneId, {
         categories: categories.length > 0 ? categories : undefined,
@@ -142,7 +143,7 @@ export function useSceneManifestStaged(
         }
       }));
 
-      console.log(`✅ StagedManifest: ${stageName} stage completed in ${stageTime}ms`);
+  log('info', `✅ StagedManifest: ${stageName} stage completed in ${stageTime}ms`);
       onStageComplete?.(stageName, manifest);
       
       return manifest;
@@ -242,7 +243,7 @@ export function useSceneManifestStaged(
           }
         }));
 
-        console.log(`🎉 StagedManifest: Complete! Total time: ${totalTime}ms`);
+  logOnce('staged:complete', 'info', `🎉 StagedManifest: Complete! Total time: ${totalTime}ms`);
         
         if (finalManifest) {
           onComplete?.(finalManifest);
@@ -250,7 +251,7 @@ export function useSceneManifestStaged(
 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error('❌ StagedManifest: Loading failed:', error);
+  log('error', '❌ StagedManifest: Loading failed:', error as any);
         
         setState(prev => ({
           ...prev,

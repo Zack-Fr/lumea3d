@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useCallback, useMemo, useEffect } from 'react'
+import { once as logOnce, log } from '../utils/logger'
 import { api } from '../services/authApi'
 import { updateApiClientToken } from '../services/scenesApi'
 import { updateAssetApiToken } from '../services/assetsApi'
@@ -84,19 +85,17 @@ const [state, setState] = useState<AuthState>(() => {
 
   // Update API client token whenever auth token changes
   useEffect(() => {
-    console.log('🔐 AUTH_PROVIDER: Token changed, updating API clients:', {
-      hasToken: !!state.token,
-      tokenLength: state.token?.length,
-      tokenPrefix: state.token?.substring(0, 20) + '...'
-    });
-    
+    logOnce('auth:token-changed', 'info', '🔐 AUTH_PROVIDER: Token changed, updating API clients (logged once)');
+    log('debug', 'AUTH_PROVIDER token meta', { hasToken: !!state.token, tokenLength: state.token?.length });
+
     if (state.token) {
-      console.log('🔐 AUTH_PROVIDER: Setting token for all API services');
+      // log once to avoid repeated token lines
+      logOnce('auth:set-tokens', 'info', '🔐 AUTH_PROVIDER: Setting token for all API services');
       updateApiClientToken(state.token);
       updateAssetApiToken(state.token);
       updateDashboardApiToken(state.token);
     } else {
-      console.log('🔐 AUTH_PROVIDER: Clearing tokens from all API services');
+      logOnce('auth:clear-tokens', 'info', '🔐 AUTH_PROVIDER: Clearing tokens from all API services');
       updateApiClientToken(null);
       updateAssetApiToken(null);
       updateDashboardApiToken(null);
@@ -125,12 +124,12 @@ const [state, setState] = useState<AuthState>(() => {
       setState(prev => ({ ...prev, isLoading: true }))
 
       const data = await api.login({ email, password })
-      setAuthData(data.user, data.token)
-      console.log('🔐 LOGIN: Auth data set, checking localStorage...');
-      console.log('🔐 LOGIN: localStorage token:', localStorage.getItem(AUTH_TOKEN_KEY)?.substring(0, 20) + '...');
-      console.log('🔐 LOGIN: localStorage user:', localStorage.getItem(AUTH_USER_KEY));
+  setAuthData(data.user, data.token)
+  logOnce('auth:login-success', 'info', '🔐 LOGIN: Auth data set and stored (logged once)');
+  log('debug', 'AUTH: localStorage token preview', localStorage.getItem(AUTH_TOKEN_KEY)?.substring(0, 20) + '...');
+  log('debug', 'AUTH: localStorage user', localStorage.getItem(AUTH_USER_KEY));
     } catch (err) {
-      console.error('🔐 LOGIN: Login failed:', err);
+  log('error', '🔐 LOGIN: Login failed:', err as any);
       const message = err instanceof Error ? err.message : 'Login failed'
       setError(message)
       setState(prev => ({ ...prev, isLoading: false }))

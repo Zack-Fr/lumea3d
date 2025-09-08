@@ -1,5 +1,6 @@
 import { useRef, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
+import { log } from '../../utils/logger';
 import * as THREE from 'three';
 
 interface LODSettings {
@@ -69,7 +70,7 @@ export function useLODSystem({
     });
 
     if (debugMode && lodChanges > 0) {
-      console.log(`🎚️ LOD System: Updated ${lodChanges}/${objectsProcessed} objects`);
+      log('debug', `🎚️ LOD System: Updated ${lodChanges}/${objectsProcessed} objects`);
     }
   }, [enabled, adaptToPerformance, targetFPS, debugMode, camera, scene]);
 

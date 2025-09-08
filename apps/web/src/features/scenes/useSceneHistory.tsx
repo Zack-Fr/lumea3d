@@ -1,4 +1,5 @@
 import { useReducer, useCallback, useRef } from 'react';
+import { log } from '../../utils/logger';
 import type { SceneManifestV2, DeltaOp } from '@/api/sdk';
 
 interface HistoryEntry {
@@ -140,7 +141,7 @@ export function useSceneHistory({
       }
     });
 
-    console.log('📚 SceneHistory: Added entry:', description, operations);
+  log('debug', '📚 SceneHistory: Added entry:', description, operations);
   }, []);
 
   const addOperation = useCallback((
@@ -174,9 +175,9 @@ export function useSceneHistory({
     dispatch({ type: 'UNDO' });
     
     const targetEntry = state.history[state.currentIndex - 1];
-    if (targetEntry && onUndo) {
+      if (targetEntry && onUndo) {
       onUndo(targetEntry.manifest);
-      console.log('↶ SceneHistory: Undo to:', targetEntry.description);
+      log('debug', '↶ SceneHistory: Undo to:', targetEntry.description);
     }
 
     // Reset undo flag after processing
@@ -197,7 +198,7 @@ export function useSceneHistory({
     const targetEntry = state.history[state.currentIndex + 1];
     if (targetEntry && onRedo) {
       onRedo(targetEntry.manifest);
-      console.log('↷ SceneHistory: Redo to:', targetEntry.description);
+      log('debug', '↷ SceneHistory: Redo to:', targetEntry.description);
     }
 
     // Reset redo flag after processing
@@ -214,7 +215,7 @@ export function useSceneHistory({
     if (batchTimeoutRef.current) {
       clearTimeout(batchTimeoutRef.current);
     }
-    console.log('🗑️ SceneHistory: Cleared history');
+  log('info', '🗑️ SceneHistory: Cleared history');
   }, []);
 
   const canUndo = state.currentIndex > 0 && !state.isUndoing && !state.isRedoing;

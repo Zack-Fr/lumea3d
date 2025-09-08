@@ -1,4 +1,5 @@
 import type { SceneItem, CategoryInfo } from '../../services/scenesApi';
+import { log } from '../../utils/logger';
 
 /**
  * Picks the best available URL for a category based on supported encodings
@@ -7,16 +8,16 @@ import type { SceneItem, CategoryInfo } from '../../services/scenesApi';
 export function pickCategoryUrl(category: CategoryInfo): string {
   // Priority order: meshopt (preferred), draco (fallback), base GLB
   if (category.meshopt && category.encodings?.meshopt_url) {
-    console.log('🎯 Using Meshopt encoding for category');
+    log('debug', '🎯 Using Meshopt encoding for category');
     return category.encodings.meshopt_url;
   }
   
   if (category.draco && category.encodings?.draco_url) {
-    console.log('🎯 Using Draco encoding for category');
+    log('debug', '🎯 Using Draco encoding for category');
     return category.encodings.draco_url;
   }
   
-  console.log('🎯 Using base GLB for category');
+  log('debug', '🎯 Using base GLB for category');
   return category.glb_url || '';
 }
 
@@ -26,7 +27,7 @@ export function pickCategoryUrl(category: CategoryInfo): string {
 export function preloadCategoryAssets(categories: Record<string, CategoryInfo>) {
   Object.entries(categories).forEach(([key, category]) => {
     const url = pickCategoryUrl(category);
-    console.log(`📦 Preloading category "${key}": ${url}`);
+    log('info', `📦 Preloading category "${key}": ${url}`);
     // The actual preloading is handled by useGLTF.preload in GLBPreloader
   });
 }

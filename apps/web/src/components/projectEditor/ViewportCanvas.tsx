@@ -1,4 +1,5 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useCallback } from 'react';
+import { log, once as logOnce } from '../../utils/logger';
 import { Canvas } from '@react-three/fiber';
 import { motion } from "framer-motion";
 import { Box, Loader2 } from "lucide-react";
@@ -29,8 +30,8 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
     error 
   } = useSceneContext();
 
-  // Log for debugging
-  console.log('ViewportCanvas scene state:', { sceneId, projectId, isLoading, error });
+  // Debug log - disabled by default, enable via logger.enable('debug') if needed
+  log('debug', 'ViewportCanvas scene state', { sceneId, projectId, isLoading, error });
 
   // Show loading state while scene is loading
   if (isLoading || !sceneId) {
@@ -64,10 +65,12 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
                   <>
                     <p className={styles.viewportTitle}>Loading Scene</p>
                     <p className={styles.viewportDescription}>
-                      Stage: {loading.stage} • {Math.round(loading.progress * 100)}%
+                      Stage: {loading?.stage ?? 'discovering'} • {typeof loading?.progress === 'number' ? Math.round(loading.progress * 100) : 0}%
                     </p>
                     <div className={styles.viewportInstructions}>
-                      <span>Categories: {loading.loadedCategories.length}/{loading.availableCategories.length}</span>
+                      <span>
+                        Categories: {Array.isArray(loading?.loadedCategories) ? loading.loadedCategories.length : 0}/{Array.isArray(loading?.availableCategories) ? loading.availableCategories.length : 0}
+                      </span>
                     </div>
                   </>
                 ) : (
@@ -205,12 +208,13 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
       {sceneId && (
         <StagedSceneLoader 
           sceneId={sceneId}
-          onManifestLoaded={(loadedManifest) => {
-            console.log('🎯 3D Scene loaded:', loadedManifest);
-          }}
-          onLoadingStateChange={(loading) => {
-            console.log('🔄 3D Scene loading state:', loading);
-          }}
+          onManifestLoaded={useCallback((loadedManifest: any) => {
+            logOnce('viewport:scene-loaded', 'info', '🎯 3D Scene loaded (logged once)');
+            log('debug', 'Viewport manifest loaded', loadedManifest);
+          }, [])}
+          onLoadingStateChange={useCallback((loading: boolean) => {
+            log('debug', '🔄 3D Scene loading state', loading);
+          }, [])}
         />
       )}
 

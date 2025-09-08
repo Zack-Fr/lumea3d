@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useEffect } from "react";
+import { once as logOnce } from '../../utils/logger';
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
@@ -68,7 +69,7 @@ const UserDashboardPage = memo(() => {
   // Handle authentication errors - automatically logout and redirect
   useEffect(() => {
     if (isAuthenticationError) {
-      console.log('Authentication failed, logging out and redirecting to login...');
+      logOnce('userdash:auth-failed', 'warn', 'Authentication failed, logging out and redirecting to login...');
       logout();
       navigate(PATHS.landing);
     }
@@ -99,7 +100,7 @@ const UserDashboardPage = memo(() => {
         }
         break;
       default:
-        console.log("Unknown navigation target:", page);
+        logOnce('userdash:unknown-nav', 'warn', 'Unknown navigation target:', page);
     }
   }, [navigate]);
 
@@ -278,7 +279,7 @@ const UserProfileCard = memo(({ userStats }: UserProfileCardProps) => {
   // Handle authentication errors in this component
   useEffect(() => {
     if (isAuthenticationError) {
-      console.log('Authentication failed in UserProfileCard, logging out...');
+      logOnce('userdash:userprofile-auth-failed', 'warn', 'Authentication failed in UserProfileCard, logging out...');
       logout();
       navigate(PATHS.landing);
     }
@@ -298,7 +299,7 @@ const UserProfileCard = memo(({ userStats }: UserProfileCardProps) => {
       <div className={styles.userProfileHeader}>
         <div className={styles.userAvatar}>
           <Avatar className="w-12 h-12 ring-2 ring-[var(--glass-yellow)]">
-            <AvatarImage src="/placeholder-avatar.jpg" />
+            <AvatarImage src="../../../public/brand/lumeaLogo_noText.svg" />
             <AvatarFallback className="bg-[var(--glass-yellow)] text-[var(--glass-black)]">
               {displayName.charAt(0).toUpperCase()}
             </AvatarFallback>
@@ -438,7 +439,7 @@ const TopNavigation = memo(({ onNavigate, onLogout }: TopNavigationProps) => {
 
         <div className="flex items-center space-x-4">
           <Avatar className="cursor-pointer ring-2 ring-[var(--glass-border-light)]">
-            <AvatarImage src="/placeholder-avatar.jpg" />
+            <AvatarImage src="../../../public/brand/lumeaLogo_noText.svg" />
             <AvatarFallback className="bg-[var(--glass-yellow)] text-[var(--glass-black)]">
               {displayName.charAt(0).toUpperCase()}
             </AvatarFallback>
@@ -568,7 +569,7 @@ const ProjectsSection = memo(({ projects, onProjectClick, onNavigate }: Projects
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
       {projects.map((project) => (
         <ProjectCard
-          key={project.id}
+          key={project.originalId ?? project.id}
           project={project}
           onClick={onProjectClick}
         />

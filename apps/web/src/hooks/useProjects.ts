@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { log } from '../utils/logger';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../providers/AuthProvider';
 import { 
@@ -52,7 +53,7 @@ export function useCreateProject(options: UseCreateProjectOptions = {}) {
   const { token } = useAuth();
   const queryClient = useQueryClient();
 
-  console.log('🏗️ useCreateProject: Hook initialized', { 
+  log('debug', '🏗️ useCreateProject: Hook initialized', { 
     hasToken: !!token, 
     tokenLength: token?.length,
     tokenPreview: token?.substring(0, 20) + '...'

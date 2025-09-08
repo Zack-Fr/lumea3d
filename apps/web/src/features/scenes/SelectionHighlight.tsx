@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useSelection } from './SelectionContext';
 import * as THREE from 'three';
+import { log } from '../../utils/logger';
 
 interface SelectionHighlightProps {
   enabled?: boolean;
@@ -89,7 +90,7 @@ export function SelectionHighlight({
       
       outlineRef.current.add(wireframe);
 
-      console.log(`✨ Added selection highlight for object: ${selectedObj.name || selectedObj.id}`);
+  log('debug', `✨ Added selection highlight for object: ${selectedObj.name || selectedObj.id}`);
     }
 
     return clearHighlight;
@@ -157,7 +158,7 @@ export function SelectionBox({
     scene.add(boxHelper);
     boxHelperRef.current = boxHelper;
 
-    console.log(`📦 Added selection box for object: ${selectedObj.name || selectedObj.id}`);
+  log('debug', `📦 Added selection box for object: ${selectedObj.name || selectedObj.id}`);
 
     return () => {
       if (boxHelperRef.current) {

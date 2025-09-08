@@ -1,4 +1,5 @@
 import { Role, User, RoleEnum } from '../providers/AuthProvider'
+import { once as logOnce, log } from '../utils/logger';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -89,8 +90,8 @@ async function apiRequest<T>(
 
 export const authApi = {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    console.log('🌐 AUTH_API: Making login request to:', `${API_BASE_URL}/auth/login`);
-    console.log('🌐 AUTH_API: Request payload:', { email: credentials.email });
+  logOnce('auth:login:start', 'info', `🌐 AUTH_API: Making login request to: ${API_BASE_URL}/auth/login (logged once)`);
+  log('debug', 'AUTH_API: Request payload', { email: credentials.email });
     
     // Step 1: Get tokens from login endpoint
     const tokensResponse = await apiRequest<BackendAuthResponse>('/auth/login', {
@@ -98,14 +99,11 @@ export const authApi = {
       body: JSON.stringify(credentials),
     });
     
-    console.log('🌐 AUTH_API: Login tokens received:', {
-      hasAccessToken: !!tokensResponse.accessToken,
-      hasRefreshToken: !!tokensResponse.refreshToken,
-      accessTokenLength: tokensResponse.accessToken?.length
-    });
+    logOnce('auth:login:tokens', 'info', '🌐 AUTH_API: Login tokens received (logged once)');
+    log('debug', 'AUTH_API: token details', { hasAccessToken: !!tokensResponse.accessToken, hasRefreshToken: !!tokensResponse.refreshToken });
     
     // Step 2: Get user profile using the access token
-    console.log('🌐 AUTH_API: Fetching user profile...');
+  logOnce('auth:login:fetch-profile', 'info', '🌐 AUTH_API: Fetching user profile...');
     const userResponse = await apiRequest<User>('/auth/profile', {
       method: 'GET',
       headers: {
@@ -113,11 +111,8 @@ export const authApi = {
       },
     });
     
-    console.log('🌐 AUTH_API: User profile received:', {
-      userId: userResponse.id,
-      userEmail: userResponse.email,
-      hasUser: !!userResponse
-    });
+    logOnce('auth:login:user-received', 'info', '🌐 AUTH_API: User profile received (logged once)');
+    log('debug', 'AUTH_API: user details', { userId: userResponse.id, userEmail: userResponse.email });
     
     // Step 3: Combine into expected format
     const response: AuthResponse = {
@@ -126,12 +121,8 @@ export const authApi = {
       refreshToken: tokensResponse.refreshToken
     };
     
-    console.log('🌐 AUTH_API: Combined response ready:', {
-      hasUser: !!response.user,
-      hasToken: !!response.token,
-      tokenLength: response.token?.length,
-      userId: response.user?.id
-    });
+    logOnce('auth:login:ready', 'info', '🌐 AUTH_API: Combined response ready (logged once)');
+    log('debug', 'AUTH_API: combined response', { hasUser: !!response.user, hasToken: !!response.token, userId: response.user?.id });
     
     return response;
   },

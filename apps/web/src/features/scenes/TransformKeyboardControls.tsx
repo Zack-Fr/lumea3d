@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useSelection } from './SelectionContext';
+import { log } from '../../utils/logger';
 
 export function TransformKeyboardControls() {
   const { selection, setTransformMode, deselectObject } = useSelection();
@@ -17,32 +18,32 @@ export function TransformKeyboardControls() {
         case 'KeyG':
           event.preventDefault();
           setTransformMode('translate');
-          console.log('Transform: Switched to translate mode (G)');
+          log('debug', 'Transform: Switched to translate mode (G)');
           break;
 
         case 'KeyR':
           event.preventDefault();
           setTransformMode('rotate');
-          console.log('Transform: Switched to rotate mode (R)');
+          log('debug', 'Transform: Switched to rotate mode (R)');
           break;
 
         case 'KeyS':
           event.preventDefault();
           setTransformMode('scale');
-          console.log('Transform: Switched to scale mode (S)');
+          log('debug', 'Transform: Switched to scale mode (S)');
           break;
 
         case 'Escape':
           event.preventDefault();
           deselectObject();
-          console.log('Transform: Deselected object (Esc)');
+          log('debug', 'Transform: Deselected object (Esc)');
           break;
 
         case 'Delete':
         case 'Backspace':
           // Future: Delete object functionality
           event.preventDefault();
-          console.log('Transform: Delete object requested (future feature)');
+          log('debug', 'Transform: Delete object requested (future feature)');
           break;
       }
     };

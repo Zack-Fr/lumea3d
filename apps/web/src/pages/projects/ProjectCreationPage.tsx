@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateProject } from '../../hooks/useProjects';
 import { useAuth } from '../../providers/AuthProvider';
+import { log } from '../../utils/logger';
 import { ROUTES } from '../../app/paths';
 
 interface ProjectCreationPageProps {
@@ -15,7 +16,7 @@ const ProjectCreationPage: React.FC<ProjectCreationPageProps> = () => {
 
   // Debug auth state
   const { token, user, isAuthenticated } = useAuth();
-  console.log('🔍 ProjectCreationPage: Auth state check', {
+  log('debug', 'ProjectCreationPage: Auth state check', {
     hasToken: !!token,
     tokenLength: token?.length,
     hasUser: !!user,

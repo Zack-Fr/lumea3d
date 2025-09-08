@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { io, Socket } from 'socket.io-client'
 import { useAuth } from '../providers/AuthProvider'
+import { log } from '../utils/logger'
 import type { SceneDelta } from '@/api/sdk'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -37,7 +38,6 @@ export function useSceneChannel(
   const { enabled = true, onDelta, onError, onConnectionChange } = options
   const { token } = useAuth()
   const queryClient = useQueryClient()
-  
   // Connection state
   const [state, setState] = useState<SceneChannelState>({
     connected: false,
@@ -75,7 +75,7 @@ export function useSceneChannel(
   
   // Handle connection errors
   const handleError = useCallback((error: Error, connectionType: 'websocket' | 'sse') => {
-    console.error(`Scene channel ${connectionType} error:`, error)
+    log('error', `Scene channel ${connectionType} error:`, error as any)
     updateState({ error: error.message })
     onError?.(error)
   }, [updateState, onError])
@@ -93,7 +93,7 @@ export function useSceneChannel(
     })
     
     socket.on('connect', () => {
-      console.log(`WebSocket connected to scene: ${sceneId}`)
+      log('info', `WebSocket connected to scene: ${sceneId}`);
       reconnectAttemptsRef.current = 0
       updateState({
         connected: true,
@@ -106,7 +106,7 @@ export function useSceneChannel(
     socket.on('scene:delta', handleDelta)
     
     socket.on('disconnect', (reason) => {
-      console.log(`WebSocket disconnected: ${reason}`)
+      log('warn', `WebSocket disconnected: ${reason}`)
       updateState({
         connected: false,
         error: `Disconnected: ${reason}`
@@ -114,7 +114,7 @@ export function useSceneChannel(
     })
     
     socket.on('connect_error', (error) => {
-      console.warn('WebSocket connection failed, trying SSE fallback:', error)
+      log('warn', 'WebSocket connection failed, trying SSE fallback:', error as any)
       handleError(error, 'websocket')
       socket.disconnect()
       // Don't set reconnecting here - we'll fall back to SSE
@@ -137,14 +137,14 @@ export function useSceneChannel(
     if (lastEventIdRef.current) {
       // For browsers that support it, we can try to set Last-Event-ID
       // Note: Most browsers handle this automatically, but we track it for manual reconnection
-      console.log(`Reconnecting SSE with Last-Event-ID: ${lastEventIdRef.current}`)
+      log('debug', `Reconnecting SSE with Last-Event-ID: ${lastEventIdRef.current}`)
       url += `&lastEventId=${encodeURIComponent(lastEventIdRef.current)}`
     }
     
     eventSource = new EventSource(url)
     
     eventSource.onopen = () => {
-      console.log(`SSE connected to scene: ${sceneId}`)
+      log('info', `SSE connected to scene: ${sceneId}`)
       reconnectAttemptsRef.current = 0
       updateState({
         connected: true,
@@ -164,12 +164,12 @@ export function useSceneChannel(
         const delta = JSON.parse(event.data) as SceneDelta
         handleDelta(delta)
       } catch (error) {
-        console.error('Failed to parse SSE delta:', error)
+        log('error', 'Failed to parse SSE delta:', error as any)
       }
     }
     
     eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error)
+      log('error', 'SSE connection error:', error as any)
       updateState({
         connected: false,
         error: 'SSE connection failed'
@@ -199,7 +199,7 @@ export function useSceneChannel(
     updateState({ reconnecting: true })
     
     reconnectTimeoutRef.current = window.setTimeout(() => {
-      console.log(`Reconnecting attempt ${reconnectAttemptsRef.current}...`)
+      log('debug', `Reconnecting attempt ${reconnectAttemptsRef.current}...`)
       
       // For SSE reconnection, we prefer to use the same connection type
       // unless explicitly requested to try WebSocket first
@@ -233,7 +233,7 @@ export function useSceneChannel(
       // Set up fallback to SSE if WebSocket fails
       const fallbackTimeout = window.setTimeout(() => {
         if (!state.connected || state.connectionType !== 'websocket') {
-          console.log('WebSocket failed, falling back to SSE')
+          log('warn', 'WebSocket failed, falling back to SSE')
           socket.disconnect()
           socketRef.current = null
           

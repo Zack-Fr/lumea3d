@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { once as logOnce, log } from '../../utils/logger';
 import { useNavigate } from 'react-router-dom';
 import styles from './ProjectEditor.module.css';
 
@@ -31,8 +32,9 @@ const ProjectEditorPage: React.FC = () => {
   // Extract scene parameters from URL
   const { projectId, sceneId } = useSceneParams();
 
-  // Log for debugging
-  console.log('ProjectEditorPage loaded with:', { projectId, sceneId });
+  // Informational load log (logged once)
+  logOnce('projecteditor:loaded', 'info', 'ProjectEditorPage loaded (logged once)');
+  log('debug', 'ProjectEditorPage params', { projectId, sceneId });
 
   return (
     <SceneProvider 
@@ -139,7 +141,8 @@ const ProjectEditorContent: React.FC = () => {
   }, []);
 
   const handleAssetImportComplete = useCallback((assetId: string) => {
-    console.log('✅ ProjectEditor: Asset imported:', assetId);
+  logOnce('projecteditor:asset-imported', 'info', '✅ ProjectEditor: Asset imported');
+  log('debug', 'ProjectEditor: Asset imported id', assetId);
     triggerAchievement('🎯 +20 XP - New 3D asset imported!');
     setIsAssetImportModalOpen(false);
   }, [triggerAchievement]);

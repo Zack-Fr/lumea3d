@@ -3,6 +3,7 @@ import {
   Configuration
 } from '@/api/sdk';
 import axios, { type AxiosInstance } from 'axios';
+import { once as logOnce, log } from '../utils/logger';
 
 // Override the generated types with our actual data structure
 export interface SceneManifestV2 {
@@ -392,11 +393,8 @@ export const scenesApi = {
     const api = getScenesApi();
     const token = getCurrentToken();
     
-    console.log('🔐 SCENE_API: getCategories called', {
-      sceneId,
-      hasToken: !!token,
-      tokenPrefix: token?.substring(0, 20) + '...'
-    });
+    logOnce('scene:getCategories:start', 'info', '🔐 SCENE_API: getCategories called (logged once)');
+    log('debug', 'SCENE_API token meta', { sceneId, hasToken: !!token, tokenPrefix: token?.substring(0,20) + '...' });
     
     try {
       // Manually add Authorization header since the generated client might not handle it properly
@@ -404,14 +402,14 @@ export const scenesApi = {
         Authorization: `Bearer ${token}`
       } : {};
       
-      console.log('🔐 SCENE_API: Request headers:', headers);
+      log('debug', 'SCENE_API: Request headers', headers);
       
       const response = await api.flatScenesControllerGetSceneCategories(sceneId, { headers });
-      console.log('✅ SCENE_API: getCategories success');
+      logOnce('scene:getCategories:success', 'info', '✅ SCENE_API: getCategories success');
       return response.data;
     } catch (error: any) {
-      console.error('❌ SCENE_API: getCategories failed:', error);
-      console.error('❌ SCENE_API: Error details:', {
+      log('error', '❌ SCENE_API: getCategories failed:', error);
+      log('debug', 'SCENE_API: Error details', {
         status: error?.response?.status,
         statusText: error?.response?.statusText,
         data: error?.response?.data

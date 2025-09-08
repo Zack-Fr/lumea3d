@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { scenesApi, SceneApiError } from '../../services/scenesApi';
 import { useAuth } from '../../providers/AuthProvider';
+import { log, once as logOnce } from '../../utils/logger';
 
 export interface UseSceneManifestOptions {
   enabled?: boolean;
@@ -44,7 +45,7 @@ export function useSceneManifest(sceneId: string, options: UseSceneManifestOptio
         throw new SceneApiError(401, 'Authentication required');
       }
 
-      console.log('🔄 useSceneManifest: Loading manifest', {
+      log('debug', '🔄 useSceneManifest: Loading manifest', {
         sceneId,
         categories: categories?.length ? categories : 'all',
         includeMetadata
@@ -133,14 +134,15 @@ export function useSceneCategories(sceneId: string, options: { enabled?: boolean
         throw new SceneApiError(401, 'Authentication required');
       }
 
-      console.log('🔄 useSceneCategories: Loading categories for scene:', sceneId);
+  log('debug', '🔄 useSceneCategories: Loading categories for scene:', sceneId);
       
       const response = await scenesApi.getCategories(sceneId);
       // Backend returns array directly, but API client expects { categories: [...] }
       // Handle both formats for compatibility
       const categories = Array.isArray(response) ? response : (response?.categories || []);
       
-      console.log('✅ useSceneCategories: Loaded categories:', categories.length);
+  logOnce(`scene:categories:loaded:${sceneId}`, 'info', '✅ useSceneCategories: Loaded categories (logged once)');
+  log('debug', '✅ useSceneCategories: Loaded categories count', categories.length);
       
       return categories;
     },

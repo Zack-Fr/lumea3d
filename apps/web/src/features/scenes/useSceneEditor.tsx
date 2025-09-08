@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { useScenePersistence } from './ScenePersistenceContext';
+import { log } from '../../utils/logger';
 import type { Vec3 } from '@/api/sdk';
 
 interface UseSceneEditorProps {
@@ -29,8 +30,8 @@ export function useSceneEditor({ throttleMs = 100 }: UseSceneEditorProps = {}) {
     }
   ) => {
     throttle(`transform-${itemId}`, () => {
-      actions.updateItem(itemId, { transform });
-      console.log('🔄 SceneEditor: Updated item transform:', itemId, transform);
+  actions.updateItem(itemId, { transform });
+  log('debug', '🔄 SceneEditor: Updated item transform:', itemId, transform);
     });
   }, [actions, throttle]);
 
@@ -47,8 +48,8 @@ export function useSceneEditor({ throttleMs = 100 }: UseSceneEditorProps = {}) {
   }, [updateItemTransform]);
 
   const deleteItem = useCallback((itemId: string) => {
-    actions.removeItem(itemId);
-    console.log('🗑️ SceneEditor: Deleted item:', itemId);
+  actions.removeItem(itemId);
+  log('info', '🗑️ SceneEditor: Deleted item:', itemId);
   }, [actions]);
 
   const duplicateItem = useCallback((itemId: string) => {
@@ -68,8 +69,8 @@ export function useSceneEditor({ throttleMs = 100 }: UseSceneEditorProps = {}) {
       }
     };
 
-    actions.addItem(newItem);
-    console.log('📋 SceneEditor: Duplicated item:', itemId, '→', newItem.id);
+  actions.addItem(newItem);
+  log('info', '📋 SceneEditor: Duplicated item:', itemId, '→', newItem.id);
     return newItem.id;
   }, [actions, state.manifest.items]);
 
@@ -80,8 +81,8 @@ export function useSceneEditor({ throttleMs = 100 }: UseSceneEditorProps = {}) {
       overrides?: Record<string, unknown>;
     }
   ) => {
-    actions.updateItem(itemId, { material });
-    console.log('🎨 SceneEditor: Updated item material:', itemId, material);
+  actions.updateItem(itemId, { material });
+  log('debug', '🎨 SceneEditor: Updated item material:', itemId, material);
   }, [actions]);
 
   const updateItemProperties = useCallback((
@@ -92,14 +93,14 @@ export function useSceneEditor({ throttleMs = 100 }: UseSceneEditorProps = {}) {
       meta?: Record<string, string>;
     }
   ) => {
-    actions.updateItem(itemId, properties);
-    console.log('⚙️ SceneEditor: Updated item properties:', itemId, properties);
+  actions.updateItem(itemId, properties);
+  log('debug', '⚙️ SceneEditor: Updated item properties:', itemId, properties);
   }, [actions]);
 
   const updateSceneExposure = useCallback((exposure: number) => {
     throttle('scene-exposure', () => {
-      actions.updateSceneProps({ exposure });
-      console.log('☀️ SceneEditor: Updated scene exposure:', exposure);
+  actions.updateSceneProps({ exposure });
+  log('info', '☀️ SceneEditor: Updated scene exposure:', exposure);
     });
   }, [actions, throttle]);
 
@@ -107,16 +108,16 @@ export function useSceneEditor({ throttleMs = 100 }: UseSceneEditorProps = {}) {
     hdri_url?: string;
     intensity?: number;
   }) => {
-    actions.updateSceneProps({ env });
-    console.log('🌍 SceneEditor: Updated scene environment:', env);
+  actions.updateSceneProps({ env });
+  log('info', '🌍 SceneEditor: Updated scene environment:', env);
   }, [actions]);
 
   const updateSceneSpawn = useCallback((spawn: {
     position: Vec3;
     yaw_deg: number;
   }) => {
-    actions.updateSceneProps({ spawn });
-    console.log('📍 SceneEditor: Updated scene spawn point:', spawn);
+  actions.updateSceneProps({ spawn });
+  log('info', '📍 SceneEditor: Updated scene spawn point:', spawn);
   }, [actions]);
 
   const getItemById = useCallback((itemId: string) => {
