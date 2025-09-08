@@ -168,7 +168,7 @@ export function StagedSceneLoader({
         
         {stage !== 'complete' && stage !== 'error' && (
           <div className="mt-2 text-xs text-gray-500">
-            Stage: {stage} | Categories loaded: {loadedCategories.length}/{discoveredCategories.length}
+            Stage: {stage} | Categories loaded: {Array.isArray(loadedCategories) ? loadedCategories.length : 0}/{Array.isArray(discoveredCategories) ? discoveredCategories.length : 0}
           </div>
         )}
       </div>
@@ -178,8 +178,8 @@ export function StagedSceneLoader({
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h2 className="font-semibold text-gray-900 mb-3">Available Categories</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-            {availableCategories.map((category: any) => {
-              const isLoaded = loadedCategories.includes(category.categoryKey);
+            {(Array.isArray(availableCategories) ? availableCategories : []).map((category: any) => {
+              const isLoaded = Array.isArray(loadedCategories) ? loadedCategories.includes(category.categoryKey) : false;
               return (
                 <div
                   key={category.categoryKey}

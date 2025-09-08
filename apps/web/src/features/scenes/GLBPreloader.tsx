@@ -40,13 +40,8 @@ export function GLBPreloader({
   loadDelay = 100,
   onStageComplete
 }: GLBPreloaderProps) {
-  // Handle undefined/null manifest gracefully
-  if (!manifest || !manifest.categories) {
-    console.warn('⚠️ GLBPreloader: No manifest provided, skipping preload');
-    return null;
-  }
-
-  const categories = Object.entries(manifest.categories);
+  // Compute categories safely. We still run hooks (useState/useEffect) even if manifest is missing
+  const categories = manifest && manifest.categories ? Object.entries(manifest.categories) : [];
   
   const [preloadState, setPreloadState] = useState<PreloadingState>({
     stage: 'priority',
