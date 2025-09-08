@@ -1,0 +1,43 @@
+name: Post-deploy smoke checks
+
+on:
+  workflow_dispatch:
+    inputs:
+      sceneId:
+        description: 'Scene ID to check'
+        required: true
+      projectId:
+        description: 'Project ID to check'
+        required: true
+      apiUrl:
+        description: 'API base URL (e.g. https://staging.example.com)'
+        required: true
+      apiToken:
+        description: 'Optional API token for auth'
+        required: false
+
+  # Also allow this workflow to be triggered after successful deployment workflows via workflow_run
+  workflow_run:
+    workflows: [ 'Deploy' ]
+    types:
+      - completed
+
+jobs:
+  smoke:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure jq is installed
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Run smoke script
+        env:
+          API_URL: ${{ github.event.inputs.apiUrl }}
+          API_TOKEN: ${{ github.event.inputs.apiToken }}
+        run: |
+          chmod +x ./scripts/smoke-scene-alias.sh
+          ./scripts/smoke-scene-alias.sh "${{ github.event.inputs.sceneId }}" "${{ github.event.inputs.projectId }}" "${{ github.event.inputs.apiUrl }}"
