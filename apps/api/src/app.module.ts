@@ -12,6 +12,7 @@ import { ScenesModule } from './scenes/scenes.module';
 import { ProjectsModule } from './projects/projects.module';
 import { MonitoringModule } from './shared/monitoring.module';
 import { MonitoringMiddleware } from './shared/middleware/monitoring.middleware';
+import { DebugController } from './debug/debug.controller';
 
 @Module({
   imports: [
@@ -63,7 +64,7 @@ import { MonitoringMiddleware } from './shared/middleware/monitoring.middleware'
     // Projects module for project management
     ProjectsModule,
   ],
-  controllers: [],
+  controllers: [DebugController],
   providers: [],
 })
 export class AppModule implements NestModule {

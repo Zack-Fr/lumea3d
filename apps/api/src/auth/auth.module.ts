@@ -17,12 +17,26 @@ import { PrismaModule } from '../../prisma/prisma.module';
     ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
-        signOptions: {
-          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '15m'),
-        },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const secret = configService.get<string>('JWT_SECRET');
+        const expiresIn = configService.get<string>('JWT_EXPIRES_IN', '15m');
+        
+        console.log('🔧 AuthModule JWT Config:');
+        console.log('JWT_SECRET loaded successfully:', !!secret);
+        console.log('JWT_SECRET length:', secret?.length || 0);
+        console.log('JWT_EXPIRES_IN:', expiresIn);
+        
+        if (!secret) {
+          throw new Error('JWT_SECRET is not defined in environment variables');
+        }
+        
+        return {
+          secret,
+          signOptions: {
+            expiresIn,
+          },
+        };
+      },
       inject: [ConfigService],
     }),
   ],

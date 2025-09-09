@@ -1,8 +1,3 @@
-import { 
-  FlatScenesApi,
-  Configuration
-} from '@/api/sdk';
-import axios, { type AxiosInstance } from 'axios';
 import { once as logOnce, log } from '../utils/logger';
 
 // Override the generated types with our actual data structure
@@ -115,46 +110,24 @@ export interface DeltaOp {
   category?: Record<string, any>;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
-// Create configuration and API instances
-let apiConfig: Configuration | null = null;
-let scenesApiInstance: FlatScenesApi | null = null;
-let internalAxiosInstance: AxiosInstance | null = null;
-
-function getApiConfig(): Configuration {
-  if (!apiConfig) {
-    apiConfig = new Configuration({
-      basePath: API_BASE_URL,
-    });
-  }
-  return apiConfig;
-}
-
-function getScenesApi(): FlatScenesApi {
-  if (!scenesApiInstance) {
-    // Create a dedicated axios instance without a global baseURL 
-    internalAxiosInstance = axios.create();
-    scenesApiInstance = new FlatScenesApi(getApiConfig(), API_BASE_URL, internalAxiosInstance);
-  }
-  return scenesApiInstance;
-}
+// Explicit token storage to fix race conditions
+let currentAuthToken: string | null = null;
 
 export function updateApiClientToken(token: string | null) {
-  if (token) {
-    apiConfig = new Configuration({
-      basePath: API_BASE_URL,
-      accessToken: token,
-    });
-  } else {
-    apiConfig = new Configuration({
-      basePath: API_BASE_URL,
-    });
-  }
+  // Store token explicitly to avoid race conditions
+  currentAuthToken = token;
   
-  // Reset instances to use new config
-  scenesApiInstance = null;
-  internalAxiosInstance = null;
+  // Enhanced logging for debugging
+  console.log('🔐 SCENES_API: Token updated:', {
+    hasToken: !!token,
+    tokenPreview: token ? token.substring(0, 20) + '...' : 'NULL',
+    timestamp: new Date().toISOString()
+  });
+  
+  // Log token update for debugging
+  logOnce('api:token-updated', 'info', '🔐 SCENES_API: Token updated');
 }
 
 // Type definitions for existing interfaces
@@ -220,8 +193,12 @@ export interface SceneApiErrorData {
 }
 
 function getCurrentToken(): string | null {
-  const token = apiConfig?.accessToken;
-  return typeof token === 'string' ? token : null;
+  // Log token access for debugging
+  console.log('🔍 SCENES_API: getCurrentToken called, token:', currentAuthToken ? 'SET' : 'NULL');
+  if (currentAuthToken) {
+    console.log('🔍 SCENES_API: Token preview:', currentAuthToken.substring(0, 20) + '...');
+  }
+  return currentAuthToken;
 }
 
 export const scenesApi = {
@@ -232,22 +209,31 @@ export const scenesApi = {
     sceneId: string, 
     opts?: { categories?: string[]; includeMetadata?: boolean }
   ): Promise<SceneManifestV2> {
-    const api = getScenesApi();
     const token = getCurrentToken();
     
-    // Manually add Authorization header since the generated client might not handle it properly
-    const headers = token ? {
-      Authorization: `Bearer ${token}`
-    } : {};
+    // Use direct fetch since we need flat routes
+    const url = `${API_BASE_URL}/scenes/${sceneId}/manifest`;
+    const queryParams = new URLSearchParams();
+    if (opts?.categories?.length) queryParams.append('categories', opts.categories.join(','));
+    if (opts?.includeMetadata) queryParams.append('includeMetadata', 'true');
     
-    const response = await api.flatScenesControllerGenerateManifest(
-      sceneId,
-      opts?.categories?.length ? opts.categories.join(',') : undefined,
-      opts?.includeMetadata ?? false,
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(
+      `${url}${queryParams.toString() ? '?' + queryParams.toString() : ''}`,
       { headers }
     );
-    // Cast the response to our expected type structure
-    return response.data as unknown as SceneManifestV2;
+    
+    if (!response.ok) {
+      throw new SceneApiError(response.status, `Failed to get manifest: ${response.statusText}`);
+    }
+    
+    return response.json() as Promise<SceneManifestV2>;
   },
 
   /**
@@ -268,30 +254,54 @@ export const scenesApi = {
   async patchProps(
     sceneId: string,
     body: any,
-    version: string
+    version?: string
   ): Promise<any> {
-    const api = getScenesApi();
-    const response = await api.flatScenesControllerUpdate(
-      sceneId,
-      'If-Match',
-      `W/"${version}"`,
-      body
-    );
-    return response.data;
+    const token = getCurrentToken();
+    const url = `${API_BASE_URL}/scenes/${sceneId}`;
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(version && { 'If-Match': `W/"${version}"` }),
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+    };
+    
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(body),
+    });
+    
+    if (!response.ok) {
+      throw new SceneApiError(response.status, `Failed to update scene: ${response.statusText}`);
+    }
+    
+    return response.json();
   },
 
   /**
    * Generate SSE events URL for realtime updates
    */
-  eventsUrl: (sceneId: string): string => `/scenes/${sceneId}/events`,
+  eventsUrl: (projectId: string, sceneId: string): string => `/projects/${projectId}/scenes/${sceneId}/events`,
 
   /**
-   * Get scene details using flat route
+   * Get scene details using project-nested route
    */
-  async getScene(sceneId: string): Promise<any> {
-    const api = getScenesApi();
-    const response = await api.flatScenesControllerFindOne(sceneId);
-    return response.data;
+  async getScene(projectId: string, sceneId: string): Promise<any> {
+    const token = getCurrentToken();
+    const url = `${API_BASE_URL}/projects/${projectId}/scenes/${sceneId}`;
+    
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(url, { headers });
+    
+    if (!response.ok) {
+      throw new SceneApiError(response.status, `Failed to get scene: ${response.statusText}`);
+    }
+    
+    return response.json();
   },
 
   /**
@@ -302,18 +312,32 @@ export const scenesApi = {
     item: SceneItemCreateRequest,
     version?: string
   ): Promise<any> {
-    const api = getScenesApi();
-    const response = await api.flatScenesControllerAddItem(
-      sceneId,
-      'If-Match',
-      version ? `W/"${version}"` : '"*"',
-      item
-    );
-    return response.data;
+    const token = getCurrentToken();
+    const url = `${API_BASE_URL}/scenes/${sceneId}/items`;
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'If-Match': version ? `W/"${version}"` : '"*"',
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(item),
+    });
+    
+    if (!response.ok) {
+      throw new SceneApiError(response.status, `Failed to add item: ${response.statusText}`);
+    }
+    
+    return response.json();
   },
 
   /**
-   * Update specific scene item using flat route
+   * Update specific scene item using project-nested route
    */
   async updateItem(
     sceneId: string,
@@ -321,39 +345,60 @@ export const scenesApi = {
     updates: SceneItemUpdateRequest,
     version?: string
   ): Promise<any> {
-    const api = getScenesApi();
-    const response = await api.flatScenesControllerUpdateItem(
-      sceneId,
-      itemId,
-      'If-Match',
-      version ? `W/"${version}"` : '"*"',
-      updates
-    );
-    return response.data;
+    const token = getCurrentToken();
+    const url = `${API_BASE_URL}/scenes/${sceneId}/items/${itemId}`;
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'If-Match': version ? `W/"${version}"` : '"*"',
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(updates),
+    });
+    
+    if (!response.ok) {
+      throw new SceneApiError(response.status, `Failed to update item: ${response.statusText}`);
+    }
+    
+    return response.json();
   },
 
   /**
-   * Remove item from scene using flat route
+   * Remove item from scene using project-nested route
    */
   async removeItem(sceneId: string, itemId: string, version?: string): Promise<void> {
-    const api = getScenesApi();
-    await api.flatScenesControllerRemoveItem(
-      sceneId,
-      itemId,
-      'If-Match',
-      version ? `W/"${version}"` : '"*"'
-    );
+    const token = getCurrentToken();
+    const url = `${API_BASE_URL}/scenes/${sceneId}/items/${itemId}`;
+    
+    const headers: Record<string, string> = {
+      'If-Match': version ? `W/"${version}"` : '"*"',
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers,
+    });
+    
+    if (!response.ok) {
+      throw new SceneApiError(response.status, `Failed to remove item: ${response.statusText}`);
+    }
   },
 
   /**
    * Get scene version for optimistic locking
    */
-  async getVersion(sceneId: string): Promise<SceneVersionResponse> {
-    const api = getScenesApi();
-    await api.flatScenesControllerGetVersion(sceneId);
-    // The API returns void, so we need to construct a version response
-    // This will need to be handled differently - perhaps get version from scene data
-    const sceneData = await this.getScene(sceneId);
+  async getVersion(projectId: string, sceneId: string): Promise<SceneVersionResponse> {
+    // Get version from scene data since there's no dedicated version endpoint
+    const sceneData = await this.getScene(projectId, sceneId);
     return {
       version: sceneData.version || '1',
       timestamp: new Date().toISOString(),
@@ -364,19 +409,26 @@ export const scenesApi = {
    * Generate delta between scene versions
    */
   async getDelta(
+    projectId: string,
     sceneId: string,
     fromVersion: number,
     toVersion: number
   ): Promise<SceneDelta> {
-    const api = getScenesApi();
-    const response = await api.flatScenesControllerGenerateDelta(
-      sceneId,
-      fromVersion,
-      toVersion
-    );
+    const token = getCurrentToken();
+    const url = `${API_BASE_URL}/projects/${projectId}/scenes/${sceneId}/delta?from=${fromVersion}&to=${toVersion}`;
     
-    // Transform the response to match our expected format
-    const delta = response.data;
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(url, { headers });
+    
+    if (!response.ok) {
+      throw new SceneApiError(response.status, `Failed to get delta: ${response.statusText}`);
+    }
+    
+    const delta = await response.json();
     return {
       fromVersion: delta.fromVersion,
       toVersion: delta.toVersion,
@@ -390,29 +442,71 @@ export const scenesApi = {
    * Get scene categories
    */
   async getCategories(sceneId: string): Promise<any> {
-    const api = getScenesApi();
     const token = getCurrentToken();
+    const url = `${API_BASE_URL}/scenes/${sceneId}/categories`;
     
     logOnce('scene:getCategories:start', 'info', '🔐 SCENE_API: getCategories called (logged once)');
-    log('debug', 'SCENE_API token meta', { sceneId, hasToken: !!token, tokenPrefix: token?.substring(0,20) + '...' });
+    console.log('🔍 SCENE_API: getCategories detailed request:', {
+      sceneId,
+      url,
+      hasToken: !!token,
+      tokenPreview: token ? token.substring(0, 20) + '...' : 'NO_TOKEN',
+      API_BASE_URL,
+      currentAuthTokenValue: currentAuthToken ? 'SET' : 'NULL'
+    });
     
     try {
-      // Manually add Authorization header since the generated client might not handle it properly
-      const headers = token ? {
-        Authorization: `Bearer ${token}`
-      } : {};
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+        console.log('✅ SCENE_API: Token available, adding Authorization header');
+      } else {
+        console.error('❌ SCENE_API: NO TOKEN AVAILABLE - this will cause 401 error!');
+        console.log('🔍 SCENE_API: currentAuthToken value:', currentAuthToken);
+        console.log('🔍 SCENE_API: Debugging token state...');
+        
+        // Check if we can get auth state from somewhere else for debugging
+        const authStateFromLocalStorage = localStorage.getItem('lumea_auth_token');
+        console.log('🔍 SCENE_API: localStorage token exists:', !!authStateFromLocalStorage);
+        
+        // Let's try to use the localStorage token as fallback if available
+        if (authStateFromLocalStorage) {
+          console.log('🔄 SCENE_API: Using localStorage token as emergency fallback');
+          headers.Authorization = `Bearer ${authStateFromLocalStorage}`;
+        }
+      }
       
-      log('debug', 'SCENE_API: Request headers', headers);
+      console.log('🔍 SCENE_API: Final request details:', { 
+        url, 
+        headers: {
+          ...headers,
+          Authorization: headers.Authorization ? headers.Authorization.substring(0, 20) + '...' : 'NOT_SET'
+        }
+      });
       
-      const response = await api.flatScenesControllerGetSceneCategories(sceneId, { headers });
+      const response = await fetch(url, { headers });
+      
+      console.log('🔍 SCENE_API: Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ SCENE_API: Error response body:', errorText);
+        throw new SceneApiError(response.status, `Failed to get categories: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
       logOnce('scene:getCategories:success', 'info', '✅ SCENE_API: getCategories success');
-      return response.data;
+      console.log('✅ SCENE_API: Categories data received:', data?.length || 0, 'items');
+      return data;
     } catch (error: any) {
       log('error', '❌ SCENE_API: getCategories failed:', error);
       log('debug', 'SCENE_API: Error details', {
-        status: error?.response?.status,
-        statusText: error?.response?.statusText,
-        data: error?.response?.data
+        status: error?.statusCode || error?.response?.status,
+        message: error?.message
       });
       throw error;
     }
@@ -511,16 +605,16 @@ export const scenesApi = {
     // Handle batch updates by calling individual updateItem for each
     const results = [];
     for (const item of items) {
-      if (item.id) {
-        const result = await this.updateItem(sceneId, item.id, item, version);
+      if (item.id && item.updates) {
+        const result = await this.updateItem(sceneId, item.id, item.updates, version);
         results.push(result);
       }
     }
     return results;
   },
 
-  getSSEUrl(sceneId: string): string {
-    return `${API_BASE_URL}/scenes/${sceneId}/events`;
+  getSSEUrl(projectId: string, sceneId: string): string {
+    return `${API_BASE_URL}/projects/${projectId}/scenes/${sceneId}/events`;
   },
 };
 

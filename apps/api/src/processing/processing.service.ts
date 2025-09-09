@@ -4,7 +4,6 @@ import { StorageService } from '../storage/storage.service';
 import { Document, NodeIO, WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { 
-  draco, 
   meshopt, 
   textureCompress, 
   resample, 
@@ -86,17 +85,15 @@ export class ProcessingService {
       const variants: ProcessedVariant[] = [];
       
       // 1. Optimized version with compression
-      if (options.enableDraco || options.enableMeshopt) {
-        const optimizedVariant = await this.createOptimizedVariant(
-          document,
-          tempDir,
-          userId,
-          category,
-          assetId,
-          options,
-        );
-        variants.push(optimizedVariant);
-      }
+      const optimizedVariant = await this.createOptimizedVariant(
+        document,
+        tempDir,
+        userId,
+        category,
+        assetId,
+        options,
+      );
+      variants.push(optimizedVariant);
       
       // 2. LOD variants if requested
       if (options.generateLODs) {
@@ -111,18 +108,18 @@ export class ProcessingService {
         variants.push(...lodVariants);
       }
       
-      // 3. Texture variants with different formats
-      if (options.textureFormat) {
-        const textureVariants = await this.createTextureVariants(
-          document,
-          tempDir,
-          userId,
-          category,
-          assetId,
-          options,
-        );
-        variants.push(...textureVariants);
-      }
+      // 3. Texture variants with different formats (disabled for now)
+      // if (options.textureFormat) {
+      //   const textureVariants = await this.createTextureVariants(
+      //     document,
+      //     tempDir,
+      //     userId,
+      //     category,
+      //     assetId,
+      //     options,
+      //   );
+      //   variants.push(...textureVariants);
+      // }
       
       const totalProcessedSize = variants.reduce((sum, v) => sum + v.size, 0);
       const compressionRatio = originalSize / (totalProcessedSize || originalSize);
@@ -180,24 +177,34 @@ export class ProcessingService {
     );
     
     // Apply compression based on options
-    if (options.enableDraco) {
-      await optimizedDoc.transform(
-        draco({
-          quantizePosition: 14,
-          quantizeNormal: 10,
-          quantizeColor: 8,
-          quantizeTexcoord: 12,
-        })
-      );
-    }
+    // Note: Draco compression is disabled due to compatibility issues
+    // if (options.enableDraco) {
+    //   try {
+    //     await optimizedDoc.transform(
+    //       draco({
+    //         method: 'edgebreaker',
+    //         encodeSpeed: 5,
+    //         decodeSpeed: 5,
+    //       })
+    //     );
+    //   } catch (error) {
+    //     this.logger.warn(`Draco compression failed, skipping: ${error.message}`);
+    //     // Continue without Draco compression
+    //   }
+    // }
     
     if (options.enableMeshopt) {
-      await optimizedDoc.transform(
-        meshopt({
-          encoder: 'meshoptEncoder',
-          level: 'medium',
-        })
-      );
+      try {
+        await optimizedDoc.transform(
+          meshopt({
+            encoder: 'meshoptEncoder',
+            level: 'medium',
+          })
+        );
+      } catch (error) {
+        this.logger.warn(`Meshopt compression failed, skipping: ${error.message}`);
+        // Continue without Meshopt compression
+      }
     }
     
     // Write optimized GLB
@@ -224,7 +231,7 @@ export class ProcessingService {
       size: stats.size,
       format: 'glb',
       metadata: {
-        compressionType: options.enableDraco ? 'draco' : options.enableMeshopt ? 'meshopt' : 'none',
+        compressionType: options.enableMeshopt ? 'meshopt' : 'none',
         meshes: optimizedDoc.getRoot().listMeshes().length,
         materials: optimizedDoc.getRoot().listMaterials().length,
         textures: optimizedDoc.getRoot().listTextures().length,
@@ -361,6 +368,55 @@ export class ProcessingService {
         metadata: {
           textureFormat: 'ktx2',
           textureCount: textures.length,
+        },
+      });
+    } else if (options.textureFormat === 'webp' || options.textureFormat === 'avif') {
+      // Use @gltf-transform textureCompress for webp/avif
+      const tempPath = path.join(tempDir, `temp_${options.textureFormat}.glb`);
+      await this.io.write(tempPath, document);
+      const compressedDoc = await this.io.read(tempPath);
+      
+      const compressedPath = path.join(tempDir, `${options.textureFormat}_textures.glb`);
+      
+      // Apply texture compression
+      try {
+        await compressedDoc.transform(
+          textureCompress({
+            encoder: options.textureFormat === 'webp' ? 'webp' : 'avif',
+            quality: options.textureQuality || 80,
+            resize: options.maxTextureSize ? [options.maxTextureSize, options.maxTextureSize] : undefined,
+          })
+        );
+        await this.io.write(compressedPath, compressedDoc);
+      } catch (error) {
+        this.logger.warn(`Texture compression failed, skipping: ${error.message}`);
+        // Continue without texture compression - just copy the original
+        await this.io.write(compressedPath, compressedDoc);
+      }
+      
+      const filename = `${options.textureFormat}_textures.glb`;
+      const objectKey = this.storageService.generateProcessedObjectKey(
+        userId,
+        category,
+        assetId,
+        options.textureFormat,
+        filename,
+      );
+      
+      await this.uploadFileToStorage(compressedPath, objectKey);
+      
+      const stats = await fs.stat(compressedPath);
+      const textures = compressedDoc.getRoot().listTextures();
+      
+      variants.push({
+        name: `${options.textureFormat}_textures`,
+        objectKey,
+        size: stats.size,
+        format: 'glb',
+        metadata: {
+          textureFormat: options.textureFormat,
+          textureCount: textures.length,
+          quality: options.textureQuality || 80,
         },
       });
     }

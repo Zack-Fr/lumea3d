@@ -24,7 +24,7 @@ import { BASE_PATH, COLLECTION_FORMATS, type RequestArgs, BaseAPI, RequiredError
 // @ts-ignore
 import type { CreateProjectDto } from '../models';
 // @ts-ignore
-import type { ProjectsControllerCreate201Response } from '../models';
+import type { CreateProjectResponseDto } from '../models';
 // @ts-ignore
 import type { ProjectsControllerFindAll200ResponseInner } from '../models';
 /**
@@ -150,7 +150,7 @@ export const ProjectsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async projectsControllerCreate(createProjectDto: CreateProjectDto, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ProjectsControllerCreate201Response>> {
+        async projectsControllerCreate(createProjectDto: CreateProjectDto, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CreateProjectResponseDto>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.projectsControllerCreate(createProjectDto, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ProjectsApi.projectsControllerCreate']?.[localVarOperationServerIndex]?.url;
@@ -198,7 +198,7 @@ export const ProjectsApiFactory = function (configuration?: Configuration, baseP
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        projectsControllerCreate(createProjectDto: CreateProjectDto, options?: RawAxiosRequestConfig): AxiosPromise<ProjectsControllerCreate201Response> {
+        projectsControllerCreate(createProjectDto: CreateProjectDto, options?: RawAxiosRequestConfig): AxiosPromise<CreateProjectResponseDto> {
             return localVarFp.projectsControllerCreate(createProjectDto, options).then((request) => request(axios, basePath));
         },
         /**

@@ -221,10 +221,13 @@ export const FlatScenesApiAxiosParamCreator = function (configuration?: Configur
          * Flat route - returns all unique categories used by items in the scene with their metadata
          * @summary Get available categories in scene
          * @param {string} sceneId Scene ID
+         * @param {string} [projectId] Filter by project ID
+         * @param {string} [categoryKey] Filter by category key
+         * @param {boolean} [instancing] Filter by instancing enabled
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        flatScenesControllerGetSceneCategories: async (sceneId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        flatScenesControllerGetSceneCategories: async (sceneId: string, projectId?: string, categoryKey?: string, instancing?: boolean, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'sceneId' is not null or undefined
             assertParamExists('flatScenesControllerGetSceneCategories', 'sceneId', sceneId)
             const localVarPath = `/scenes/{sceneId}/categories`
@@ -239,6 +242,18 @@ export const FlatScenesApiAxiosParamCreator = function (configuration?: Configur
             const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
+
+            if (projectId !== undefined) {
+                localVarQueryParameter['projectId'] = projectId;
+            }
+
+            if (categoryKey !== undefined) {
+                localVarQueryParameter['categoryKey'] = categoryKey;
+            }
+
+            if (instancing !== undefined) {
+                localVarQueryParameter['instancing'] = instancing;
+            }
 
 
     
@@ -550,11 +565,14 @@ export const FlatScenesApiFp = function(configuration?: Configuration) {
          * Flat route - returns all unique categories used by items in the scene with their metadata
          * @summary Get available categories in scene
          * @param {string} sceneId Scene ID
+         * @param {string} [projectId] Filter by project ID
+         * @param {string} [categoryKey] Filter by category key
+         * @param {boolean} [instancing] Filter by instancing enabled
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async flatScenesControllerGetSceneCategories(sceneId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlatScenesControllerGetSceneCategories200Response>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.flatScenesControllerGetSceneCategories(sceneId, options);
+        async flatScenesControllerGetSceneCategories(sceneId: string, projectId?: string, categoryKey?: string, instancing?: boolean, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlatScenesControllerGetSceneCategories200Response>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.flatScenesControllerGetSceneCategories(sceneId, projectId, categoryKey, instancing, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['FlatScenesApi.flatScenesControllerGetSceneCategories']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -695,11 +713,14 @@ export const FlatScenesApiFactory = function (configuration?: Configuration, bas
          * Flat route - returns all unique categories used by items in the scene with their metadata
          * @summary Get available categories in scene
          * @param {string} sceneId Scene ID
+         * @param {string} [projectId] Filter by project ID
+         * @param {string} [categoryKey] Filter by category key
+         * @param {boolean} [instancing] Filter by instancing enabled
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        flatScenesControllerGetSceneCategories(sceneId: string, options?: RawAxiosRequestConfig): AxiosPromise<FlatScenesControllerGetSceneCategories200Response> {
-            return localVarFp.flatScenesControllerGetSceneCategories(sceneId, options).then((request) => request(axios, basePath));
+        flatScenesControllerGetSceneCategories(sceneId: string, projectId?: string, categoryKey?: string, instancing?: boolean, options?: RawAxiosRequestConfig): AxiosPromise<FlatScenesControllerGetSceneCategories200Response> {
+            return localVarFp.flatScenesControllerGetSceneCategories(sceneId, projectId, categoryKey, instancing, options).then((request) => request(axios, basePath));
         },
         /**
          * Flat route - returns the current version number for optimistic locking
@@ -830,12 +851,15 @@ export class FlatScenesApi extends BaseAPI {
      * Flat route - returns all unique categories used by items in the scene with their metadata
      * @summary Get available categories in scene
      * @param {string} sceneId Scene ID
+     * @param {string} [projectId] Filter by project ID
+     * @param {string} [categoryKey] Filter by category key
+     * @param {boolean} [instancing] Filter by instancing enabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FlatScenesApi
      */
-    public flatScenesControllerGetSceneCategories(sceneId: string, options?: RawAxiosRequestConfig) {
-        return FlatScenesApiFp(this.configuration).flatScenesControllerGetSceneCategories(sceneId, options).then((request) => request(this.axios, this.basePath));
+    public flatScenesControllerGetSceneCategories(sceneId: string, projectId?: string, categoryKey?: string, instancing?: boolean, options?: RawAxiosRequestConfig) {
+        return FlatScenesApiFp(this.configuration).flatScenesControllerGetSceneCategories(sceneId, projectId, categoryKey, instancing, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

@@ -90,7 +90,8 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     hasToken: !!token,
     hasUser: !!user,
     sceneId,
-    projectId
+    projectId,
+    mode: sceneId ? 'SCENE_MODE' : projectId ? 'PROJECT_MODE' : 'NO_MODE'
   });
 
   // Scene manifest staged loading
@@ -103,7 +104,7 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     metrics,
     refresh: refreshManifest
   } = useSceneManifestStaged(sceneId || '', {
-    enabled: !!sceneId && !!token, // Only enable when we have both sceneId and auth token
+    enabled: !!sceneId && !!token && !!user, // Only load if we have a sceneId
     priorityCategories,
     onStageComplete: (stageName, categories) => {
       console.log(`Scene stage completed: ${stageName}`, categories);
@@ -118,18 +119,20 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
         console.error('Authentication issue detected. Please check if user is logged in.');
         console.error('Scene ID being requested:', sceneId);
         console.error('Token available:', !!token);
+        console.error('User available:', !!user);
       } else if (errorMessage.includes('404') || errorMessage.includes('Not found')) {
         console.error('Scene not found. Scene ID may not exist:', sceneId);
+        console.error('This might be a project ID instead of a scene ID');
       }
     }
   });
 
-  // Scene categories
+  // Scene categories - only load if we have a sceneId
   const { 
     data: allCategories = [],
     isLoading: categoriesLoading 
   } = useSceneCategories(sceneId || '', {
-    enabled: !!sceneId && !!token // Only enable when we have both sceneId and auth token
+    enabled: !!sceneId && !!token && !!user // Only load if we have a sceneId
   });
 
   // Scene actions
@@ -240,29 +243,46 @@ export const useSceneParams = () => {
   // For now, we'll create a simple version
   const extractSceneParams = useCallback(() => {
     const path = window.location.pathname;
-    
+
+    console.log('🔍 useSceneParams: Parsing URL path:', path);
+
     // Match /app/projects/:projectId/scenes/:sceneId/editor
     const sceneEditorMatch = path.match(/\/app\/projects\/([^/]+)\/scenes\/([^/]+)\/editor/);
     if (sceneEditorMatch) {
+      const projectId = decodeURIComponent(sceneEditorMatch[1]);
+      const sceneId = decodeURIComponent(sceneEditorMatch[2]);
+      console.log('✅ useSceneParams: Found scene editor URL:', { projectId, sceneId });
       return {
-        projectId: decodeURIComponent(sceneEditorMatch[1]),
-        sceneId: decodeURIComponent(sceneEditorMatch[2])
+        projectId,
+        sceneId
       };
     }
-    
-    // Match /app/projects/:id (could be project or scene)
+
+    // Match /app/projects/:projectId/scenes/:sceneId
+    const sceneMatch = path.match(/\/app\/projects\/([^/]+)\/scenes\/([^/]+)$/);
+    if (sceneMatch) {
+      const projectId = decodeURIComponent(sceneMatch[1]);
+      const sceneId = decodeURIComponent(sceneMatch[2]);
+      console.log('✅ useSceneParams: Found scene URL:', { projectId, sceneId });
+      return {
+        projectId,
+        sceneId
+      };
+    }
+
+    // Match /app/projects/:id (this is a project, not a scene)
     const projectMatch = path.match(/\/app\/projects\/([^/]+)$/);
     if (projectMatch) {
-      const id = decodeURIComponent(projectMatch[1]);
-      // For now, treat as sceneId - in real app this would be projectId
+      const projectId = decodeURIComponent(projectMatch[1]);
+      console.log('📁 useSceneParams: Found project URL (no scene):', { projectId, sceneId: null });
       return {
-        projectId: id,
-        sceneId: id
+        projectId,
+        sceneId: null  // Don't set sceneId for project URLs
       };
     }
-    
+
     // No scene ID found in URL
-    console.log('No scene ID found in URL path:', path);
+    console.log('❌ useSceneParams: No scene/project found in URL path:', path);
     return { projectId: null, sceneId: null };
   }, []);
 

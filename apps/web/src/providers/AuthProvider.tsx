@@ -88,6 +88,14 @@ const [state, setState] = useState<AuthState>(() => {
     logOnce('auth:token-changed', 'info', '🔐 AUTH_PROVIDER: Token changed, updating API clients (logged once)');
     log('debug', 'AUTH_PROVIDER token meta', { hasToken: !!state.token, tokenLength: state.token?.length });
 
+    // Additional debugging for authentication issues
+    console.log('🔐 Auth token updated:', {
+      hasToken: !!state.token,
+      tokenLength: state.token?.length,
+      userId: state.user?.id,
+      userEmail: state.user?.email
+    });
+
     if (state.token) {
       // log once to avoid repeated token lines
       logOnce('auth:set-tokens', 'info', '🔐 AUTH_PROVIDER: Setting token for all API services');

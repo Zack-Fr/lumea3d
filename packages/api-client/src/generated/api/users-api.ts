@@ -240,13 +240,13 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
          * @summary Get all users with pagination and filtering (Admin only)
          * @param {number} [page] Page number (default: 1)
          * @param {number} [limit] Items per page (default: 10)
-         * @param {UsersControllerGetUsersRoleEnum} [role] Filter by role
          * @param {string} [search] Search by name or email
          * @param {boolean} [isActive] Filter by active status
+         * @param {UsersControllerGetUsersRoleEnum} [role] Filter by role
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        usersControllerGetUsers: async (page?: number, limit?: number, role?: UsersControllerGetUsersRoleEnum, search?: string, isActive?: boolean, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        usersControllerGetUsers: async (page?: number, limit?: number, search?: string, isActive?: boolean, role?: UsersControllerGetUsersRoleEnum, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/users`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -267,16 +267,16 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
                 localVarQueryParameter['limit'] = limit;
             }
 
-            if (role !== undefined) {
-                localVarQueryParameter['role'] = role;
-            }
-
             if (search !== undefined) {
                 localVarQueryParameter['search'] = search;
             }
 
             if (isActive !== undefined) {
                 localVarQueryParameter['isActive'] = isActive;
+            }
+
+            if (role !== undefined) {
+                localVarQueryParameter['role'] = role;
             }
 
 
@@ -457,14 +457,14 @@ export const UsersApiFp = function(configuration?: Configuration) {
          * @summary Get all users with pagination and filtering (Admin only)
          * @param {number} [page] Page number (default: 1)
          * @param {number} [limit] Items per page (default: 10)
-         * @param {UsersControllerGetUsersRoleEnum} [role] Filter by role
          * @param {string} [search] Search by name or email
          * @param {boolean} [isActive] Filter by active status
+         * @param {UsersControllerGetUsersRoleEnum} [role] Filter by role
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async usersControllerGetUsers(page?: number, limit?: number, role?: UsersControllerGetUsersRoleEnum, search?: string, isActive?: boolean, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<object>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.usersControllerGetUsers(page, limit, role, search, isActive, options);
+        async usersControllerGetUsers(page?: number, limit?: number, search?: string, isActive?: boolean, role?: UsersControllerGetUsersRoleEnum, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<object>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.usersControllerGetUsers(page, limit, search, isActive, role, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['UsersApi.usersControllerGetUsers']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -569,14 +569,14 @@ export const UsersApiFactory = function (configuration?: Configuration, basePath
          * @summary Get all users with pagination and filtering (Admin only)
          * @param {number} [page] Page number (default: 1)
          * @param {number} [limit] Items per page (default: 10)
-         * @param {UsersControllerGetUsersRoleEnum} [role] Filter by role
          * @param {string} [search] Search by name or email
          * @param {boolean} [isActive] Filter by active status
+         * @param {UsersControllerGetUsersRoleEnum} [role] Filter by role
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        usersControllerGetUsers(page?: number, limit?: number, role?: UsersControllerGetUsersRoleEnum, search?: string, isActive?: boolean, options?: RawAxiosRequestConfig): AxiosPromise<object> {
-            return localVarFp.usersControllerGetUsers(page, limit, role, search, isActive, options).then((request) => request(axios, basePath));
+        usersControllerGetUsers(page?: number, limit?: number, search?: string, isActive?: boolean, role?: UsersControllerGetUsersRoleEnum, options?: RawAxiosRequestConfig): AxiosPromise<object> {
+            return localVarFp.usersControllerGetUsers(page, limit, search, isActive, role, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -684,15 +684,15 @@ export class UsersApi extends BaseAPI {
      * @summary Get all users with pagination and filtering (Admin only)
      * @param {number} [page] Page number (default: 1)
      * @param {number} [limit] Items per page (default: 10)
-     * @param {UsersControllerGetUsersRoleEnum} [role] Filter by role
      * @param {string} [search] Search by name or email
      * @param {boolean} [isActive] Filter by active status
+     * @param {UsersControllerGetUsersRoleEnum} [role] Filter by role
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof UsersApi
      */
-    public usersControllerGetUsers(page?: number, limit?: number, role?: UsersControllerGetUsersRoleEnum, search?: string, isActive?: boolean, options?: RawAxiosRequestConfig) {
-        return UsersApiFp(this.configuration).usersControllerGetUsers(page, limit, role, search, isActive, options).then((request) => request(this.axios, this.basePath));
+    public usersControllerGetUsers(page?: number, limit?: number, search?: string, isActive?: boolean, role?: UsersControllerGetUsersRoleEnum, options?: RawAxiosRequestConfig) {
+        return UsersApiFp(this.configuration).usersControllerGetUsers(page, limit, search, isActive, role, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

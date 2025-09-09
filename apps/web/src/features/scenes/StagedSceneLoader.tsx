@@ -6,6 +6,7 @@ import type { SceneManifestV2 } from '../../services/scenesApi';
 import { log } from '../../utils/logger';
 
 interface StagedSceneLoaderProps {
+  projectId: string;
   sceneId: string;
   onManifestLoaded?: (manifest: SceneManifestV2) => void;
   onLoadingStateChange?: (isLoading: boolean) => void;
@@ -21,13 +22,46 @@ interface StagedSceneLoaderProps {
  * 4. Real-time loading metrics and progress tracking
  */
 export const StagedSceneLoader = React.memo(function StagedSceneLoader({ 
+  projectId,
   sceneId, 
   onManifestLoaded, 
   onLoadingStateChange 
 }: StagedSceneLoaderProps) {
-  // Early validation to prevent crashes
-  if (!sceneId || typeof sceneId !== 'string') {
-    log('error', 'StagedSceneLoader: Invalid sceneId provided', sceneId);
+  // ALL HOOKS MUST BE CALLED FIRST - NO CONDITIONAL LOGIC BEFORE HOOKS
+  const [showAdvancedMetrics, setShowAdvancedMetrics] = useState(false);
+
+  // Always call hooks - we'll handle validation in the enabled options
+  const isValidInput = !!(projectId && typeof projectId === 'string' && sceneId && typeof sceneId === 'string');
+
+  // Fetch available categories first - with improved error handling
+  const categoriesResult = useSceneCategories(sceneId, { 
+    enabled: isValidInput
+  });
+  const categoriesData = categoriesResult.data;
+  const categoriesLoading = categoriesResult.isLoading;
+  const categoriesError = categoriesResult.error;
+
+  // Use staged manifest loading - always call hook
+  const stagedManifestResult = useSceneManifestStaged(sceneId, {
+    enabled: isValidInput,
+    priorityCategories: ['shell', 'lighting', 'environment'],
+    secondaryCategories: ['furniture', 'seating', 'tables', 'storage'],
+    includeMetadata: true,
+    onStageComplete: (stageName, categories) => {
+      log('info', `🎯 Stage "${stageName}" completed: ${Array.isArray(categories) ? categories.map((c:any)=>c.categoryKey||c.key||c).join(',') : ''}`);
+    },
+    onComplete: (finalManifest) => {
+      log('info', '🎉 All stages completed!');
+      onManifestLoaded?.(finalManifest);
+    },
+    onError: (error) => {
+      log('error', '❌ Staged loading failed:', String(error));
+    }
+  });
+
+  // NOW we can do validation and early returns AFTER all hooks
+  if (!isValidInput) {
+    log('error', 'StagedSceneLoader: Invalid projectId or sceneId provided', { projectId, sceneId });
     return (
       <div className="p-6 max-w-2xl mx-auto">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -35,60 +69,11 @@ export const StagedSceneLoader = React.memo(function StagedSceneLoader({
             Configuration Error
           </h2>
           <p className="text-red-600">
-            Invalid scene ID provided. Please ensure a valid scene ID is passed to the component.
+            Invalid project ID or scene ID provided. Please ensure valid project and scene IDs are passed to the component.
           </p>
         </div>
       </div>
     );
-  }
-
-  const [showAdvancedMetrics, setShowAdvancedMetrics] = useState(false);
-
-  // Fetch available categories first - with error boundary
-  let categoriesData, categoriesLoading, categoriesError;
-  try {
-    const categoriesResult = useSceneCategories(sceneId, { enabled: !!sceneId });
-    categoriesData = categoriesResult.data;
-    categoriesLoading = categoriesResult.isLoading;
-    categoriesError = categoriesResult.error;
-  } catch (error) {
-    log('error', 'StagedSceneLoader: Error in useSceneCategories hook', error);
-    categoriesError = error;
-    categoriesLoading = false;
-    categoriesData = null;
-  }
-
-  // Use staged manifest loading - with error boundary
-  let stagedManifestResult;
-  try {
-    stagedManifestResult = useSceneManifestStaged(sceneId, {
-      priorityCategories: ['shell', 'lighting', 'environment'],
-      secondaryCategories: ['furniture', 'seating', 'tables', 'storage'],
-      includeMetadata: true,
-      onStageComplete: (stageName, categories) => {
-        log('info', `🎯 Stage "${stageName}" completed: ${Array.isArray(categories) ? categories.map((c:any)=>c.categoryKey||c.key||c).join(',') : ''}`);
-      },
-      onComplete: (finalManifest) => {
-        log('info', '🎉 All stages completed!');
-        onManifestLoaded?.(finalManifest);
-      },
-      onError: (error) => {
-        log('error', '❌ Staged loading failed:', String(error));
-      }
-    });
-  } catch (error) {
-    log('error', 'StagedSceneLoader: Error in useSceneManifestStaged hook', error);
-    stagedManifestResult = {
-      stage: 'error',
-      loadedCategories: [],
-      availableCategories: [],
-      progress: 0,
-      manifest: null,
-      isLoading: false,
-      error: String(error),
-      metrics: { stageTimings: {}, totalLoadTime: 0, categoryCount: 0, itemCount: 0 },
-      refresh: () => {}
-    };
   }
 
   const {

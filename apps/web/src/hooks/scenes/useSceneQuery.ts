@@ -71,20 +71,20 @@ export function useSceneManifest(sceneId: string, options: UseSceneManifestOptio
 }
 
 /**
- * Hook to fetch scene details using flat route
+ * Hook to fetch scene details using project-nested route
  */
-export function useScene(sceneId: string, options: { enabled?: boolean } = {}) {
+export function useScene(projectId: string, sceneId: string, options: { enabled?: boolean } = {}) {
   const { token } = useAuth();
   
   return useQuery({
-    queryKey: ['scene', sceneId],
+    queryKey: ['scene', projectId, sceneId],
     queryFn: () => {
       if (!token) {
         throw new SceneApiError(401, 'Authentication required');
       }
-      return scenesApi.getScene(sceneId);
+      return scenesApi.getScene(projectId, sceneId);
     },
-    enabled: !!sceneId && !!token && (options.enabled !== false),
+    enabled: !!projectId && !!sceneId && !!token && (options.enabled !== false),
     staleTime: 60000, // 1 minute
     retry: (failureCount, error: unknown) => {
       if (error instanceof SceneApiError && [401, 403].includes(error.statusCode)) {
@@ -98,18 +98,18 @@ export function useScene(sceneId: string, options: { enabled?: boolean } = {}) {
 /**
  * Hook to get current scene version for optimistic locking
  */
-export function useSceneVersion(sceneId: string, options: { enabled?: boolean } = {}) {
+export function useSceneVersion(projectId: string, sceneId: string, options: { enabled?: boolean } = {}) {
   const { token } = useAuth();
   
   return useQuery({
-    queryKey: ['scene-version', sceneId],
+    queryKey: ['scene-version', projectId, sceneId],
     queryFn: () => {
       if (!token) {
         throw new SceneApiError(401, 'Authentication required');
       }
-      return scenesApi.getVersion(sceneId);
+      return scenesApi.getVersion(projectId, sceneId);
     },
-    enabled: !!sceneId && !!token && (options.enabled !== false),
+    enabled: !!projectId && !!sceneId && !!token && (options.enabled !== false),
     staleTime: 5000, // 5 seconds - version changes frequently
     refetchInterval: 10000, // Check for version updates every 10 seconds
     retry: (failureCount, error) => {
@@ -122,39 +122,34 @@ export function useSceneVersion(sceneId: string, options: { enabled?: boolean } 
 }
 
 /**
- * Hook to fetch available categories in a scene (alias route)
+ * Hook to fetch available categories in a scene (flat route)
  */
 export function useSceneCategories(sceneId: string, options: { enabled?: boolean } = {}) {
   const { token } = useAuth();
-  
-  return useQuery({
-    queryKey: ['scene-categories', sceneId],
-    queryFn: async () => {
-      if (!token) {
-        log('warn', 'useSceneCategories: No authentication token available');
-        throw new SceneApiError(401, 'Authentication required');
-      }
 
+  // Only enable query if token is present and sceneId is set
+  const enabled = !!sceneId && !!token && (options.enabled !== false);
+
+  return useQuery({
+    queryKey: ['scene-categories', sceneId, token],
+    queryFn: async () => {
       log('debug', '🔄 useSceneCategories: Loading categories for scene:', sceneId);
-      
       const response = await scenesApi.getCategories(sceneId);
       // Backend returns array directly, but API client expects { categories: [...] }
       // Handle both formats for compatibility
       const categories = Array.isArray(response) ? response : (response?.categories || []);
-      
       logOnce(`scene:categories:loaded:${sceneId}`, 'info', '✅ useSceneCategories: Loaded categories (logged once)');
       log('debug', '✅ useSceneCategories: Loaded categories count', categories.length);
-      
       return categories;
     },
-    enabled: !!sceneId && (options.enabled !== false),
+    enabled,
     staleTime: 300000, // 5 minutes - categories don't change often
     retry: (failureCount, error) => {
       if (error instanceof SceneApiError && [401, 403].includes(error.statusCode)) {
         log('warn', 'useSceneCategories: Authentication failed, not retrying');
         return false;
       }
-      return failureCount < 3;
-    }
+      return failureCount < 2;
+    },
   });
 }

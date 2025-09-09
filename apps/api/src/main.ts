@@ -28,23 +28,23 @@ async function bootstrap() {
     crossOriginEmbedderPolicy: false,
   }));
 
-  // Rate limiting
-  app.use(rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again later.',
-    standardHeaders: true,
-    legacyHeaders: false,
-  }));
+  // Rate limiting - TEMPORARILY DISABLED FOR TESTING
+  // app.use(rateLimit({
+  //   windowMs: 15 * 60 * 1000, // 15 minutes
+  //   max: 100, // limit each IP to 100 requests per windowMs
+  //   message: 'Too many requests from this IP, please try again later.',
+  //   standardHeaders: true,
+  //   legacyHeaders: false,
+  // }));
 
-  // Stricter rate limiting for auth endpoints
-  app.use('/auth/login', rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // limit each IP to 5 login attempts per windowMs
-    message: 'Too many login attempts, please try again later.',
-    standardHeaders: true,
-    legacyHeaders: false,
-  }));
+  // Stricter rate limiting for auth endpoints - TEMPORARILY DISABLED FOR TESTING
+  // app.use('/auth/login', rateLimit({
+  //   windowMs: 15 * 60 * 1000, // 15 minutes
+  //   max: 5, // limit each IP to 5 login attempts per windowMs
+  //   message: 'Too many login attempts, please try again later.',
+  //   standardHeaders: true,
+  //   legacyHeaders: false,
+  // }));
   
   // Configure Socket.IO adapter
   app.useWebSocketAdapter(new IoAdapter(app));

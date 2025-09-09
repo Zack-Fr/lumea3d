@@ -14,7 +14,7 @@ export interface AssetProcessingJob {
     enableDraco?: boolean;
     enableMeshopt?: boolean;
     generateLODs?: boolean;
-    textureFormat?: 'ktx2';
+    textureFormat?: 'ktx2' | 'webp' | 'avif';
   };
 }
 
@@ -48,10 +48,10 @@ export class AssetProcessingProcessor {
         assetId,
         originalObjectKey,
         {
-          enableDraco: options?.enableDraco ?? true,
-          enableMeshopt: options?.enableMeshopt ?? true,
-          generateLODs: options?.generateLODs ?? false,
-          textureFormat: options?.textureFormat ?? 'ktx2',
+          enableDraco: false, // Draco compression disabled due to compatibility issues
+          enableMeshopt: false, // Disable Meshopt due to encoder issues
+          generateLODs: false, // Disable LODs for now
+          // textureFormat: 'webp', // Disabled for now to focus on basic processing
         }
       );
 
@@ -59,8 +59,8 @@ export class AssetProcessingProcessor {
         // Update asset with processing results
         const updateData: any = {
           status: AssetStatus.READY,
-          processed_at: new Date(),
-          report_json: {
+          processedAt: new Date(),
+          reportJson: {
             originalSize: result.originalSize,
             processedSize: result.processedSize,
             compressionRatio: result.compressionRatio,
@@ -73,15 +73,15 @@ export class AssetProcessingProcessor {
         for (const variant of result.variants) {
           switch (variant.name) {
             case 'optimized':
-              updateData.meshopt_url = variant.objectKey;
+              updateData.meshoptUrl = variant.objectKey;
               break;
             case 'draco':
             case 'optimized': // If using Draco compression
-              updateData.draco_url = variant.objectKey;
+              updateData.dracoUrl = variant.objectKey;
               break;
             case 'ktx2_textures':
               // Store KTX2 variant info in report_json for now
-              updateData.report_json.ktx2Url = variant.objectKey;
+              updateData.reportJson.ktx2Url = variant.objectKey;
               break;
           }
         }

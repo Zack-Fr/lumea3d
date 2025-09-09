@@ -80,5 +80,23 @@ export interface UpdateSceneDto {
      * @memberof UpdateSceneDto
      */
     'navmeshAssetId'?: string;
+    /**
+     * Shell asset ID for scene container/environment
+     * @type {string}
+     * @memberof UpdateSceneDto
+     */
+    'shellAssetId'?: string;
+    /**
+     * Whether the shell should cast shadows
+     * @type {boolean}
+     * @memberof UpdateSceneDto
+     */
+    'shellCastShadow'?: boolean;
+    /**
+     * Whether the shell should receive shadows
+     * @type {boolean}
+     * @memberof UpdateSceneDto
+     */
+    'shellReceiveShadow'?: boolean;
 }
 

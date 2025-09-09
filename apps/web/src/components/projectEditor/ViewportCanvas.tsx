@@ -215,8 +215,9 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
       </Canvas>
 
       {/* Scene Loading UI */}
-      {sceneId && (
+      {sceneId && projectId && (
         <StagedSceneLoader 
+          projectId={projectId}
           sceneId={sceneId}
           onManifestLoaded={handleManifestLoaded}
           onLoadingStateChange={handleLoadingStateChange}

@@ -18,6 +18,7 @@ export * from './api/assets-api';
 export * from './api/authentication-api';
 export * from './api/default-api';
 export * from './api/flat-scenes-api';
+export * from './api/project-categories3-dapi';
 export * from './api/projects-api';
 export * from './api/scene-downloads-api';
 export * from './api/scenes-legacy-deprecated-api';

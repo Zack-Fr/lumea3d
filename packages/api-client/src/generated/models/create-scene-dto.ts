@@ -80,5 +80,23 @@ export interface CreateSceneDto {
      * @memberof CreateSceneDto
      */
     'navmeshAssetId'?: string;
+    /**
+     * Shell asset ID for scene container/environment
+     * @type {string}
+     * @memberof CreateSceneDto
+     */
+    'shellAssetId'?: string;
+    /**
+     * Whether the shell should cast shadows
+     * @type {boolean}
+     * @memberof CreateSceneDto
+     */
+    'shellCastShadow'?: boolean;
+    /**
+     * Whether the shell should receive shadows
+     * @type {boolean}
+     * @memberof CreateSceneDto
+     */
+    'shellReceiveShadow'?: boolean;
 }
 

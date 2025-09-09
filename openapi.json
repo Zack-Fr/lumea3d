@@ -368,21 +368,6 @@
             }
           },
           {
-            "name": "role",
-            "required": false,
-            "in": "query",
-            "description": "Filter by role",
-            "schema": {
-              "enum": [
-                "GUEST",
-                "CLIENT",
-                "DESIGNER",
-                "ADMIN"
-              ],
-              "type": "string"
-            }
-          },
-          {
             "name": "search",
             "required": false,
             "in": "query",
@@ -398,6 +383,21 @@
             "description": "Filter by active status",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "description": "Filter by role",
+            "schema": {
+              "enum": [
+                "GUEST",
+                "CLIENT",
+                "DESIGNER",
+                "ADMIN"
+              ],
+              "type": "string"
             }
           }
         ],
@@ -1043,6 +1043,349 @@
         },
         "tags": [
           "Assets"
+        ]
+      }
+    },
+    "/projects/{projectId}/categories": {
+      "post": {
+        "operationId": "ProjectCategory3DController_create",
+        "summary": "Add an asset category to a project",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectCategory3DDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Category added to project successfully"
+          },
+          "400": {
+            "description": "Invalid category data or asset not ready"
+          },
+          "404": {
+            "description": "Project or asset not found"
+          },
+          "409": {
+            "description": "Category already exists in project"
+          }
+        },
+        "tags": [
+          "Project Categories 3D"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "ProjectCategory3DController_findAll",
+        "summary": "Get all asset categories in a project",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryKey",
+            "required": false,
+            "in": "query",
+            "description": "Filter by category key",
+            "schema": {
+              "example": "office_chairs",
+              "type": "string"
+            }
+          },
+          {
+            "name": "instancing",
+            "required": false,
+            "in": "query",
+            "description": "Filter by instancing enabled",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Categories retrieved successfully"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "tags": [
+          "Project Categories 3D"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/categories/{categoryKey}": {
+      "get": {
+        "operationId": "ProjectCategory3DController_findOne",
+        "summary": "Get a specific category in a project",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryKey",
+            "required": true,
+            "in": "path",
+            "description": "Category key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category retrieved successfully"
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        },
+        "tags": [
+          "Project Categories 3D"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "ProjectCategory3DController_update",
+        "summary": "Update category configuration",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryKey",
+            "required": true,
+            "in": "path",
+            "description": "Category key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectCategory3DDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Category updated successfully"
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        },
+        "tags": [
+          "Project Categories 3D"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "ProjectCategory3DController_remove",
+        "summary": "Remove a category from a project",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryKey",
+            "required": true,
+            "in": "path",
+            "description": "Category key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Category removed successfully"
+          },
+          "404": {
+            "description": "Category not found"
+          },
+          "409": {
+            "description": "Category is in use by scene items"
+          }
+        },
+        "tags": [
+          "Project Categories 3D"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/categories/{categoryKey}/stats": {
+      "get": {
+        "operationId": "ProjectCategory3DController_getStats",
+        "summary": "Get usage statistics for a category",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryKey",
+            "required": true,
+            "in": "path",
+            "description": "Category key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Statistics retrieved successfully"
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        },
+        "tags": [
+          "Project Categories 3D"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/categories/bulk": {
+      "post": {
+        "operationId": "ProjectCategory3DController_bulkCreate",
+        "summary": "Add multiple categories to a project",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Categories added successfully"
+          },
+          "400": {
+            "description": "Invalid category data"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "tags": [
+          "Project Categories 3D"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/categories/available-assets": {
+      "get": {
+        "operationId": "ProjectCategory3DController_getAvailableAssets",
+        "summary": "Get assets available for adding to project",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Available assets retrieved successfully"
+          }
+        },
+        "tags": [
+          "Project Categories 3D"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
         ]
       }
     },
@@ -2063,6 +2406,36 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by project ID",
+            "schema": {
+              "example": "clabcd123...",
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryKey",
+            "required": false,
+            "in": "query",
+            "description": "Filter by category key",
+            "schema": {
+              "example": "office_chairs",
+              "type": "string"
+            }
+          },
+          {
+            "name": "instancing",
+            "required": false,
+            "in": "query",
+            "description": "Filter by instancing enabled",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -2739,96 +3112,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "projectId": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "sceneId": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "project": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "userId": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        }
-                      }
-                    },
-                    "scene": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "projectId": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "version": {
-                          "type": "number"
-                        },
-                        "spawnPositionX": {
-                          "type": "number"
-                        },
-                        "spawnPositionY": {
-                          "type": "number"
-                        },
-                        "spawnPositionZ": {
-                          "type": "number"
-                        },
-                        "spawnYawDeg": {
-                          "type": "number"
-                        },
-                        "exposure": {
-                          "type": "number"
-                        }
-                      }
-                    },
-                    "membership": {
-                      "type": "object",
-                      "properties": {
-                        "userId": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "projectId": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "role": {
-                          "type": "string",
-                          "enum": [
-                            "CLIENT",
-                            "DESIGNER",
-                            "ADMIN"
-                          ]
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/CreateProjectResponseDto"
                 }
               }
             }
@@ -3207,6 +3491,79 @@
         "type": "object",
         "properties": {}
       },
+      "CreateProjectCategory3DDto": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "description": "Asset ID to associate with the project category",
+            "example": "clabcd123..."
+          },
+          "categoryKey": {
+            "type": "string",
+            "description": "Category key for organizing assets within the project",
+            "example": "office_chairs"
+          },
+          "instancing": {
+            "type": "boolean",
+            "description": "Enable GPU instancing for this asset category",
+            "example": false,
+            "default": false
+          },
+          "draco": {
+            "type": "boolean",
+            "description": "Enable Draco compression for this asset category",
+            "example": true,
+            "default": true
+          },
+          "meshopt": {
+            "type": "boolean",
+            "description": "Enable MeshOpt compression for this asset category",
+            "example": true,
+            "default": true
+          },
+          "ktx2": {
+            "type": "boolean",
+            "description": "Enable KTX2 texture compression for this asset category",
+            "example": true,
+            "default": true
+          }
+        },
+        "required": [
+          "assetId",
+          "categoryKey"
+        ]
+      },
+      "UpdateProjectCategory3DDto": {
+        "type": "object",
+        "properties": {
+          "categoryKey": {
+            "type": "string",
+            "description": "Category key for organizing assets within the project",
+            "example": "office_chairs"
+          },
+          "instancing": {
+            "type": "boolean",
+            "description": "Enable GPU instancing for this asset category",
+            "example": false
+          },
+          "draco": {
+            "type": "boolean",
+            "description": "Enable Draco compression for this asset category",
+            "example": true
+          },
+          "meshopt": {
+            "type": "boolean",
+            "description": "Enable MeshOpt compression for this asset category",
+            "example": true
+          },
+          "ktx2": {
+            "type": "boolean",
+            "description": "Enable KTX2 texture compression for this asset category",
+            "example": true
+          }
+        }
+      },
       "CreateSceneDto": {
         "type": "object",
         "properties": {
@@ -3269,6 +3626,23 @@
             "type": "string",
             "description": "Navmesh asset ID for pathfinding",
             "example": "clabcd123..."
+          },
+          "shellAssetId": {
+            "type": "string",
+            "description": "Shell asset ID for scene container/environment",
+            "example": "clabcd456..."
+          },
+          "shellCastShadow": {
+            "type": "boolean",
+            "description": "Whether the shell should cast shadows",
+            "example": true,
+            "default": true
+          },
+          "shellReceiveShadow": {
+            "type": "boolean",
+            "description": "Whether the shell should receive shadows",
+            "example": true,
+            "default": true
           }
         },
         "required": [
@@ -3337,6 +3711,23 @@
             "type": "string",
             "description": "Navmesh asset ID for pathfinding",
             "example": "clabcd123..."
+          },
+          "shellAssetId": {
+            "type": "string",
+            "description": "Shell asset ID for scene container/environment",
+            "example": "clabcd456..."
+          },
+          "shellCastShadow": {
+            "type": "boolean",
+            "description": "Whether the shell should cast shadows",
+            "example": true,
+            "default": true
+          },
+          "shellReceiveShadow": {
+            "type": "boolean",
+            "description": "Whether the shell should receive shadows",
+            "example": true,
+            "default": true
           }
         }
       },
@@ -3846,6 +4237,32 @@
         },
         "required": [
           "name"
+        ]
+      },
+      "CreateProjectResponseDto": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sceneId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "project": {
+            "type": "object"
+          },
+          "scene": {
+            "type": "object"
+          },
+          "membership": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "projectId",
+          "sceneId"
         ]
       }
     }

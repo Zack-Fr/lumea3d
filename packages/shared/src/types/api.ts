@@ -418,6 +418,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectId}/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all asset categories in a project */
+        get: operations["ProjectCategory3DController_findAll"];
+        put?: never;
+        /** Add an asset category to a project */
+        post: operations["ProjectCategory3DController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectId}/categories/{categoryKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a specific category in a project */
+        get: operations["ProjectCategory3DController_findOne"];
+        /** Update category configuration */
+        put: operations["ProjectCategory3DController_update"];
+        post?: never;
+        /** Remove a category from a project */
+        delete: operations["ProjectCategory3DController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectId}/categories/{categoryKey}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get usage statistics for a category */
+        get: operations["ProjectCategory3DController_getStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectId}/categories/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add multiple categories to a project */
+        post: operations["ProjectCategory3DController_bulkCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectId}/categories/available-assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get assets available for adding to project */
+        get: operations["ProjectCategory3DController_getAvailableAssets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectId}/scenes": {
         parameters: {
             query?: never;
@@ -964,6 +1052,69 @@ export interface components {
         };
         UpdateAssetDto: Record<string, never>;
         GenerateDownloadUrlDto: Record<string, never>;
+        CreateProjectCategory3DDto: {
+            /**
+             * @description Asset ID to associate with the project category
+             * @example clabcd123...
+             */
+            assetId: string;
+            /**
+             * @description Category key for organizing assets within the project
+             * @example office_chairs
+             */
+            categoryKey: string;
+            /**
+             * @description Enable GPU instancing for this asset category
+             * @default false
+             * @example false
+             */
+            instancing: boolean;
+            /**
+             * @description Enable Draco compression for this asset category
+             * @default true
+             * @example true
+             */
+            draco: boolean;
+            /**
+             * @description Enable MeshOpt compression for this asset category
+             * @default true
+             * @example true
+             */
+            meshopt: boolean;
+            /**
+             * @description Enable KTX2 texture compression for this asset category
+             * @default true
+             * @example true
+             */
+            ktx2: boolean;
+        };
+        UpdateProjectCategory3DDto: {
+            /**
+             * @description Category key for organizing assets within the project
+             * @example office_chairs
+             */
+            categoryKey?: string;
+            /**
+             * @description Enable GPU instancing for this asset category
+             * @example false
+             */
+            instancing?: boolean;
+            /**
+             * @description Enable Draco compression for this asset category
+             * @example true
+             */
+            draco?: boolean;
+            /**
+             * @description Enable MeshOpt compression for this asset category
+             * @example true
+             */
+            meshopt?: boolean;
+            /**
+             * @description Enable KTX2 texture compression for this asset category
+             * @example true
+             */
+            ktx2?: boolean;
+        };
         CreateSceneDto: {
             /**
              * @description Name of the 3D scene
@@ -1015,6 +1166,23 @@ export interface components {
              * @example clabcd123...
              */
             navmeshAssetId?: string;
+            /**
+             * @description Shell asset ID for scene container/environment
+             * @example clabcd456...
+             */
+            shellAssetId?: string;
+            /**
+             * @description Whether the shell should cast shadows
+             * @default true
+             * @example true
+             */
+            shellCastShadow: boolean;
+            /**
+             * @description Whether the shell should receive shadows
+             * @default true
+             * @example true
+             */
+            shellReceiveShadow: boolean;
         };
         UpdateSceneDto: {
             /**
@@ -1067,6 +1235,23 @@ export interface components {
              * @example clabcd123...
              */
             navmeshAssetId?: string;
+            /**
+             * @description Shell asset ID for scene container/environment
+             * @example clabcd456...
+             */
+            shellAssetId?: string;
+            /**
+             * @description Whether the shell should cast shadows
+             * @default true
+             * @example true
+             */
+            shellCastShadow: boolean;
+            /**
+             * @description Whether the shell should receive shadows
+             * @default true
+             * @example true
+             */
+            shellReceiveShadow: boolean;
         };
         CreateSceneItemDto: {
             /**
@@ -1423,6 +1608,15 @@ export interface components {
             /** @description Initial scene configuration */
             scene?: components["schemas"]["CreateProjectSceneDto"];
         };
+        CreateProjectResponseDto: {
+            /** Format: uuid */
+            projectId: string;
+            /** Format: uuid */
+            sceneId: string;
+            project?: Record<string, never>;
+            scene?: Record<string, never>;
+            membership?: Record<string, never>;
+        };
     };
     responses: never;
     parameters: never;
@@ -1699,12 +1893,12 @@ export interface operations {
                 page?: number;
                 /** @description Items per page (default: 10) */
                 limit?: number;
-                /** @description Filter by role */
-                role?: "GUEST" | "CLIENT" | "DESIGNER" | "ADMIN";
                 /** @description Search by name or email */
                 search?: string;
                 /** @description Filter by active status */
                 isActive?: boolean;
+                /** @description Filter by role */
+                role?: "GUEST" | "CLIENT" | "DESIGNER" | "ADMIN";
             };
             header?: never;
             path?: never;
@@ -2315,6 +2509,272 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectCategory3DController_findAll: {
+        parameters: {
+            query?: {
+                /** @description Filter by category key */
+                categoryKey?: string;
+                /** @description Filter by instancing enabled */
+                instancing?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Categories retrieved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Project not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectCategory3DController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProjectCategory3DDto"];
+            };
+        };
+        responses: {
+            /** @description Category added to project successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid category data or asset not ready */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Project or asset not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Category already exists in project */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectCategory3DController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Category key */
+                categoryKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Category retrieved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Category not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectCategory3DController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Category key */
+                categoryKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProjectCategory3DDto"];
+            };
+        };
+        responses: {
+            /** @description Category updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Category not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectCategory3DController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Category key */
+                categoryKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Category removed successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Category not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Category is in use by scene items */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectCategory3DController_getStats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+                /** @description Category key */
+                categoryKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Statistics retrieved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Category not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectCategory3DController_bulkCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Categories added successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid category data */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Project not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectCategory3DController_getAvailableAssets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ID */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Available assets retrieved successfully */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -3066,7 +3526,14 @@ export interface operations {
     };
     FlatScenesController_getSceneCategories: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Filter by project ID */
+                projectId?: string;
+                /** @description Filter by category key */
+                categoryKey?: string;
+                /** @description Filter by instancing enabled */
+                instancing?: boolean;
+            };
             header?: never;
             path: {
                 /** @description Scene ID */
@@ -3497,44 +3964,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** Format: uuid */
-                        projectId?: string;
-                        /** Format: uuid */
-                        sceneId?: string;
-                        project?: {
-                            /** Format: uuid */
-                            id?: string;
-                            name?: string;
-                            /** Format: uuid */
-                            userId?: string;
-                            /** Format: date-time */
-                            createdAt?: string;
-                            /** Format: date-time */
-                            updatedAt?: string;
-                        };
-                        scene?: {
-                            /** Format: uuid */
-                            id?: string;
-                            name?: string;
-                            /** Format: uuid */
-                            projectId?: string;
-                            version?: number;
-                            spawnPositionX?: number;
-                            spawnPositionY?: number;
-                            spawnPositionZ?: number;
-                            spawnYawDeg?: number;
-                            exposure?: number;
-                        };
-                        membership?: {
-                            /** Format: uuid */
-                            userId?: string;
-                            /** Format: uuid */
-                            projectId?: string;
-                            /** @enum {string} */
-                            role?: "CLIENT" | "DESIGNER" | "ADMIN";
-                        };
-                    };
+                    "application/json": components["schemas"]["CreateProjectResponseDto"];
                 };
             };
             /** @description Invalid input data */

@@ -206,17 +206,19 @@ export class AuthService {
       role: user.role,
     };
 
+    console.log('🔧 AuthService generating tokens for user:', user.email);
+    
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_SECRET'),
-        expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '15m'),
-      }),
+      // Use default JwtService configuration (configured in AuthModule)
+      this.jwtService.signAsync(payload),
+      // Only override for refresh token which uses different secret
       this.jwtService.signAsync(payload, {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
         expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'),
       }),
     ]);
 
+    console.log('✅ Access token generated successfully');
     return {
       accessToken,
       refreshToken,

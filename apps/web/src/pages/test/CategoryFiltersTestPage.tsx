@@ -16,6 +16,9 @@ export default function CategoryFiltersTestPage() {
   const [loadedManifest, setLoadedManifest] = useState<SceneManifestV2 | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Demo project ID (in a real app, this would come from routing or context)
+  const demoProjectId = 'demo-project-1';
+
   // Demo scene IDs (in a real app, these would come from a scenes API)
   const demoScenes = [
     { id: 'demo-scene-1', name: 'Living Room Demo' },
@@ -139,6 +142,7 @@ export default function CategoryFiltersTestPage() {
 
         {/* Staged Scene Loader Demo */}
         <StagedSceneLoader
+          projectId={demoProjectId}
           sceneId={selectedSceneId}
           onManifestLoaded={handleManifestLoaded}
           onLoadingStateChange={handleLoadingStateChange}
