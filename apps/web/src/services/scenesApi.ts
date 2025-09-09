@@ -284,6 +284,33 @@ export const scenesApi = {
   eventsUrl: (projectId: string, sceneId: string): string => `/projects/${projectId}/scenes/${sceneId}/events`,
 
   /**
+   * Create a new scene using flat route
+   */
+  async createScene(projectId: string, sceneData: { name: string; [key: string]: any }): Promise<any> {
+    const token = getCurrentToken();
+    const url = `${API_BASE_URL}/projects/${projectId}/scenes`;
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(sceneData),
+    });
+    
+    if (!response.ok) {
+      throw new SceneApiError(response.status, `Failed to create scene: ${response.statusText}`);
+    }
+    
+    return response.json();
+  },
+
+  /**
    * Get scene details using project-nested route
    */
   async getScene(projectId: string, sceneId: string): Promise<any> {

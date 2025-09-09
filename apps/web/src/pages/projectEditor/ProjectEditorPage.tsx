@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { once as logOnce, log } from '../../utils/logger';
 import { useNavigate } from 'react-router-dom';
 import styles from './ProjectEditor.module.css';
@@ -23,7 +23,7 @@ import Achievement from '../../components/projectEditor/Achievement';
 import { AssetImportModal } from '../../features/scenes/AssetImportModal';
 
 // Scene Context
-import { SceneProvider, useSceneParams } from '../../contexts/SceneContext';
+import { SceneProvider, useSceneContext, useSceneParams } from '../../contexts/SceneContext';
 
 // Data Layer (fallback for when no scene is loaded)
 import { assetCategories } from '../../data/projectEditorData';
@@ -48,7 +48,17 @@ const ProjectEditorPage: React.FC = () => {
 
 const ProjectEditorContent: React.FC = () => {
   const navigate = useNavigate();
+  const { projectId: urlProjectId, sceneId: urlSceneId } = useSceneParams();
+  const { setScene, sceneId: contextSceneId, projectId: contextProjectId } = useSceneContext();
   
+  // Load scene when URL parameters change
+  useEffect(() => {
+    if (urlProjectId && urlSceneId && (urlProjectId !== contextProjectId || urlSceneId !== contextSceneId)) {
+      log('info', 'ProjectEditor: Loading scene from URL', { urlProjectId, urlSceneId });
+      setScene(urlProjectId, urlSceneId);
+    }
+  }, [urlProjectId, urlSceneId, contextProjectId, contextSceneId, setScene]);
+
   // Asset Import Modal State
   const [isAssetImportModalOpen, setIsAssetImportModalOpen] = useState(false);
 

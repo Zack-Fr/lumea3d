@@ -13,7 +13,8 @@ import {
   Settings,
   Sparkles,
   ChevronDown,
-  Folder
+  Folder,
+  Plus
 } from "lucide-react";
 import { useSceneContext } from '../../contexts/SceneContext';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
@@ -43,7 +44,7 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
   onPropertiesToggle,
   onAIAssist
 }) => {
-  const { sceneId, setScene } = useSceneContext();
+  const { sceneId, setScene, projectId } = useSceneContext();
   const [showSceneSelector, setShowSceneSelector] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -75,6 +76,37 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
     setScene(scene.projectId, scene.id);
     setShowSceneSelector(false);
   };
+
+  const handleCreateScene = async () => {
+    if (!projectId) {
+      console.error('No project ID available for scene creation');
+      return;
+    }
+
+    try {
+      // Import scenesApi dynamically to avoid circular dependencies
+      const { scenesApi } = await import('../../services/scenesApi');
+      
+      const sceneName = prompt('Enter scene name:');
+      if (!sceneName || !sceneName.trim()) {
+        return;
+      }
+
+      const newScene = await scenesApi.createScene(projectId, { 
+        name: sceneName.trim() 
+      });
+      
+      console.log('Scene created:', newScene);
+      
+      // Navigate to the new scene
+      if (newScene && newScene.id) {
+        setScene(projectId, newScene.id);
+      }
+    } catch (error) {
+      console.error('Failed to create scene:', error);
+      alert('Failed to create scene. Please try again.');
+    }
+  };
   return (
     <header className={styles.topBar}>
       <div className={styles.topBarLeft}>
@@ -89,16 +121,30 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
         
         {/* Scene Selector */}
         <div ref={dropdownRef} className={styles.sceneSelector} style={{ position: 'relative' }}>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => setShowSceneSelector(!showSceneSelector)}
-            className={styles.sceneSelectorButton}
-          >
-            <Folder className="w-4 h-4 mr-2" />
-            {currentScene ? currentScene.name : sceneId || 'Select Scene'}
-            <ChevronDown className="w-4 h-4 ml-2" />
-          </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setShowSceneSelector(!showSceneSelector)}
+              className={styles.sceneSelectorButton}
+            >
+              <Folder className="w-4 h-4 mr-2" />
+              {currentScene ? currentScene.name : sceneId || 'Select Scene'}
+              <ChevronDown className="w-4 h-4 ml-2" />
+            </Button>
+            
+            {/* Plus Button for Creating New Scene */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCreateScene}
+              className={styles.sceneSelectorButton}
+              style={{ padding: '0.5rem', minWidth: 'auto' }}
+              title="Create New Scene"
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
           
           {showSceneSelector && (
             <div className={styles.sceneSelectorDropdown} style={{
