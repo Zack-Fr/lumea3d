@@ -90,7 +90,6 @@ export function useSceneManifestStaged(
   });
 
   const [startTime, setStartTime] = useState<number>(0);
-  const [stageStartTime, setStageStartTime] = useState<number>(0);
 
   // Discover available categories
   const { data: categoriesData, error: categoriesError } = useQuery({
@@ -98,14 +97,23 @@ export function useSceneManifestStaged(
     queryFn: async () => {
       if (!token) throw new SceneApiError(401, 'Authentication required');
       
-      const response = await scenesApi.getCategories(sceneId);
-      // Backend returns array directly, but API client expects { categories: [...] }
-      // Handle both formats for compatibility
-      return Array.isArray(response) ? response : (response?.categories || []);
+      try {
+        const response = await scenesApi.getCategories(sceneId);
+        // Backend returns array directly, but API client expects { categories: [...] }
+        // Handle both formats for compatibility
+        const result = Array.isArray(response) ? response : (response?.categories || []);
+        log('debug', 'Categories loaded successfully', result);
+        return result;
+      } catch (error) {
+        log('error', 'Failed to load categories', error);
+        throw error;
+      }
     },
-    enabled: !!sceneId && !!token && enabled && state.stage === 'discovering',
+    enabled: !!sceneId && !!token && enabled,
+    staleTime: 300000, // 5 minutes - categories don't change often
     retry: (failureCount, error: unknown) => {
       if (error instanceof SceneApiError && [401, 403].includes(error.statusCode)) {
+        log('warn', 'Auth error in categories query, not retrying', error);
         return false;
       }
       return failureCount < 3;
@@ -117,7 +125,7 @@ export function useSceneManifestStaged(
     if (!token || !sceneId) return null;
 
     try {
-      setStageStartTime(Date.now());
+      const stageStartTime = Date.now();
 
       log('info', `🚀 StagedManifest: Loading ${stageName} stage with categories: ${Array.isArray(categories) ? categories.join(',') : ''}`);
 
@@ -151,7 +159,7 @@ export function useSceneManifestStaged(
       log('error', `❌ StagedManifest: Failed to load ${stageName} stage: ${String(error)}`);
       throw error;
     }
-  }, [token, sceneId, includeMetadata, stageStartTime, onStageComplete]);
+  }, [token, sceneId, includeMetadata, onStageComplete]);
 
   // Stage progression effect
   useEffect(() => {
@@ -229,7 +237,7 @@ export function useSceneManifestStaged(
         }
 
         // Stage 6: Final - load complete manifest
-  const finalManifest = await loadManifestStage([], 'complete');
+        const finalManifest = await loadManifestStage([], 'complete');
         
         const totalTime = Date.now() - startTime;
         setState(prev => ({
@@ -250,7 +258,7 @@ export function useSceneManifestStaged(
 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-  log('error', '❌ StagedManifest: Loading failed:', error as any);
+        log('error', '❌ StagedManifest: Loading failed:', error as any);
         
         setState(prev => ({
           ...prev,
@@ -272,13 +280,9 @@ export function useSceneManifestStaged(
     token, 
     categoriesData, 
     categoriesError, 
-    state.stage, 
-    priorityCategories, 
-    secondaryCategories, 
+    state.stage,
     loadManifestStage, 
-    startTime,
-    onComplete,
-    onError
+    startTime
   ]);
 
   // Refresh function to restart the staged loading

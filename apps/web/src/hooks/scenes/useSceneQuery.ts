@@ -131,28 +131,30 @@ export function useSceneCategories(sceneId: string, options: { enabled?: boolean
     queryKey: ['scene-categories', sceneId],
     queryFn: async () => {
       if (!token) {
+        log('warn', 'useSceneCategories: No authentication token available');
         throw new SceneApiError(401, 'Authentication required');
       }
 
-  log('debug', '🔄 useSceneCategories: Loading categories for scene:', sceneId);
+      log('debug', '🔄 useSceneCategories: Loading categories for scene:', sceneId);
       
       const response = await scenesApi.getCategories(sceneId);
       // Backend returns array directly, but API client expects { categories: [...] }
       // Handle both formats for compatibility
       const categories = Array.isArray(response) ? response : (response?.categories || []);
       
-  logOnce(`scene:categories:loaded:${sceneId}`, 'info', '✅ useSceneCategories: Loaded categories (logged once)');
-  log('debug', '✅ useSceneCategories: Loaded categories count', categories.length);
+      logOnce(`scene:categories:loaded:${sceneId}`, 'info', '✅ useSceneCategories: Loaded categories (logged once)');
+      log('debug', '✅ useSceneCategories: Loaded categories count', categories.length);
       
       return categories;
     },
-    enabled: !!sceneId && !!token && (options.enabled !== false),
+    enabled: !!sceneId && (options.enabled !== false),
     staleTime: 300000, // 5 minutes - categories don't change often
     retry: (failureCount, error) => {
       if (error instanceof SceneApiError && [401, 403].includes(error.statusCode)) {
+        log('warn', 'useSceneCategories: Authentication failed, not retrying');
         return false;
       }
       return failureCount < 3;
-    },
+    }
   });
 }

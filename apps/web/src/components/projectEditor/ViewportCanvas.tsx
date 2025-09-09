@@ -30,6 +30,16 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
     error 
   } = useSceneContext();
 
+  // ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURNS
+  const handleManifestLoaded = useCallback((loadedManifest: any) => {
+    logOnce('viewport:scene-loaded', 'info', '🎯 3D Scene loaded (logged once)');
+    log('debug', 'Viewport manifest loaded', loadedManifest);
+  }, []);
+
+  const handleLoadingStateChange = useCallback((loading: boolean) => {
+    log('debug', '🔄 3D Scene loading state', loading);
+  }, []);
+
   // Debug log - disabled by default, enable via logger.enable('debug') if needed
   log('debug', 'ViewportCanvas scene state', { sceneId, projectId, isLoading, error });
 
@@ -208,13 +218,8 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
       {sceneId && (
         <StagedSceneLoader 
           sceneId={sceneId}
-          onManifestLoaded={useCallback((loadedManifest: any) => {
-            logOnce('viewport:scene-loaded', 'info', '🎯 3D Scene loaded (logged once)');
-            log('debug', 'Viewport manifest loaded', loadedManifest);
-          }, [])}
-          onLoadingStateChange={useCallback((loading: boolean) => {
-            log('debug', '🔄 3D Scene loading state', loading);
-          }, [])}
+          onManifestLoaded={handleManifestLoaded}
+          onLoadingStateChange={handleLoadingStateChange}
         />
       )}
 

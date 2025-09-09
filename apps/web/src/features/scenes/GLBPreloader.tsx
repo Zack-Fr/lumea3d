@@ -205,7 +205,7 @@ export function useSceneMetrics(manifest: SceneManifestV2 | null | undefined, lo
   categoryLoadTimes?: Record<string, number>;
 }) {
   // Handle undefined/null manifest gracefully
-  if (!manifest || !manifest.categories || !manifest.items) {
+  if (!manifest) {
     return {
       totalCategories: 0,
       totalItems: 0,
@@ -223,14 +223,16 @@ export function useSceneMetrics(manifest: SceneManifestV2 | null | undefined, lo
     };
   }
 
-  const categories = Object.entries(manifest.categories);
-  const totalItems = manifest.items.length;
+  // Safely access manifest properties with fallbacks
+  const categories = manifest.categories ? Object.entries(manifest.categories) : [];
+  const items = Array.isArray(manifest.items) ? manifest.items : [];
+  const totalItems = items.length;
   
   const categoryStats = categories.map(([key, category]) => ({
     key,
     url: pickCategoryUrl(category),
-    itemCount: manifest.items.filter(item => item.category === key).length,
-    instancingEnabled: category.instancing,
+    itemCount: Array.isArray(items) ? items.filter(item => item && item.category === key).length : 0,
+    instancingEnabled: category?.instancing || false,
     loadTime: loadingMetrics?.categoryLoadTimes?.[key] || 0
   }));
   
@@ -238,16 +240,17 @@ export function useSceneMetrics(manifest: SceneManifestV2 | null | undefined, lo
     totalCategories: categories.length,
     totalItems,
     categoryStats,
-    instancingCategories: categoryStats.filter(cat => cat.instancingEnabled).length,
-    largestCategory: categoryStats.reduce((max, cat) => 
-      cat.itemCount > max.itemCount ? cat : max, 
-      { itemCount: 0, key: 'none' }
-    ),
+    instancingCategories: Array.isArray(categoryStats) ? categoryStats.filter(cat => cat?.instancingEnabled).length : 0,
+    largestCategory: Array.isArray(categoryStats) && categoryStats.length > 0 ? 
+      categoryStats.reduce((max, cat) => 
+        (cat?.itemCount || 0) > (max?.itemCount || 0) ? cat : max, 
+        { itemCount: 0, key: 'none' }
+      ) : { itemCount: 0, key: 'none' },
     performance: {
       stageTimings: loadingMetrics?.stageTimings || {},
       totalLoadTime: loadingMetrics?.totalLoadTime || 0,
       categoryLoadTimes: loadingMetrics?.categoryLoadTimes || {},
-      averageLoadTimePerCategory: loadingMetrics?.totalLoadTime 
+      averageLoadTimePerCategory: loadingMetrics?.totalLoadTime && categories.length > 0
         ? loadingMetrics.totalLoadTime / categories.length 
         : 0,
       slowestCategory: categoryStats.reduce((slowest, cat) => 
@@ -259,25 +262,27 @@ export function useSceneMetrics(manifest: SceneManifestV2 | null | undefined, lo
   };
   
   useEffect(() => {
-    log('debug', 'Enhanced Scene Metrics', {
-      categories: metrics.totalCategories,
-      items: metrics.totalItems,
-      instancing: metrics.instancingCategories,
-      performance: metrics.performance
-    });
-    
-    // Log performance warnings
-    if (metrics.performance.totalLoadTime > 5000) {
-      log('warn', '⚠️ Slow loading detected:', metrics.performance.totalLoadTime + 'ms');
+    if (manifest) {
+      log('debug', 'Enhanced Scene Metrics', {
+        categories: metrics.totalCategories,
+        items: metrics.totalItems,
+        instancing: metrics.instancingCategories,
+        performance: metrics.performance
+      });
+      
+      // Log performance warnings
+      if (metrics.performance.totalLoadTime > 5000) {
+        log('warn', '⚠️ Slow loading detected:', metrics.performance.totalLoadTime + 'ms');
+      }
+      
+      if (metrics.performance.slowestCategory.loadTime > 1000) {
+        log('warn', '⚠️ Slow category detected:', 
+          metrics.performance.slowestCategory.key, 
+          metrics.performance.slowestCategory.loadTime + 'ms'
+        );
+      }
     }
-    
-    if (metrics.performance.slowestCategory.loadTime > 1000) {
-      log('warn', '⚠️ Slow category detected:', 
-        metrics.performance.slowestCategory.key, 
-        metrics.performance.slowestCategory.loadTime + 'ms'
-      );
-    }
-  }, [totalItems, loadingMetrics]);
+  }, [manifest, totalItems, loadingMetrics]);
   
   return metrics;
 }

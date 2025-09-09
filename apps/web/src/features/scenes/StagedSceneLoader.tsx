@@ -20,53 +20,126 @@ interface StagedSceneLoaderProps {
  * 3. Progressive asset preloading with performance monitoring
  * 4. Real-time loading metrics and progress tracking
  */
-export function StagedSceneLoader({ 
+export const StagedSceneLoader = React.memo(function StagedSceneLoader({ 
   sceneId, 
   onManifestLoaded, 
   onLoadingStateChange 
 }: StagedSceneLoaderProps) {
+  // Early validation to prevent crashes
+  if (!sceneId || typeof sceneId !== 'string') {
+    log('error', 'StagedSceneLoader: Invalid sceneId provided', sceneId);
+    return (
+      <div className="p-6 max-w-2xl mx-auto">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <h2 className="text-lg font-semibold text-red-800 mb-2">
+            Configuration Error
+          </h2>
+          <p className="text-red-600">
+            Invalid scene ID provided. Please ensure a valid scene ID is passed to the component.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const [showAdvancedMetrics, setShowAdvancedMetrics] = useState(false);
 
-  // Fetch available categories first
-  const { 
-    data: availableCategories, 
-    isLoading: categoriesLoading, 
-    error: categoriesError 
-  } = useSceneCategories(sceneId);
+  // Fetch available categories first - with error boundary
+  let categoriesData, categoriesLoading, categoriesError;
+  try {
+    const categoriesResult = useSceneCategories(sceneId, { enabled: !!sceneId });
+    categoriesData = categoriesResult.data;
+    categoriesLoading = categoriesResult.isLoading;
+    categoriesError = categoriesResult.error;
+  } catch (error) {
+    log('error', 'StagedSceneLoader: Error in useSceneCategories hook', error);
+    categoriesError = error;
+    categoriesLoading = false;
+    categoriesData = null;
+  }
 
-  // Use staged manifest loading
+  // Use staged manifest loading - with error boundary
+  let stagedManifestResult;
+  try {
+    stagedManifestResult = useSceneManifestStaged(sceneId, {
+      priorityCategories: ['shell', 'lighting', 'environment'],
+      secondaryCategories: ['furniture', 'seating', 'tables', 'storage'],
+      includeMetadata: true,
+      onStageComplete: (stageName, categories) => {
+        log('info', `🎯 Stage "${stageName}" completed: ${Array.isArray(categories) ? categories.map((c:any)=>c.categoryKey||c.key||c).join(',') : ''}`);
+      },
+      onComplete: (finalManifest) => {
+        log('info', '🎉 All stages completed!');
+        onManifestLoaded?.(finalManifest);
+      },
+      onError: (error) => {
+        log('error', '❌ Staged loading failed:', String(error));
+      }
+    });
+  } catch (error) {
+    log('error', 'StagedSceneLoader: Error in useSceneManifestStaged hook', error);
+    stagedManifestResult = {
+      stage: 'error',
+      loadedCategories: [],
+      availableCategories: [],
+      progress: 0,
+      manifest: null,
+      isLoading: false,
+      error: String(error),
+      metrics: { stageTimings: {}, totalLoadTime: 0, categoryCount: 0, itemCount: 0 },
+      refresh: () => {}
+    };
+  }
+
   const {
-    stage,
-    loadedCategories,
-    availableCategories: discoveredCategories,
-    progress,
-    manifest,
-    isLoading,
-    error,
-    metrics,
-    refresh
-    } = useSceneManifestStaged(sceneId, {
-    priorityCategories: ['shell', 'lighting', 'environment'],
-    secondaryCategories: ['furniture', 'seating', 'tables', 'storage'],
-    includeMetadata: true,
-    onStageComplete: (stageName, categories) => {
-      log('info', `🎯 Stage "${stageName}" completed: ${Array.isArray(categories) ? categories.map((c:any)=>c.categoryKey||c.key||c).join(',') : ''}`);
-    },
-    onComplete: (finalManifest) => {
-      log('info', '🎉 All stages completed!');
-      onManifestLoaded?.(finalManifest);
-    },
-    onError: (error) => {
-      log('error', '❌ Staged loading failed:', String(error));
-    }
-  });
+    stage = 'error',
+    loadedCategories = [],
+    availableCategories: discoveredCategories = [],
+    progress = 0,
+    manifest = null,
+    isLoading = false,
+    error = null,
+    metrics = { stageTimings: {}, totalLoadTime: 0, categoryCount: 0, itemCount: 0 },
+    refresh = () => {}
+  } = stagedManifestResult || {};
 
-  // Get performance metrics
-  const sceneMetrics = useSceneMetrics(manifest, metrics);
+  // Get performance metrics - with error boundary and input validation
+  let sceneMetrics;
+  try {
+    // Ensure metrics object has proper structure with fallbacks
+    const safeMetrics = {
+      stageTimings: metrics?.stageTimings || {},
+      totalLoadTime: metrics?.totalLoadTime || 0,
+      categoryCount: metrics?.categoryCount || 0,
+      itemCount: metrics?.itemCount || 0
+    };
+
+    sceneMetrics = useSceneMetrics(manifest, safeMetrics);
+  } catch (error) {
+    log('error', 'StagedSceneLoader: Error in useSceneMetrics', error);
+    sceneMetrics = {
+      totalCategories: 0,
+      totalItems: 0,
+      categoryStats: [],
+      instancingCategories: 0,
+      largestCategory: { itemCount: 0, key: 'none' },
+      performance: {
+        stageTimings: {},
+        totalLoadTime: 0,
+        categoryLoadTimes: {},
+        averageLoadTimePerCategory: 0,
+        slowestCategory: { loadTime: 0, key: 'none' },
+        performanceScore: 'poor' as const
+      }
+    };
+  }
 
   // Handle loading state changes
   React.useEffect(() => {
-    onLoadingStateChange?.(Boolean(isLoading) || Boolean(categoriesLoading));
+    const currentLoading = Boolean(isLoading) || Boolean(categoriesLoading);
+    if (onLoadingStateChange) {
+      onLoadingStateChange(currentLoading);
+    }
   }, [isLoading, categoriesLoading, onLoadingStateChange]);
 
   const handleRefresh = useCallback(() => {
@@ -103,21 +176,41 @@ export function StagedSceneLoader({
   };
 
   if (categoriesError || error) {
+    const errorMessage = categoriesError instanceof Error ? categoriesError.message : String(categoriesError || error || '');
+    const isAuthError = errorMessage.includes('401') || 
+                       errorMessage.includes('Authentication') ||
+                       errorMessage.includes('Unauthorized') ||
+                       errorMessage.includes('required');
+    
     return (
       <div className="p-6 max-w-2xl mx-auto">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <h2 className="text-lg font-semibold text-red-800 mb-2">
-            Loading Error
+            {isAuthError ? 'Authentication Required' : 'Loading Error'}
           </h2>
           <p className="text-red-600 mb-4">
-            {(categoriesError instanceof Error ? categoriesError.message : String(categoriesError)) || error || 'Failed to load scene data'}
+            {isAuthError 
+              ? 'Please log in to view scene data. Your session may have expired.' 
+              : errorMessage || 'Failed to load scene data'
+            }
           </p>
-          <button
-            onClick={handleRefresh}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-          >
-            Retry Loading
-          </button>
+          <div className="flex gap-2">
+            {isAuthError ? (
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              >
+                Refresh Page
+              </button>
+            ) : (
+              <button
+                onClick={handleRefresh}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+              >
+                Retry Loading
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -169,17 +262,17 @@ export function StagedSceneLoader({
         
         {stage !== 'complete' && stage !== 'error' && (
           <div className="mt-2 text-xs text-gray-500">
-              Stage: {stage} | Categories loaded: {Array.isArray(loadedCategories) ? loadedCategories.length : 0}/{Array.isArray(discoveredCategories) ? discoveredCategories.length : 0}
-            </div>
+            Stage: {stage} | Categories loaded: {Array.isArray(loadedCategories) ? loadedCategories.length : 0}/{discoveredCategories && Array.isArray(discoveredCategories) ? discoveredCategories.length : 0}
+          </div>
         )}
       </div>
 
       {/* Categories Overview */}
-      {availableCategories && (
+      {categoriesData && Array.isArray(categoriesData) && categoriesData.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h2 className="font-semibold text-gray-900 mb-3">Available Categories</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-            {(Array.isArray(availableCategories) ? availableCategories : []).map((category: any) => {
+            {categoriesData.map((category: any) => {
               const key = category?.categoryKey || category?.key || String(category);
               const isLoaded = Array.isArray(loadedCategories) ? loadedCategories.includes(key) : false;
               return (
@@ -265,7 +358,7 @@ export function StagedSceneLoader({
       )}
 
       {/* GLB Preloader (hidden component for performance) */}
-          {manifest && (
+      {manifest && manifest.categories && Object.keys(manifest.categories).length > 0 && (
         <GLBPreloader 
           manifest={manifest}
           progressive={true}
@@ -293,6 +386,6 @@ export function StagedSceneLoader({
       )}
     </div>
   );
-}
+});
 
 export default StagedSceneLoader;
