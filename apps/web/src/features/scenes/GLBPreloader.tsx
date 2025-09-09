@@ -232,7 +232,11 @@ export function useSceneMetrics(manifest: SceneManifestV2 | null | undefined, lo
     const categoryStats = categories.map(([key, category]) => ({
       key,
       url: pickCategoryUrl(category),
-      itemCount: Array.isArray(items) ? items.filter(item => item && item.category === key).length : 0,
+      itemCount: Array.isArray(items) ? items.filter(item => {
+        if (!item) return false;
+        const itemCategory = typeof item.category === 'string' ? item.category : (item.category as any)?.categoryKey || '';
+        return itemCategory === key;
+      }).length : 0,
       instancingEnabled: category?.instancing || false,
       loadTime: loadingMetrics?.categoryLoadTimes?.[key] || 0
     }));

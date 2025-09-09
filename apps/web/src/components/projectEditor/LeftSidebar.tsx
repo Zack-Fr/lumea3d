@@ -44,7 +44,13 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
     }
   };
 
-  const getCategoryIcon = (categoryName: string) => {
+  const getCategoryIcon = (category: any) => {
+    // Handle both string and object formats
+    const categoryName = typeof category === 'string' ? category : category?.categoryKey || '';
+    if (!categoryName || typeof categoryName !== 'string') {
+      return Filter; // Default icon for invalid categories
+    }
+    
     const lowerName = categoryName.toLowerCase();
     if (lowerName.includes('shell') || lowerName.includes('structure')) return Box;
     if (lowerName.includes('lighting') || lowerName.includes('light')) return Palette;
@@ -54,8 +60,17 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
   };
 
   // If scene is loaded, show category filters and uploaded assets
-  if (sceneId && sceneCategories.length > 0) {
+  if (sceneId && sceneCategories && Array.isArray(sceneCategories) && sceneCategories.length > 0) {
     const uploadedAssets = manifest?.items || [];
+    
+    console.log('🎯 LeftSidebar: Scene mode active', {
+      sceneId,
+      sceneCategoriesCount: sceneCategories.length,
+      sceneCategories: sceneCategories,
+      uniqueCategories: [...new Set(sceneCategories.map((cat: any) => typeof cat === 'string' ? cat : cat?.categoryKey || ''))],
+      uploadedAssetsCount: uploadedAssets.length,
+      uploadedAssets: uploadedAssets
+    });
     
     return (
       <aside className={styles.leftSidebar}>
@@ -96,13 +111,17 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
                 </div>
                 
                 <div className={styles.assetList}>
-                  {uploadedAssets.map((item) => {
-                    const categoryName = item.category;
+                  {uploadedAssets.map((item, index) => {
+                    // Handle both string and object category formats
+                    const categoryName = typeof item.category === 'string' ? item.category : (item.category as any)?.categoryKey || '';
                     const isCategoryEnabled = enabledCategories.includes(categoryName) || enabledCategories.length === 0;
+                    
+                    // Create unique key using combination of sceneId, id and index to prevent duplicates
+                    const uniqueKey = `${sceneId}-${item.id || 'item'}-${index}`;
                     
                     return (
                       <div
-                        key={item.id}
+                        key={uniqueKey}
                         className={`${styles.assetItem} ${isCategoryEnabled ? styles.assetEnabled : styles.assetDisabled}`}
                         onClick={() => {
                           // Handle asset selection - you can add logic here to select the asset
@@ -157,20 +176,26 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
               )}
               
               <div className={styles.categoryList}>
-                {sceneCategories.map((categoryName) => {
-                  const isEnabled = enabledCategories.includes(categoryName) || enabledCategories.length === 0;
-                  const IconComponent = getCategoryIcon(categoryName);
+                {[...new Set(sceneCategories.map((category: any) => typeof category === 'string' ? category : category?.categoryKey || ''))].map((categoryKey: string, index: number) => {
+                  const originalCategory = sceneCategories.find((cat: any) => 
+                    (typeof cat === 'string' ? cat : cat?.categoryKey || '') === categoryKey
+                  );
+                  const isEnabled = enabledCategories.includes(categoryKey) || enabledCategories.length === 0;
+                  const IconComponent = getCategoryIcon(originalCategory);
+                  
+                  // Create unique key using combination of sceneId, categoryKey and index
+                  const uniqueKey = `${sceneId}-${categoryKey}-${index}`;
                   
                   return (
                     <div
-                      key={categoryName}
+                      key={uniqueKey}
                       className={`${styles.categoryFilterItem} ${isEnabled ? styles.categoryFilterEnabled : styles.categoryFilterDisabled}`}
-                      onClick={() => toggleCategory(categoryName)}
+                      onClick={() => toggleCategory(categoryKey)}
                     >
                       <div className={styles.categoryFilterLeft}>
                         <IconComponent className="w-4 h-4" />
                         <span className={styles.categoryFilterName}>
-                          {categoryName.charAt(0).toUpperCase() + categoryName.slice(1)}
+                          {categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1)}
                         </span>
                       </div>
                       <div className={styles.categoryFilterToggle}>
@@ -191,9 +216,10 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
                   size="sm"
                   onClick={() => {
                     // Enable all categories
-                    sceneCategories.forEach(cat => {
-                      if (!enabledCategories.includes(cat)) {
-                        toggleCategory(cat);
+                    const uniqueCategoryKeys = [...new Set(sceneCategories.map((cat: any) => typeof cat === 'string' ? cat : cat?.categoryKey || ''))];
+                    uniqueCategoryKeys.forEach(categoryKey => {
+                      if (categoryKey && !enabledCategories.includes(categoryKey)) {
+                        toggleCategory(categoryKey);
                       }
                     });
                   }}
@@ -206,7 +232,12 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
                   size="sm"
                   onClick={() => {
                     // Disable all categories
-                    enabledCategories.forEach(cat => toggleCategory(cat));
+                    const uniqueCategoryKeys = [...new Set(sceneCategories.map((cat: any) => typeof cat === 'string' ? cat : cat?.categoryKey || ''))];
+                    uniqueCategoryKeys.forEach(categoryKey => {
+                      if (categoryKey && enabledCategories.includes(categoryKey)) {
+                        toggleCategory(categoryKey);
+                      }
+                    });
                   }}
                   className={styles.categoryFilterButton}
                 >
@@ -222,6 +253,14 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
 
   // Fallback to original asset categories when no scene is loaded
   const currentCategory = assetCategories.find(cat => cat.id === selectedTool) || assetCategories[0];
+
+  console.log('🔄 LeftSidebar: Fallback mode active', {
+    sceneId,
+    sceneCategoriesCount: sceneCategories.length,
+    sceneCategories: sceneCategories,
+    currentCategory: currentCategory?.id,
+    assetCategoriesCount: assetCategories.length
+  });
 
   return (
     <aside className={styles.leftSidebar}>

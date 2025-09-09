@@ -8,13 +8,17 @@ interface CategoryRendererProps {
   categoryKey: string;
   category: CategoryInfo;
   items: SceneItem[];
+  sceneId?: string;
 }
 
-export function CategoryRenderer({ categoryKey, category, items }: CategoryRendererProps) {
+export function CategoryRenderer({ categoryKey, category, items, sceneId }: CategoryRendererProps) {
   const categoryUrl = pickCategoryUrl(category);
   
   // Filter items that belong to this category
-  const categoryItems = items.filter(item => item.category === categoryKey);
+  const categoryItems = items.filter(item => {
+    const itemCategory = typeof item.category === 'string' ? item.category : (item.category as any)?.categoryKey || '';
+    return itemCategory === categoryKey;
+  });
   
   // Group items by model for instancing
   const itemGroups = useMemo(() => {
@@ -55,7 +59,7 @@ export function CategoryRenderer({ categoryKey, category, items }: CategoryRende
       {shouldUseInstancing ? (
         // Use instanced rendering for repeated objects
         Array.from(instanceGroups.entries()).map(([model, groupItems], index) => (
-          <Suspense key={`instanced-${model}-${index}`} fallback={null}>
+          <Suspense key={`instanced-${sceneId || 'unknown'}-${model}-${index}`} fallback={null}>
             <InstancedObject
               glbUrl={`${categoryUrl}${model}`}
               items={groupItems.map((item: any) => ({
@@ -72,7 +76,7 @@ export function CategoryRenderer({ categoryKey, category, items }: CategoryRende
       ) : (
         // Use individual rendering for unique objects
         categoryItems.map((item) => (
-          <Suspense key={item.id} fallback={null}>
+          <Suspense key={`${sceneId || 'unknown'}-${categoryKey}-${item.id}`} fallback={null}>
             <SceneItemComponent
               item={item}
               categoryUrl={categoryUrl}

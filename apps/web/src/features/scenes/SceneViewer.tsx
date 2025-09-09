@@ -67,7 +67,10 @@ function SceneGraph({ manifest, controls, onFPSUpdate }: SceneGraphProps) {
   
   log('debug', '🏗️ SceneGraph rendering with categories:', categories.map(([key]) => ({
     key,
-    itemCount: manifest.items.filter(item => item.category === key).length
+    itemCount: manifest.items.filter(item => {
+      const itemCategory = typeof item.category === 'string' ? item.category : (item.category as any)?.categoryKey || '';
+      return itemCategory === key;
+    }).length
   })));
   
   return (
@@ -122,11 +125,12 @@ function SceneGraph({ manifest, controls, onFPSUpdate }: SceneGraphProps) {
       
       {/* Render categories with their items */}
       {categories.map(([categoryKey, category]) => (
-        <Suspense key={categoryKey} fallback={null}>
+        <Suspense key={`${manifest.scene.id}-${categoryKey}`} fallback={null}>
           <CategoryRenderer
             categoryKey={categoryKey}
             category={category}
             items={manifest.items}
+            sceneId={manifest.scene.id}
           />
         </Suspense>
       ))}

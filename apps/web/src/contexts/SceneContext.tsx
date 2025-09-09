@@ -151,6 +151,13 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     enabled: !!sceneId && !!token && !!user // Only load if we have a sceneId
   });
 
+  console.log('🎯 SceneContext: Categories data', {
+    sceneId,
+    allCategoriesCount: allCategories.length,
+    allCategories: allCategories,
+    categoriesLoading
+  });
+
   // Scene actions
   const setScene = useCallback((newProjectId: string, newSceneId: string) => {
     console.log('🎯 setScene called with:', { projectId: newProjectId, sceneId: newSceneId });

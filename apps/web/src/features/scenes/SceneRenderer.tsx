@@ -49,11 +49,12 @@ export function SceneRenderer({ sceneId }: SceneRendererProps) {
   return (
     <group name="scene-root">
       {Object.entries(categories).map(([categoryKey, category]) => (
-        <Suspense key={categoryKey} fallback={null}>
+        <Suspense key={`${sceneId}-${categoryKey}`} fallback={null}>
           <CategoryRenderer
             categoryKey={categoryKey}
             category={category}
             items={items}
+            sceneId={sceneId}
           />
         </Suspense>
       ))}

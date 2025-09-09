@@ -270,7 +270,7 @@ export const StagedSceneLoader = React.memo(function StagedSceneLoader({
               const isLoaded = Array.isArray(loadedCategories) ? loadedCategories.includes(key) : false;
               return (
                 <div
-                  key={key}
+                  key={`${sceneId}-${key}`}
                   className={`p-2 rounded border text-sm ${
                     isLoaded 
                       ? 'bg-green-50 border-green-200 text-green-800' 
@@ -339,7 +339,7 @@ export const StagedSceneLoader = React.memo(function StagedSceneLoader({
                       .slice()
                       .sort((a, b) => (b?.loadTime || 0) - (a?.loadTime || 0))
                       .map((cat) => (
-                        <div key={cat?.key || 'unknown'} className="flex justify-between text-sm">
+                        <div key={`${sceneId}-${cat?.key || 'unknown'}`} className="flex justify-between text-sm">
                           <span>{cat?.key || 'unknown'} ({cat?.itemCount || 0} items):</span>
                           <span className="font-mono">{cat?.loadTime || 0}ms</span>
                         </div>

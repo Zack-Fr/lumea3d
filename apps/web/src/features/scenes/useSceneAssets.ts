@@ -36,7 +36,10 @@ export function preloadCategoryAssets(categories: Record<string, CategoryInfo>) 
  * Utility to get all unique model names from a category's items
  */
 export function getCategoryModels(categoryKey: string, items: SceneItem[]): string[] {
-  const categoryItems = items.filter(item => item.category === categoryKey);
+  const categoryItems = items.filter(item => {
+    const itemCategory = typeof item.category === 'string' ? item.category : (item.category as any)?.categoryKey || '';
+    return itemCategory === categoryKey;
+  });
   const modelNames = [...new Set(categoryItems.map(item => item.model).filter(Boolean))];
   return modelNames as string[];
 }

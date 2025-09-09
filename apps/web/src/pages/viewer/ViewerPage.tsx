@@ -95,7 +95,10 @@ export default function ViewerPage() {
         userRole="editor"
       >
         <Suspense fallback={<ViewerLoading />}>
-          <SceneViewer manifest={manifest} />
+          <SceneViewer 
+            key={`scene-viewer-${manifest.scene.id}`}
+            manifest={manifest} 
+          />
         </Suspense>
       </ScenePersistenceProvider>
     </div>

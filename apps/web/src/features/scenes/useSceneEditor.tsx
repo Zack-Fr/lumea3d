@@ -125,7 +125,10 @@ export function useSceneEditor({ throttleMs = 100 }: UseSceneEditorProps = {}) {
   }, [state.manifest.items]);
 
   const getItemsByCategory = useCallback((category: string) => {
-    return state.manifest.items.filter(item => item.category === category);
+    return state.manifest.items.filter(item => {
+      const itemCategory = typeof item.category === 'string' ? item.category : (item.category as any)?.categoryKey || '';
+      return itemCategory === category;
+    });
   }, [state.manifest.items]);
 
   const isItemLocked = useCallback((itemId: string) => {

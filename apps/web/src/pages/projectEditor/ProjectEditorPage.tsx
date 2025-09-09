@@ -52,7 +52,12 @@ const ProjectEditorPage: React.FC = () => {
 const ProjectEditorContent: React.FC = () => {
   const navigate = useNavigate();
   const { projectId: urlProjectId, sceneId: urlSceneId } = useSceneParams();
-  const { setScene, sceneId: contextSceneId, projectId: contextProjectId, refreshScene } = useSceneContext();
+  const { 
+    setScene, 
+    sceneId: contextSceneId, 
+    projectId: contextProjectId, 
+    refreshScene
+  } = useSceneContext();
   
   // Load scene when URL parameters change
   useEffect(() => {
@@ -188,7 +193,7 @@ const ProjectEditorContent: React.FC = () => {
     triggerAchievement('🎯 +20 XP - New 3D asset imported!');
 
     // Add the imported asset to the current scene if we have a sceneId
-    if (contextSceneId) {
+    if (contextSceneId && contextProjectId) {
       try {
         log('info', 'ProjectEditor: Adding imported asset to scene', { sceneId: contextSceneId, assetId, assetName, category });
 
@@ -196,20 +201,60 @@ const ProjectEditorContent: React.FC = () => {
         const finalAssetName = assetName || 'Imported Asset';
         const finalCategory = category || 'misc';
 
-        // Create scene item with default transform
+        // Check if the asset already has a category in this project
+        log('info', 'ProjectEditor: Checking existing project categories');
+        const projectCategories = await scenesApi.getProjectCategories(contextProjectId);
+        
+        // Look for an existing category for this asset
+        let existingCategory = projectCategories.find(cat => cat.assetId === assetId);
+        
+        if (!existingCategory) {
+          // Asset doesn't have a category yet, create one
+          log('info', 'ProjectEditor: Creating new category for asset', { assetId, categoryKey: finalCategory });
+          
+          const categoryData = {
+            assetId: assetId,
+            categoryKey: finalCategory,
+            instancing: false,
+            draco: true,
+            meshopt: true,
+            ktx2: true,
+          };
+          
+          existingCategory = await scenesApi.createProjectCategory(contextProjectId, categoryData);
+          log('info', 'ProjectEditor: Category created successfully', existingCategory);
+        } else {
+          log('info', 'ProjectEditor: Using existing category', existingCategory.categoryKey);
+        }
+
+        // Create scene item with default transform using backend DTO format
         const sceneItem = {
-          name: finalAssetName,
-          categoryKey: finalCategory,
-          transform: {
-            position: [0, 0, 0] as [number, number, number],
-            rotation: [0, 0, 0, 1] as [number, number, number, number], // quaternion
-            scale: [1, 1, 1] as [number, number, number],
-          },
-          assetId: assetId,
+          categoryKey: existingCategory.categoryKey,
+          name: finalAssetName, // Add the asset name
+          positionX: 0,
+          positionY: 0,
+          positionZ: 0,
+          rotationX: 0,
+          rotationY: 0,
+          rotationZ: 0,
+          scaleX: 1,
+          scaleY: 1,
+          scaleZ: 1,
+          selectable: true,
+          locked: false,
+          meta: {
+            assetName: finalAssetName,
+            assetId: assetId,
+            uploadedAt: new Date().toISOString()
+          }
         };
 
-        // Add item to scene
-        await scenesApi.addItem(contextSceneId, sceneItem);
+        // Get current scene version for optimistic locking
+        const versionResponse = await scenesApi.getVersion(contextSceneId);
+        const currentVersion = versionResponse.version;
+
+        // Add item to scene with version for optimistic locking
+        await scenesApi.addItem(contextSceneId, sceneItem, currentVersion.toString());
 
         log('info', 'ProjectEditor: Asset successfully added to scene');
         triggerAchievement(`✨ +15 XP - "${finalAssetName}" added to scene!`);
@@ -223,11 +268,11 @@ const ProjectEditorContent: React.FC = () => {
         // Still close the modal even if adding to scene fails
       }
     } else {
-      log('warn', 'ProjectEditor: No sceneId available, asset not added to scene');
+      log('warn', 'ProjectEditor: No sceneId or projectId available, asset not added to scene');
     }
 
     setIsAssetImportModalOpen(false);
-  }, [contextSceneId, triggerAchievement, refreshScene]);
+  }, [contextSceneId, contextProjectId, triggerAchievement, refreshScene]);
 
   // Viewport click callback with achievement
   const handleViewportClickWithAchievement = useCallback(() => {

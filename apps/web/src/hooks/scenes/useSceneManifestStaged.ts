@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { scenesApi, SceneApiError } from '../../services/scenesApi';
 import { useAuth } from '../../providers/AuthProvider';
 import { log } from '../../utils/logger';
@@ -65,6 +65,7 @@ export function useSceneManifestStaged(
   options: UseSceneManifestStagedOptions = {}
 ) {
   const { token } = useAuth();
+  const queryClient = useQueryClient();
   const {
     enabled = true,
     priorityCategories = ['shell', 'lighting', 'environment'],
@@ -290,6 +291,11 @@ export function useSceneManifestStaged(
 
   // Refresh function to restart the staged loading
   const refresh = useCallback(() => {
+    // Invalidate the categories query to force a fresh fetch
+    queryClient.invalidateQueries({
+      queryKey: ['scene-categories', sceneId, querySuffix].filter(Boolean)
+    });
+    
     setState({
       stage: 'discovering',
       loadedCategories: [],
@@ -305,7 +311,7 @@ export function useSceneManifestStaged(
         itemCount: 0
       }
     });
-  }, []);
+  }, [queryClient, sceneId, querySuffix]);
 
   return {
     ...state,

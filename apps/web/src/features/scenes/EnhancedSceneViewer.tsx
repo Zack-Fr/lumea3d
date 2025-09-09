@@ -69,11 +69,12 @@ function SceneGraph({ manifest, controls, onFPSUpdate }: SceneGraphProps) {
       
       {/* Render categories with their items */}
       {categories.map(([categoryKey, category]) => (
-        <Suspense key={categoryKey} fallback={null}>
+        <Suspense key={`${manifest.scene.id}-${categoryKey}`} fallback={null}>
           <CategoryRenderer
             categoryKey={categoryKey}
             category={category}
             items={manifest.items}
+            sceneId={manifest.scene.id}
           />
         </Suspense>
       ))}

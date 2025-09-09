@@ -139,9 +139,17 @@ export function useSceneCategories(sceneId: string, options: { enabled?: boolean
       // Backend returns array directly, but API client expects { categories: [...] }
       // Handle both formats for compatibility
       const categories = Array.isArray(response) ? response : (response?.categories || []);
+      
+      // Deduplicate categories by categoryKey
+      const uniqueCategories = categories.filter((cat: any, index: number, arr: any[]) => {
+        const key = typeof cat === 'string' ? cat : cat?.categoryKey || '';
+        return arr.findIndex((c: any) => (typeof c === 'string' ? c : c?.categoryKey || '') === key) === index;
+      });
+      
       logOnce(`scene:categories:loaded:${sceneId}`, 'info', '✅ useSceneCategories: Loaded categories (logged once)');
-      log('debug', '✅ useSceneCategories: Loaded categories count', Array.isArray(categories) ? categories.length : 0);
-      return categories;
+      log('debug', '✅ useSceneCategories: Loaded categories count', Array.isArray(uniqueCategories) ? uniqueCategories.length : 0);
+      log('debug', '✅ useSceneCategories: Unique categories', uniqueCategories);
+      return uniqueCategories;
     },
     enabled,
     staleTime: 300000, // 5 minutes - categories don't change often

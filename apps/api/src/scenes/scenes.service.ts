@@ -778,6 +778,7 @@ export class ScenesService {
             dracoUrl: true,
             ktx2Url: true,
             originalUrl: true,
+            originalName: true,
           },
         },
       },
@@ -845,36 +846,42 @@ export class ScenesService {
       : scene.items;
 
     // Transform items to frontend-compatible format
-    const transformedItems = filteredItems.map(item => ({
-      id: item.id,
-      name: item.categoryKey, // Use categoryKey as name
-      category: item.categoryKey, // Frontend expects 'category' field
-      model: item.model || '',
-      transform: {
-        position: [
-          item.positionX,
-          item.positionY,
-          item.positionZ,
-        ] as [number, number, number], // Array format
-        rotation_euler: [
-          item.rotationX,
-          item.rotationY,
-          item.rotationZ,
-        ] as [number, number, number], // Frontend expects rotation_euler
-        scale: [
-          item.scaleX,
-          item.scaleY,
-          item.scaleZ,
-        ] as [number, number, number], // Array format
-      },
-      material: item.materialVariant || item.materialOverrides ? {
-        variant: item.materialVariant || undefined,
-        overrides: item.materialOverrides as Record<string, any> || undefined,
-      } : {},
-      selectable: item.selectable ?? true,
-      locked: item.locked ?? false,
-      meta: item.meta as Record<string, any> || {},
-    }));
+    const transformedItems = filteredItems.map(item => {
+      // Find the category to get the asset name
+      const category = categories.find(c => c.categoryKey === item.categoryKey);
+      const assetName = category?.asset?.originalName || item.categoryKey;
+      
+      return {
+        id: item.id,
+        name: assetName, // Use asset's original name
+        category: item.categoryKey, // Frontend expects 'category' field
+        model: item.model || '',
+        transform: {
+          position: [
+            item.positionX,
+            item.positionY,
+            item.positionZ,
+          ] as [number, number, number], // Array format
+          rotation_euler: [
+            item.rotationX,
+            item.rotationY,
+            item.rotationZ,
+          ] as [number, number, number], // Frontend expects rotation_euler
+          scale: [
+            item.scaleX,
+            item.scaleY,
+            item.scaleZ,
+          ] as [number, number, number], // Array format
+        },
+        material: item.materialVariant || item.materialOverrides ? {
+          variant: item.materialVariant || undefined,
+          overrides: item.materialOverrides as Record<string, any> || undefined,
+        } : {},
+        selectable: item.selectable ?? true,
+        locked: item.locked ?? false,
+        meta: item.meta as Record<string, any> || {},
+      };
+    });
 
     // Build spawn point in frontend-compatible format
     const spawn = scene.spawnPositionX !== undefined ? {

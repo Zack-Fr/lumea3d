@@ -241,6 +241,7 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
         <Suspense fallback={null}>
           {projectId && sceneId && (
             <SceneRenderer
+              key={`scene-renderer-${sceneId}`}
               sceneId={sceneId}
             />
           )}
@@ -253,6 +254,7 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
       {/* Scene Loading UI */}
       {sceneId && projectId && (
         <StagedSceneLoader 
+          key={`staged-loader-${sceneId}`}
           projectId={projectId}
           sceneId={sceneId}
           onManifestLoaded={handleManifestLoaded}

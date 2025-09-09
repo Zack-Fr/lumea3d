@@ -133,15 +133,22 @@ export function updateApiClientToken(token: string | null) {
 
 // Type definitions for existing interfaces
 export interface SceneItemCreateRequest {
-  name: string;
   categoryKey: string;
-  transform: {
-    position: [number, number, number];
-    rotation: [number, number, number, number];
-    scale: [number, number, number];
-  };
-  assetId?: string;
-  properties?: Record<string, any>;
+  model?: string;
+  positionX?: number;
+  positionY?: number;
+  positionZ?: number;
+  rotationX?: number;
+  rotationY?: number;
+  rotationZ?: number;
+  scaleX?: number;
+  scaleY?: number;
+  scaleZ?: number;
+  materialVariant?: string;
+  selectable?: boolean;
+  locked?: boolean;
+  meta?: any;
+  materialOverrides?: any;
 }
 
 export interface SceneItemUpdateRequest {
@@ -697,6 +704,85 @@ export const scenesApi = {
   getSSEUrl(projectId: string, sceneId: string): string {
     return `${API_BASE_URL}/projects/${projectId}/scenes/${sceneId}/events`;
   },
+
+  /**
+   * Get project categories
+   */
+  async getProjectCategories(projectId: string): Promise<ProjectCategory[]> {
+    const token = getCurrentToken();
+    const url = `${API_BASE_URL}/projects/${projectId}/categories`;
+    
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(url, { headers });
+    
+    if (!response.ok) {
+      throw new SceneApiError(response.status, `Failed to get project categories: ${response.statusText}`);
+    }
+    
+    return response.json();
+  },
+
+  /**
+   * Create a new project category
+   */
+  async createProjectCategory(
+    projectId: string,
+    categoryData: CreateProjectCategoryRequest
+  ): Promise<ProjectCategory> {
+    const token = getCurrentToken();
+    const url = `${API_BASE_URL}/projects/${projectId}/categories`;
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(categoryData),
+    });
+    
+    if (!response.ok) {
+      throw new SceneApiError(response.status, `Failed to create project category: ${response.statusText}`);
+    }
+    
+    return response.json();
+  },
 };
 
 // Export the custom SceneManifestV2 interface for use by other modules
+export interface ProjectCategory {
+  id: string;
+  categoryKey: string;
+  assetId: string;
+  asset: {
+    id: string;
+    originalName: string;
+    status: string;
+    originalUrl: string;
+    meshoptUrl?: string;
+    dracoUrl?: string;
+  };
+  instancing: boolean;
+  draco: boolean;
+  meshopt: boolean;
+  ktx2: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateProjectCategoryRequest {
+  assetId: string;
+  categoryKey: string;
+  instancing?: boolean;
+  draco?: boolean;
+  meshopt?: boolean;
+  ktx2?: boolean;
+}
