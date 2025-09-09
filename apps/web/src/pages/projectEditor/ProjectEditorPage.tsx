@@ -192,10 +192,14 @@ const ProjectEditorContent: React.FC = () => {
       try {
         log('info', 'ProjectEditor: Adding imported asset to scene', { sceneId: contextSceneId, assetId, assetName, category });
 
+        // Use provided name/category from import modal, or fallbacks if undefined
+        const finalAssetName = assetName || 'Imported Asset';
+        const finalCategory = category || 'misc';
+
         // Create scene item with default transform
         const sceneItem = {
-          name: assetName,
-          categoryKey: category,
+          name: finalAssetName,
+          categoryKey: finalCategory,
           transform: {
             position: [0, 0, 0] as [number, number, number],
             rotation: [0, 0, 0, 1] as [number, number, number, number], // quaternion
@@ -208,7 +212,7 @@ const ProjectEditorContent: React.FC = () => {
         await scenesApi.addItem(contextSceneId, sceneItem);
 
         log('info', 'ProjectEditor: Asset successfully added to scene');
-        triggerAchievement(`✨ +15 XP - "${assetName}" added to scene!`);
+        triggerAchievement(`✨ +15 XP - "${finalAssetName}" added to scene!`);
 
         // Refresh the scene manifest to show the new item
         // This will trigger a re-render of the LeftSidebar with the new asset
