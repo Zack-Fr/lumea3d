@@ -115,7 +115,7 @@ export interface DeltaOp {
   category?: Record<string, any>;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Create configuration and API instances
 let apiConfig: Configuration | null = null;

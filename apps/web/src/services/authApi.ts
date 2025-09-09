@@ -1,7 +1,7 @@
 import { Role, User, RoleEnum } from '../providers/AuthProvider'
 import { once as logOnce, log } from '../utils/logger';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 export interface LoginRequest {
   email: string

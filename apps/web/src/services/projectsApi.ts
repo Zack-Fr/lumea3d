@@ -13,7 +13,7 @@ export interface CreateProjectDto {
   };
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export interface ProjectCreationResult {
   projectId: string;

@@ -39,9 +39,15 @@ export class ScenesService {
    * Create a new 3D scene
    */
   async create(projectId: string, userId: string, createSceneDto: CreateSceneDto): Promise<Scene3D> {
-    // Verify project ownership
+    // Verify project access (owner or member)
     const project = await this.prisma.project.findFirst({
-      where: { id: projectId, userId: userId },
+      where: { 
+        id: projectId,
+        OR: [
+          { userId: userId }, // Project owner
+          { members: { some: { userId: userId } } } // Project member
+        ]
+      },
     });
 
     if (!project) {
@@ -85,9 +91,15 @@ export class ScenesService {
    * Get all scenes for a project
    */
   async findAll(projectId: string, userId: string): Promise<SceneWithItems[]> {
-    // Verify project ownership
+    // Verify project access (owner or member)
     const project = await this.prisma.project.findFirst({
-      where: { id: projectId, userId: userId },
+      where: { 
+        id: projectId,
+        OR: [
+          { userId: userId }, // Project owner
+          { members: { some: { userId: userId } } } // Project member
+        ]
+      },
     });
 
     if (!project) {
@@ -121,7 +133,13 @@ export class ScenesService {
     const scene = await this.prisma.scene3D.findFirst({
       where: {
         id: sceneId,
-        project: { id: projectId, userId: userId },
+        project: { 
+          id: projectId,
+          OR: [
+            { userId: userId }, // Project owner
+            { members: { some: { userId: userId } } } // Project member
+          ]
+        },
       },
       include: {
         items: {

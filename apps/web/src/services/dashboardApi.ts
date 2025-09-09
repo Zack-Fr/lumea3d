@@ -55,7 +55,7 @@ export class DashboardApiServiceImpl implements DashboardApiService {
 
   constructor(basePath?: string) {
     this.config = new Configuration({
-      basePath: basePath || (import.meta.env?.VITE_API_URL as string) || 'http://localhost:3001',
+      basePath: basePath || (import.meta.env?.VITE_API_URL as string) || '/api',
     });
 
     this.usersApi = new UsersApi(this.config);

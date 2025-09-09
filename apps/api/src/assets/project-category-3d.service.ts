@@ -94,12 +94,18 @@ export class ProjectCategory3DService {
     userId: string, 
     query?: ProjectCategory3DQueryDto
   ): Promise<ProjectCategory3D[]> {
-    // Verify project ownership
-    const project = await this.prisma.project.findFirst({
-      where: { id: projectId, userId: userId },
+    // Verify project access (owner or member)
+    const projectAccess = await this.prisma.project.findFirst({
+      where: {
+        id: projectId,
+        OR: [
+          { userId: userId }, // Owner
+          { members: { some: { userId: userId } } } // Member
+        ]
+      },
     });
 
-    if (!project) {
+    if (!projectAccess) {
       throw new NotFoundException('Project not found or access denied');
     }
 
@@ -148,7 +154,12 @@ export class ProjectCategory3DService {
       where: {
         id: categoryId,
         projectId: projectId,
-        project: { userId: userId },
+        project: {
+          OR: [
+            { userId: userId }, // Owner
+            { members: { some: { userId: userId } } } // Member
+          ]
+        },
       },
       include: {
         asset: {
@@ -344,7 +355,12 @@ export class ProjectCategory3DService {
       where: {
         projectId: projectId,
         categoryKey: categoryKey,
-        project: { userId: userId },
+        project: {
+          OR: [
+            { userId: userId }, // Owner
+            { members: { some: { userId: userId } } } // Member
+          ]
+        },
       },
       include: {
         asset: {
