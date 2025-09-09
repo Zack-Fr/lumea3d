@@ -25,6 +25,9 @@ import { AssetImportModal } from '../../features/scenes/AssetImportModal';
 // Scene Context
 import { SceneProvider, useSceneContext, useSceneParams } from '../../contexts/SceneContext';
 
+// Services
+import { scenesApi } from '../../services/scenesApi';
+
 // Data Layer (fallback for when no scene is loaded)
 import { assetCategories } from '../../data/projectEditorData';
 
@@ -49,15 +52,44 @@ const ProjectEditorPage: React.FC = () => {
 const ProjectEditorContent: React.FC = () => {
   const navigate = useNavigate();
   const { projectId: urlProjectId, sceneId: urlSceneId } = useSceneParams();
-  const { setScene, sceneId: contextSceneId, projectId: contextProjectId } = useSceneContext();
+  const { setScene, sceneId: contextSceneId, projectId: contextProjectId, refreshScene } = useSceneContext();
   
   // Load scene when URL parameters change
   useEffect(() => {
     if (urlProjectId && urlSceneId && (urlProjectId !== contextProjectId || urlSceneId !== contextSceneId)) {
       log('info', 'ProjectEditor: Loading scene from URL', { urlProjectId, urlSceneId });
       setScene(urlProjectId, urlSceneId);
+    } else if (urlProjectId && !urlSceneId && !contextSceneId) {
+      // If we have a projectId but no sceneId, try to load the most recent scene
+      log('info', 'ProjectEditor: No sceneId in URL, attempting to load most recent scene', { urlProjectId });
+      loadMostRecentScene(urlProjectId);
     }
   }, [urlProjectId, urlSceneId, contextProjectId, contextSceneId, setScene]);
+
+  // Function to load the most recent scene for a project
+  const loadMostRecentScene = useCallback(async (projectId: string) => {
+    try {
+      log('info', 'ProjectEditor: Fetching scenes for project', projectId);
+      const scenes = await scenesApi.getScenes(projectId);
+      
+      if (scenes && scenes.length > 0) {
+        // Sort scenes by creation date (assuming newer scenes have higher IDs or we can sort by createdAt)
+        const mostRecentScene = scenes[scenes.length - 1]; // Get the last scene (assuming it's the most recent)
+        log('info', 'ProjectEditor: Loading most recent scene', { sceneId: mostRecentScene.id, sceneName: mostRecentScene.name });
+        
+        // Navigate to the scene URL to update the browser URL
+        navigate(`/app/projects/${projectId}/scenes/${mostRecentScene.id}/editor`, { replace: true });
+        
+        // Set the scene in context
+        setScene(projectId, mostRecentScene.id);
+      } else {
+        log('warn', 'ProjectEditor: No scenes found for project, user needs to create one', projectId);
+        // Could show a message or redirect to create scene
+      }
+    } catch (error) {
+      log('error', 'ProjectEditor: Failed to load most recent scene', error);
+    }
+  }, [navigate, setScene]);
 
   // Asset Import Modal State
   const [isAssetImportModalOpen, setIsAssetImportModalOpen] = useState(false);
@@ -150,12 +182,48 @@ const ProjectEditorContent: React.FC = () => {
     setIsAssetImportModalOpen(true);
   }, []);
 
-  const handleAssetImportComplete = useCallback((assetId: string) => {
-  logOnce('projecteditor:asset-imported', 'info', '✅ ProjectEditor: Asset imported');
-  log('debug', 'ProjectEditor: Asset imported id', assetId);
+  const handleAssetImportComplete = useCallback(async (assetId: string, assetName: string, category: string) => {
+    logOnce('projecteditor:asset-imported', 'info', '✅ ProjectEditor: Asset imported');
+    log('debug', 'ProjectEditor: Asset imported id', assetId);
     triggerAchievement('🎯 +20 XP - New 3D asset imported!');
+
+    // Add the imported asset to the current scene if we have a sceneId
+    if (contextSceneId) {
+      try {
+        log('info', 'ProjectEditor: Adding imported asset to scene', { sceneId: contextSceneId, assetId, assetName, category });
+
+        // Create scene item with default transform
+        const sceneItem = {
+          name: assetName,
+          categoryKey: category,
+          transform: {
+            position: [0, 0, 0] as [number, number, number],
+            rotation: [0, 0, 0, 1] as [number, number, number, number], // quaternion
+            scale: [1, 1, 1] as [number, number, number],
+          },
+          assetId: assetId,
+        };
+
+        // Add item to scene
+        await scenesApi.addItem(contextSceneId, sceneItem);
+
+        log('info', 'ProjectEditor: Asset successfully added to scene');
+        triggerAchievement(`✨ +15 XP - "${assetName}" added to scene!`);
+
+        // Refresh the scene manifest to show the new item
+        // This will trigger a re-render of the LeftSidebar with the new asset
+        refreshScene();
+
+      } catch (error) {
+        log('error', 'ProjectEditor: Failed to add asset to scene', error);
+        // Still close the modal even if adding to scene fails
+      }
+    } else {
+      log('warn', 'ProjectEditor: No sceneId available, asset not added to scene');
+    }
+
     setIsAssetImportModalOpen(false);
-  }, [triggerAchievement]);
+  }, [contextSceneId, triggerAchievement, refreshScene]);
 
   // Viewport click callback with achievement
   const handleViewportClickWithAchievement = useCallback(() => {

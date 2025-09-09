@@ -201,10 +201,41 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
           gl.setClearColor('#0f0f0f', 0);
         }}
       >
-        {/* Lighting */}
-        <ambientLight intensity={0.4} />
-        <directionalLight position={[10, 10, 5]} intensity={1} />
-        <directionalLight position={[-10, -10, -5]} intensity={0.3} />
+        {/* Enhanced Lighting Setup */}
+        <ambientLight intensity={0.6} />
+        
+        {/* Main directional light (key light) */}
+        <directionalLight 
+          position={[10, 10, 5]} 
+          intensity={1.2} 
+          castShadow
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
+          shadow-camera-far={50}
+          shadow-camera-left={-20}
+          shadow-camera-right={20}
+          shadow-camera-top={20}
+          shadow-camera-bottom={-20}
+        />
+        
+        {/* Fill light */}
+        <directionalLight 
+          position={[-10, 5, 5]} 
+          intensity={0.4} 
+          color="#87CEEB"
+        />
+        
+        {/* Rim light */}
+        <directionalLight 
+          position={[0, -10, -5]} 
+          intensity={0.3} 
+          color="#FFE4B5"
+        />
+        
+        {/* Point lights for additional illumination */}
+        <pointLight position={[0, 5, 0]} intensity={0.5} distance={20} />
+        <pointLight position={[5, 3, 5]} intensity={0.3} distance={15} color="#FFF8DC" />
+        <pointLight position={[-5, 3, -5]} intensity={0.3} distance={15} color="#F0E68C" />
 
         {/* Scene Content */}
         <Suspense fallback={null}>

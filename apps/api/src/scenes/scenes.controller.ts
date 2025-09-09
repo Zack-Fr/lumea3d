@@ -27,7 +27,7 @@ import { CreateSceneDto } from './dto/create-scene.dto';
 import { UpdateSceneDto } from './dto/update-scene.dto';
 import { CreateSceneItemDto } from './dto/create-scene-item.dto';
 import { UpdateSceneItemDto } from './dto/update-scene-item.dto';
-import { SceneManifestV2, SceneDelta } from './dto/scene-manifest.dto';
+import { SceneManifestV2, SceneManifestFrontend, SceneDelta } from './dto/scene-manifest.dto';
 import { JwtAuthGuard } from '../auth/shared/guards/jwt-auth.guard';
 import { DeprecationHeaderInterceptor } from '../shared/interceptors/deprecation-header.interceptor';
 
@@ -225,7 +225,7 @@ export class ScenesController {
     @Param('projectId') projectId: string,
     @Param('sceneId') sceneId: string,
     @Request() req: any,
-  ): Promise<SceneManifestV2> {
+  ): Promise<SceneManifestFrontend> {
     return this.scenesService.generateManifest(projectId, sceneId, req.user.id);
   }
 

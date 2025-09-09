@@ -154,3 +154,29 @@ export function useSceneCategories(sceneId: string, options: { enabled?: boolean
     },
   });
 }
+
+/**
+ * Hook to fetch all scenes for a project
+ */
+export function useScenes(projectId: string, options: { enabled?: boolean } = {}) {
+  const { token } = useAuth();
+  
+  return useQuery({
+    queryKey: ['scenes', projectId],
+    queryFn: () => {
+      if (!token) {
+        throw new SceneApiError(401, 'Authentication required');
+      }
+      log('debug', '🔄 useScenes: Loading scenes for project:', projectId);
+      return scenesApi.getScenes(projectId);
+    },
+    enabled: !!projectId && !!token && (options.enabled !== false),
+    staleTime: 30000, // 30 seconds - scenes list changes moderately often
+    retry: (failureCount, error: unknown) => {
+      if (error instanceof SceneApiError && [401, 403].includes(error.statusCode)) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+  });
+}

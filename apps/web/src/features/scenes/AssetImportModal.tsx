@@ -8,7 +8,7 @@ import { assetsApi } from '@/services/assetsApi';
 interface AssetImportModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onImportComplete?: (assetId: string) => void;
+    onImportComplete?: (assetId: string, assetName: string, category: string) => void;
 }
 
 interface ImportFormData {
@@ -258,7 +258,9 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
             message: 'Import completed successfully!',
             assetId: status.assetId,
           });
-          onImportComplete?.(status.assetId);
+          // Pass asset name (derived from file name) and category to callback
+          const assetName = formData.file?.name.replace('.glb', '') || 'Unnamed Asset';
+          onImportComplete?.(status.assetId, assetName, formData.category);
         },
         onError: (status) => {
           console.error('❌ AssetImport: Processing failed:', status);

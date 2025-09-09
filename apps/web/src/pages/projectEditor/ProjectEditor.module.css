@@ -1352,6 +1352,77 @@
   height: 2rem;
 }
 
+/* Uploaded Assets Section */
+.uploadedAssetsSection {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--glass-border-light);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: var(--glass-white);
+}
+
+.sectionTitle {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.assetItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--glass-border-secondary);
+  background: var(--glass-bg-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 0.5rem;
+}
+
+.assetItem:hover {
+  background: var(--glass-bg-primary);
+  border-color: var(--glass-border-primary);
+}
+
+.assetEnabled {
+  border-color: var(--glass-yellow-border);
+  background: var(--glass-yellow-shadow);
+}
+
+.assetDisabled {
+  opacity: 0.6;
+}
+
+.assetInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.assetName {
+  font-size: 0.875rem;
+  color: var(--glass-white);
+  font-weight: 500;
+}
+
+.assetCategory {
+  font-size: 0.75rem;
+  color: var(--glass-gray);
+}
+
+.assetActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 /* Scene Selector (TopBar) */
 .sceneSelector {
   margin-right: 1rem;

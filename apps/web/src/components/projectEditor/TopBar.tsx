@@ -17,6 +17,7 @@ import {
   Plus
 } from "lucide-react";
 import { useSceneContext } from '../../contexts/SceneContext';
+import { useScenes } from '../../hooks/scenes/useSceneQuery';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 
 interface TopBarProps {
@@ -48,6 +49,11 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
   const [showSceneSelector, setShowSceneSelector] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Fetch scenes for the current project
+  const { data: availableScenes = [], isLoading: scenesLoading, error: scenesError } = useScenes(projectId || '', {
+    enabled: !!projectId
+  });
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -62,18 +68,10 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
     }
   }, [showSceneSelector]);
 
-  // Mock scene list - in real app this would come from an API
-  const availableScenes = [
-    { id: 'living-room-modern', name: 'Living Room (Modern)', projectId: 'project-1' },
-    { id: 'bedroom-cozy', name: 'Bedroom (Cozy)', projectId: 'project-1' },
-    { id: 'kitchen-industrial', name: 'Kitchen (Industrial)', projectId: 'project-2' },
-    { id: 'office-minimal', name: 'Office (Minimal)', projectId: 'project-2' }
-  ];
-
   const currentScene = availableScenes.find(scene => scene.id === sceneId);
 
-  const handleSceneSelect = (scene: typeof availableScenes[0]) => {
-    setScene(scene.projectId, scene.id);
+  const handleSceneSelect = (scene: any) => {
+    setScene(projectId || '', scene.id);
     setShowSceneSelector(false);
   };
 
@@ -138,7 +136,7 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
               className={styles.sceneSelectorButton}
             >
               <Folder className="w-4 h-4 mr-2" />
-              {currentScene ? currentScene.name : sceneId || 'Select Scene'}
+              {scenesLoading ? 'Loading...' : currentScene ? (currentScene.name || currentScene.id) : (sceneId || 'Select Scene')}
               <ChevronDown className="w-4 h-4 ml-2" />
             </Button>
             
@@ -168,26 +166,40 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
               minWidth: '200px',
               padding: '4px'
             }}>
-              {availableScenes.map((scene) => (
-                <button
-                  key={scene.id}
-                  onClick={() => handleSceneSelect(scene)}
-                  className={styles.sceneOption}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    textAlign: 'left',
-                    border: 'none',
-                    borderRadius: '4px',
-                    backgroundColor: scene.id === sceneId ? 'var(--accent)' : 'transparent',
-                    color: scene.id === sceneId ? 'var(--accent-foreground)' : 'var(--foreground)',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
-                >
-                  {scene.name}
-                </button>
-              ))}
+              {scenesLoading ? (
+                <div style={{ padding: '8px 12px', color: 'var(--muted-foreground)', fontSize: '14px' }}>
+                  Loading scenes...
+                </div>
+              ) : scenesError ? (
+                <div style={{ padding: '8px 12px', color: 'var(--destructive)', fontSize: '14px' }}>
+                  Failed to load scenes
+                </div>
+              ) : availableScenes.length === 0 ? (
+                <div style={{ padding: '8px 12px', color: 'var(--muted-foreground)', fontSize: '14px' }}>
+                  No scenes found
+                </div>
+              ) : (
+                availableScenes.map((scene) => (
+                  <button
+                    key={scene.id}
+                    onClick={() => handleSceneSelect(scene)}
+                    className={styles.sceneOption}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      textAlign: 'left',
+                      border: 'none',
+                      borderRadius: '4px',
+                      backgroundColor: scene.id === sceneId ? 'var(--accent)' : 'transparent',
+                      color: scene.id === sceneId ? 'var(--accent-foreground)' : 'var(--foreground)',
+                      cursor: 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    {scene.name || scene.id}
+                  </button>
+                ))
+              )}
             </div>
           )}
         </div>

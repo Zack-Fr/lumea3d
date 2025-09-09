@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { SceneManifestV2 } from '../services/scenesApi';
 import { useSceneCategories } from '../hooks/scenes/useSceneQuery';
+import { useSceneManifestStaged } from '../hooks/scenes/useSceneManifestStaged';
 import { useAuth } from '../providers/AuthProvider';
 
 // Helper function to calculate performance score
@@ -112,38 +113,35 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     mode: sceneId ? 'SCENE_MODE' : projectId ? 'PROJECT_MODE' : 'NO_MODE'
   });
 
-  // Scene manifest staged loading - REMOVED to avoid conflicts with StagedSceneLoader
-  // const {
-  //   manifest,
-  //   stage,
-  //   progress,
-  //   isLoading,
-  //   error,
-  //   metrics,
-  //   refresh: refreshManifest
-  // } = useSceneManifestStaged(sceneId || '', {
-  //   enabled: !!sceneId && !!token && !!user, // Only load if we have a sceneId
-  //   priorityCategories,
-  //   onStageComplete: (stageName, categories) => {
-  //     console.log(`Scene stage completed: ${stageName}`, categories);
-  //   },
-  //   onComplete: (completeManifest) => {
-  //     console.log('Scene loading complete:', completeManifest);
-  //   },
-  //   onError: (err) => {
-  //     console.error('Scene loading error:', err);
-  //     const errorMessage = err?.message || String(err);
-  //     if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-  //       console.error('Authentication issue detected. Please check if user is logged in.');
-  //       console.error('Scene ID being requested:', sceneId);
-  //       console.error('Token available:', !!token);
-  //       console.error('User available:', !!user);
-  //     } else if (errorMessage.includes('404') || errorMessage.includes('Not found')) {
-  //       console.error('Scene not found. Scene ID may not exist:', sceneId);
-  //       console.error('This might be a project ID instead of a scene ID');
-  //     }
-  //   }
-  // });
+  // Scene manifest loading - use the staged loader for progressive loading
+  const {
+    manifest: loadedManifest,
+    isLoading: manifestLoading,
+    error: manifestError,
+    refresh: refreshManifest
+  } = useSceneManifestStaged(sceneId || '', {
+    enabled: !!sceneId && !!token && !!user,
+    priorityCategories,
+    onStageComplete: (stageName: string, manifest: SceneManifestV2) => {
+      console.log(`Scene stage completed: ${stageName}`, manifest?.items?.length || 0, 'items');
+    },
+    onComplete: (manifest: SceneManifestV2) => {
+      console.log('Scene loading complete:', manifest?.items?.length || 0, 'items');
+      updateManifest(manifest, null, null);
+    },
+    onError: (err: Error) => {
+      console.error('Scene loading error:', err);
+      const errorMessage = err?.message || String(err);
+      updateManifest(null, null, errorMessage);
+    },
+  });
+
+  // Update manifest when loaded
+  useEffect(() => {
+    if (loadedManifest) {
+      updateManifest(loadedManifest, null, null);
+    }
+  }, [loadedManifest, updateManifest]);
 
   // Scene categories - only load if we have a sceneId
   const { 
@@ -189,8 +187,10 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
 
   const refreshScene = useCallback(() => {
     console.log('Refreshing scene');
-    // Refresh functionality removed - StagedSceneLoader handles this
-  }, []);
+    if (refreshManifest) {
+      refreshManifest();
+    }
+  }, [refreshManifest]);
 
   // Create loading state
   const sceneLoadingState: SceneLoadingState = {
@@ -199,7 +199,7 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     loadedCategories: manifest ? Object.keys(manifest.categories || {}) : [],
     availableCategories: allCategories,
     isComplete: !!manifest,
-    hasError: !!sceneError
+    hasError: !!sceneError || !!manifestError
   };
 
   // Context value
@@ -214,8 +214,8 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     
     // Loading state
     loading: sceneLoadingState,
-    isLoading: loading || categoriesLoading,
-    error: sceneError,
+    isLoading: loading || categoriesLoading || manifestLoading,
+    error: sceneError || manifestError,
     
     // Performance metrics
     metrics: sceneMetrics && typeof sceneMetrics === 'object' ? {

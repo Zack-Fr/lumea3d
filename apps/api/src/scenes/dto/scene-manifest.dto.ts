@@ -101,3 +101,77 @@ export class SceneDelta {
   })
   timestamp: string;
 }
+
+// Frontend-compatible manifest format
+export class SceneManifestFrontend {
+  @ApiProperty({
+    description: 'Scene metadata',
+  })
+  scene: {
+    id: string;
+    name: string;
+    description?: string;
+    version: number;
+  };
+
+  @ApiProperty({
+    description: 'Scene items with transforms and materials',
+  })
+  items: Array<{
+    id: string;
+    name: string;
+    category: string;
+    model: string;
+    transform: {
+      position: [number, number, number];
+      rotation_euler: [number, number, number];
+      scale: [number, number, number];
+    };
+    material?: Record<string, any>;
+    selectable?: boolean;
+    locked?: boolean;
+    meta?: Record<string, any>;
+  }>;
+
+  @ApiProperty({
+    description: 'Asset categories referenced in the scene',
+  })
+  categories: Record<string, {
+    url: string;
+    name: string;
+    description?: string;
+    tags?: string[];
+    capabilities?: {
+      physics?: boolean;
+      interaction?: boolean;
+    };
+  }>;
+
+  @ApiProperty({
+    description: 'Generation timestamp',
+  })
+  generatedAt: string;
+
+  @ApiProperty({
+    description: 'Spawn point configuration',
+    required: false,
+  })
+  spawn?: {
+    position: [number, number, number];
+    rotation?: [number, number, number, number];
+  };
+
+  @ApiProperty({
+    description: 'Environment configuration',
+    required: false,
+  })
+  env?: {
+    hdri_url?: string;
+  };
+
+  @ApiProperty({
+    description: 'Navmesh URL',
+    required: false,
+  })
+  navmesh_url?: string;
+}

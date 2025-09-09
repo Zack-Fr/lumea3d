@@ -30,7 +30,7 @@ import { ProjectCategory3DQueryDto } from '../assets/dto/project-category-3d.dto
 import { UpdateSceneDto } from './dto/update-scene.dto';
 import { CreateSceneItemDto } from './dto/create-scene-item.dto';
 import { UpdateSceneItemDto } from './dto/update-scene-item.dto';
-import { SceneManifestV2, SceneDelta } from './dto/scene-manifest.dto';
+import { SceneManifestFrontend, SceneDelta } from './dto/scene-manifest.dto';
 import { JwtAuthGuard } from '../auth/shared/guards/jwt-auth.guard';
 import { ScenesAuthGuard } from '../shared/guards/scenes-auth.guard';
 import { ProjectAuthGuard } from '../shared/guards/project-auth.guard';
@@ -337,7 +337,7 @@ export class FlatScenesController {
   @ApiResponse({
     status: 200,
     description: 'Scene manifest generated successfully',
-    type: SceneManifestV2,
+    type: SceneManifestFrontend,
   })
   @ApiResponse({ status: 404, description: 'Scene not found' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
@@ -346,7 +346,7 @@ export class FlatScenesController {
     @Request() req: RequestWithSceneContext,
     @Query('categories') categories?: string,
     @Query('includeMetadata') includeMetadata?: boolean,
-  ): Promise<SceneManifestV2> {
+  ): Promise<SceneManifestFrontend> {
     const { projectId } = req.sceneContext;
     const categoryFilter = categories ? categories.split(',').map(c => c.trim()) : undefined;
     return this.scenesService.generateManifest(

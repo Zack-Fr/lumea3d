@@ -353,6 +353,27 @@ export const scenesApi = {
   },
 
   /**
+   * Get all scenes for a project
+   */
+  async getScenes(projectId: string): Promise<any[]> {
+    const token = getCurrentToken();
+    const url = `${API_BASE_URL}/projects/${projectId}/scenes`;
+    
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(url, { headers });
+    
+    if (!response.ok) {
+      throw new SceneApiError(response.status, `Failed to get scenes: ${response.statusText}`);
+    }
+    
+    return response.json();
+  },
+
+  /**
    * Add item to scene using flat route
    */
   async addItem(

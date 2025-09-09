@@ -31,7 +31,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
     categories: sceneCategories, 
     enabledCategories, 
     toggleCategory,
-    isLoading
+    isLoading,
+    manifest
   } = useSceneContext();
 
   const getTabIcon = (categoryId: string) => {
@@ -52,13 +53,15 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
     return Filter;
   };
 
-  // If scene is loaded, show category filters
+  // If scene is loaded, show category filters and uploaded assets
   if (sceneId && sceneCategories.length > 0) {
+    const uploadedAssets = manifest?.items || [];
+    
     return (
       <aside className={styles.leftSidebar}>
         <div className={styles.sidebarHeader}>
           <div className={styles.sidebarTitleRow}>
-            <h2 className={styles.sidebarTitle}>Scene Categories</h2>
+            <h2 className={styles.sidebarTitle}>Scene Assets</h2>
             <Button 
               variant="ghost" 
               size="sm" 
@@ -74,7 +77,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
             <Search className={styles.searchIcon} />
             <input
               type="text"
-              placeholder="Search categories..."
+              placeholder="Search assets..."
               className={styles.searchInput}
             />
           </div>
@@ -82,6 +85,63 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
 
         <ScrollArea className={styles.assetsScrollArea}>
           <div className={styles.assetsContainer}>
+            {/* Uploaded Assets Section */}
+            {uploadedAssets.length > 0 && (
+              <div className={styles.uploadedAssetsSection}>
+                <div className={styles.sectionHeader}>
+                  <Box className="w-4 h-4" />
+                  <span className={styles.sectionTitle}>
+                    Uploaded Assets ({uploadedAssets.length})
+                  </span>
+                </div>
+                
+                <div className={styles.assetList}>
+                  {uploadedAssets.map((item) => {
+                    const categoryName = item.category;
+                    const isCategoryEnabled = enabledCategories.includes(categoryName) || enabledCategories.length === 0;
+                    
+                    return (
+                      <div
+                        key={item.id}
+                        className={`${styles.assetItem} ${isCategoryEnabled ? styles.assetEnabled : styles.assetDisabled}`}
+                        onClick={() => {
+                          // Handle asset selection - you can add logic here to select the asset
+                          console.log('Asset selected:', item);
+                        }}
+                      >
+                        <div className={styles.assetIcon}>
+                          <Box className="w-4 h-4" />
+                        </div>
+                        <div className={styles.assetInfo}>
+                          <span className={styles.assetName}>
+                            {item.name}
+                          </span>
+                          <span className={styles.assetCategory}>
+                            {categoryName}
+                          </span>
+                        </div>
+                        <div className={styles.assetActions}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Handle adding asset to scene
+                              onAssetAdd?.(item.name);
+                            }}
+                            title="Add to scene"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Category Filters Section */}
             <div className={styles.categoryFilters}>
               <div className={styles.categoryFiltersHeader}>
                 <Filter className="w-4 h-4" />
