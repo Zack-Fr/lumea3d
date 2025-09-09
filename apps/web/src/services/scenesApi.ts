@@ -120,6 +120,7 @@ export function updateApiClientToken(token: string | null) {
   currentAuthToken = token;
   
   // Enhanced logging for debugging
+  console.log('🔐 SCENES_API: updateApiClientToken called');
   console.log('🔐 SCENES_API: Token updated:', {
     hasToken: !!token,
     tokenPreview: token ? token.substring(0, 20) + '...' : 'NULL',
@@ -197,6 +198,8 @@ function getCurrentToken(): string | null {
   console.log('🔍 SCENES_API: getCurrentToken called, token:', currentAuthToken ? 'SET' : 'NULL');
   if (currentAuthToken) {
     console.log('🔍 SCENES_API: Token preview:', currentAuthToken.substring(0, 20) + '...');
+  } else {
+    console.log('❌ SCENES_API: NO TOKEN AVAILABLE!');
   }
   return currentAuthToken;
 }
@@ -286,16 +289,27 @@ export const scenesApi = {
   /**
    * Create a new scene using flat route
    */
-  async createScene(projectId: string, sceneData: { name: string; [key: string]: any }): Promise<any> {
+  async createScene(sceneData: { name: string; projectId: string; [key: string]: any }): Promise<any> {
     const token = getCurrentToken();
-    const url = `${API_BASE_URL}/projects/${projectId}/scenes`;
+    const url = `${API_BASE_URL}/scenes`;
+    
+    console.log('🎨 SCENES_API: createScene called');
+    console.log('🎨 SCENES_API: URL:', url);
+    console.log('🎨 SCENES_API: Has token:', !!token);
+    console.log('🎨 SCENES_API: Token preview:', token ? token.substring(0, 20) + '...' : 'NO_TOKEN');
+    console.log('🎨 SCENES_API: Scene data:', sceneData);
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
     if (token) {
       headers.Authorization = `Bearer ${token}`;
+      console.log('✅ SCENES_API: Authorization header set');
+    } else {
+      console.error('❌ SCENES_API: NO TOKEN - Authorization header NOT set!');
     }
+    
+    console.log('🎨 SCENES_API: Final headers:', headers);
     
     const response = await fetch(url, {
       method: 'POST',
@@ -303,19 +317,26 @@ export const scenesApi = {
       body: JSON.stringify(sceneData),
     });
     
+    console.log('🎨 SCENES_API: Response status:', response.status);
+    console.log('🎨 SCENES_API: Response status text:', response.statusText);
+    
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ SCENES_API: Error response body:', errorText);
       throw new SceneApiError(response.status, `Failed to create scene: ${response.statusText}`);
     }
     
-    return response.json();
+    const result = await response.json();
+    console.log('✅ SCENES_API: Scene created successfully:', result);
+    return result;
   },
 
   /**
-   * Get scene details using project-nested route
+   * Get scene details using flat route
    */
-  async getScene(projectId: string, sceneId: string): Promise<any> {
+  async getScene(sceneId: string): Promise<any> {
     const token = getCurrentToken();
-    const url = `${API_BASE_URL}/projects/${projectId}/scenes/${sceneId}`;
+    const url = `${API_BASE_URL}/scenes/${sceneId}`;
     
     const headers: Record<string, string> = {};
     if (token) {
@@ -421,28 +442,40 @@ export const scenesApi = {
   },
 
   /**
-   * Get scene version for optimistic locking
+   * Get scene version for optimistic locking using flat route
    */
-  async getVersion(projectId: string, sceneId: string): Promise<SceneVersionResponse> {
-    // Get version from scene data since there's no dedicated version endpoint
-    const sceneData = await this.getScene(projectId, sceneId);
+  async getVersion(sceneId: string): Promise<SceneVersionResponse> {
+    const token = getCurrentToken();
+    const url = `${API_BASE_URL}/scenes/${sceneId}/version`;
+    
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(url, { headers });
+    
+    if (!response.ok) {
+      throw new SceneApiError(response.status, `Failed to get scene version: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
     return {
-      version: sceneData.version || '1',
+      version: data.version || '1',
       timestamp: new Date().toISOString(),
     };
   },
 
   /**
-   * Generate delta between scene versions
+   * Generate delta between scene versions using flat route
    */
   async getDelta(
-    projectId: string,
     sceneId: string,
     fromVersion: number,
     toVersion: number
   ): Promise<SceneDelta> {
     const token = getCurrentToken();
-    const url = `${API_BASE_URL}/projects/${projectId}/scenes/${sceneId}/delta?from=${fromVersion}&to=${toVersion}`;
+    const url = `${API_BASE_URL}/scenes/${sceneId}/delta?from=${fromVersion}&to=${toVersion}`;
     
     const headers: Record<string, string> = {};
     if (token) {

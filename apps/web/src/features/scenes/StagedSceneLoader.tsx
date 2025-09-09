@@ -31,22 +31,23 @@ export const StagedSceneLoader = React.memo(function StagedSceneLoader({
   const [showAdvancedMetrics, setShowAdvancedMetrics] = useState(false);
 
   // Always call hooks - we'll handle validation in the enabled options
-  const isValidInput = !!(projectId && typeof projectId === 'string' && sceneId && typeof sceneId === 'string');
+  const isValidInput = !!(projectId && typeof projectId === 'string' && sceneId && typeof sceneId === 'string' && sceneId.trim().length > 0);
 
-  // Fetch available categories first - with improved error handling
-  const categoriesResult = useSceneCategories(sceneId, { 
-    enabled: isValidInput
+  const categoriesResult = useSceneCategories(sceneId || '', { 
+    enabled: isValidInput && !!sceneId,
+    querySuffix: 'staged-loader'
   });
-  const categoriesData = categoriesResult.data;
+  const categoriesData = Array.isArray(categoriesResult.data) ? categoriesResult.data : [];
   const categoriesLoading = categoriesResult.isLoading;
   const categoriesError = categoriesResult.error;
 
   // Use staged manifest loading - always call hook
-  const stagedManifestResult = useSceneManifestStaged(sceneId, {
-    enabled: isValidInput,
+  const stagedManifestResult = useSceneManifestStaged(sceneId || '', {
+    enabled: isValidInput && !!sceneId,
     priorityCategories: ['shell', 'lighting', 'environment'],
     secondaryCategories: ['furniture', 'seating', 'tables', 'storage'],
     includeMetadata: true,
+    querySuffix: 'staged-loader',
     onStageComplete: (stageName, categories) => {
       log('info', `🎯 Stage "${stageName}" completed: ${Array.isArray(categories) ? categories.map((c:any)=>c.categoryKey||c.key||c).join(',') : ''}`);
     },
@@ -59,23 +60,8 @@ export const StagedSceneLoader = React.memo(function StagedSceneLoader({
     }
   });
 
-  // NOW we can do validation and early returns AFTER all hooks
-  if (!isValidInput) {
-    log('error', 'StagedSceneLoader: Invalid projectId or sceneId provided', { projectId, sceneId });
-    return (
-      <div className="p-6 max-w-2xl mx-auto">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h2 className="text-lg font-semibold text-red-800 mb-2">
-            Configuration Error
-          </h2>
-          <p className="text-red-600">
-            Invalid project ID or scene ID provided. Please ensure valid project and scene IDs are passed to the component.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+  // Extract data from staged manifest result with safe defaults
+  const stagedResult = stagedManifestResult || {};
   const {
     stage = 'error',
     loadedCategories = [],
@@ -86,37 +72,59 @@ export const StagedSceneLoader = React.memo(function StagedSceneLoader({
     error = null,
     metrics = { stageTimings: {}, totalLoadTime: 0, categoryCount: 0, itemCount: 0 },
     refresh = () => {}
-  } = stagedManifestResult || {};
+  } = stagedResult;
 
-  // Get performance metrics - with error boundary and input validation
-  let sceneMetrics;
-  try {
-    // Ensure metrics object has proper structure with fallbacks
-    const safeMetrics = {
-      stageTimings: metrics?.stageTimings || {},
-      totalLoadTime: metrics?.totalLoadTime || 0,
-      categoryCount: metrics?.categoryCount || 0,
-      itemCount: metrics?.itemCount || 0
-    };
+  // Get performance metrics - ALWAYS call hook at top level with safe inputs
+  const safeMetrics = {
+    stageTimings: metrics?.stageTimings || {},
+    totalLoadTime: metrics?.totalLoadTime || 0,
+    categoryCount: metrics?.categoryCount || 0,
+    itemCount: metrics?.itemCount || 0
+  };
 
-    sceneMetrics = useSceneMetrics(manifest, safeMetrics);
-  } catch (error) {
-    log('error', 'StagedSceneLoader: Error in useSceneMetrics', error);
-    sceneMetrics = {
-      totalCategories: 0,
-      totalItems: 0,
-      categoryStats: [],
-      instancingCategories: 0,
-      largestCategory: { itemCount: 0, key: 'none' },
-      performance: {
-        stageTimings: {},
-        totalLoadTime: 0,
-        categoryLoadTimes: {},
-        averageLoadTimePerCategory: 0,
-        slowestCategory: { loadTime: 0, key: 'none' },
-        performanceScore: 'poor' as const
-      }
-    };
+  // Ensure manifest is properly structured for the hook
+  const safeManifest = manifest && typeof manifest === 'object' && manifest.generatedAt ? manifest : {
+    scene: { id: '', name: '', description: '', version: 1 },
+    items: [],
+    categories: {},
+    generatedAt: new Date().toISOString()
+  };
+
+  const sceneMetrics = useSceneMetrics(safeManifest, safeMetrics) || {
+    totalCategories: 0,
+    totalItems: 0,
+    categoryStats: [],
+    instancingCategories: 0,
+    largestCategory: { itemCount: 0, key: 'none' },
+    performance: {
+      stageTimings: {},
+      totalLoadTime: 0,
+      categoryLoadTimes: {},
+      averageLoadTimePerCategory: 0,
+      slowestCategory: { loadTime: 0, key: 'none' },
+      performanceScore: 'poor' as const
+    }
+  };
+
+  // NOW we can do validation and early returns AFTER all hooks
+  if (!isValidInput || !sceneId) {
+    log('error', 'StagedSceneLoader: Invalid projectId or sceneId provided', { projectId, sceneId });
+    return (
+      <div className="p-6 max-w-2xl mx-auto">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <h2 className="text-lg font-semibold text-red-800 mb-2">
+            Configuration Error
+          </h2>
+          <p className="text-red-600">
+            Invalid project ID or scene ID provided. Please ensure valid project and scene IDs are passed to the component.
+          </p>
+          <p className="text-sm text-red-500 mt-2">
+            Project ID: {projectId || 'missing'}<br/>
+            Scene ID: {sceneId || 'missing/null'}
+          </p>
+        </div>
+      </div>
+    );
   }
 
   // Handle loading state changes
@@ -247,7 +255,7 @@ export const StagedSceneLoader = React.memo(function StagedSceneLoader({
         
         {stage !== 'complete' && stage !== 'error' && (
           <div className="mt-2 text-xs text-gray-500">
-            Stage: {stage} | Categories loaded: {Array.isArray(loadedCategories) ? loadedCategories.length : 0}/{discoveredCategories && Array.isArray(discoveredCategories) ? discoveredCategories.length : 0}
+            Stage: {stage} | Categories loaded: {Array.isArray(loadedCategories) ? loadedCategories.length : 0}/{Array.isArray(discoveredCategories) ? discoveredCategories.length : 0}
           </div>
         )}
       </div>
@@ -281,7 +289,7 @@ export const StagedSceneLoader = React.memo(function StagedSceneLoader({
       )}
 
       {/* Performance Metrics */}
-      {manifest && (
+      {safeManifest && (
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h2 className="font-semibold text-gray-900 mb-3">Scene Performance</h2>
           
@@ -326,15 +334,19 @@ export const StagedSceneLoader = React.memo(function StagedSceneLoader({
               <div>
                 <h3 className="font-medium text-gray-900 mb-2">Category Performance</h3>
                 <div className="space-y-1 max-h-40 overflow-y-auto">
-                  {(sceneMetrics?.categoryStats ?? [])
-                    .slice()
-                    .sort((a, b) => (b.loadTime || 0) - (a.loadTime || 0))
-                    .map((cat) => (
-                      <div key={cat.key} className="flex justify-between text-sm">
-                        <span>{cat.key} ({cat.itemCount} items):</span>
-                        <span className="font-mono">{cat.loadTime}ms</span>
-                      </div>
-                    ))}
+                  {Array.isArray(sceneMetrics?.categoryStats) && sceneMetrics.categoryStats.length > 0 ? (
+                    sceneMetrics.categoryStats
+                      .slice()
+                      .sort((a, b) => (b?.loadTime || 0) - (a?.loadTime || 0))
+                      .map((cat) => (
+                        <div key={cat?.key || 'unknown'} className="flex justify-between text-sm">
+                          <span>{cat?.key || 'unknown'} ({cat?.itemCount || 0} items):</span>
+                          <span className="font-mono">{cat?.loadTime || 0}ms</span>
+                        </div>
+                      ))
+                  ) : (
+                    <div className="text-sm text-gray-500 italic">No category data available</div>
+                  )}
                 </div>
               </div>
             </div>
@@ -343,9 +355,9 @@ export const StagedSceneLoader = React.memo(function StagedSceneLoader({
       )}
 
       {/* GLB Preloader (hidden component for performance) */}
-      {manifest && manifest.categories && Object.keys(manifest.categories).length > 0 && (
+      {safeManifest && safeManifest.categories && typeof safeManifest.categories === 'object' && Object.keys(safeManifest.categories).length > 0 && (
         <GLBPreloader 
-          manifest={manifest}
+          manifest={safeManifest}
           progressive={true}
           priorityCategories={['shell', 'lighting', 'environment']}
           loadDelay={100}
@@ -356,15 +368,15 @@ export const StagedSceneLoader = React.memo(function StagedSceneLoader({
       )}
 
       {/* Scene Data Preview */}
-      {manifest && showAdvancedMetrics && (
+      {safeManifest && showAdvancedMetrics && (
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h2 className="font-semibold text-gray-900 mb-3">Scene Data Preview</h2>
           <pre className="bg-gray-50 p-3 rounded text-xs overflow-auto max-h-40">
             {JSON.stringify({
-              scene: manifest?.scene,
-              itemCount: Array.isArray(manifest?.items) ? manifest.items.length : 0,
-              categoryCount: manifest?.categories ? Object.keys(manifest.categories).length : 0,
-              generatedAt: manifest?.generatedAt
+              scene: safeManifest?.scene,
+              itemCount: safeManifest?.items && Array.isArray(safeManifest.items) ? safeManifest.items.length : 0,
+              categoryCount: safeManifest?.categories ? Object.keys(safeManifest.categories).length : 0,
+              generatedAt: safeManifest?.generatedAt
             }, null, 2)}
           </pre>
         </div>

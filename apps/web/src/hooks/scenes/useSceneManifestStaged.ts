@@ -44,6 +44,8 @@ export interface UseSceneManifestStagedOptions {
   onComplete?: (manifest: SceneManifestV2) => void;
   /** Callback on error */
   onError?: (error: Error) => void;
+  /** Custom query key suffix for cache separation */
+  querySuffix?: string;
 }
 
 /**
@@ -70,7 +72,8 @@ export function useSceneManifestStaged(
     includeMetadata = false,
     onStageComplete,
     onComplete,
-    onError
+    onError,
+    querySuffix = ''
   } = options;
 
   const [state, setState] = useState<StagedManifestLoadingState>({
@@ -93,7 +96,7 @@ export function useSceneManifestStaged(
 
   // Discover available categories
   const { data: categoriesData, error: categoriesError } = useQuery({
-    queryKey: ['scene-categories', sceneId],
+    queryKey: ['scene-categories', sceneId, querySuffix].filter(Boolean),
     queryFn: async () => {
       if (!token) throw new SceneApiError(401, 'Authentication required');
       
@@ -102,7 +105,7 @@ export function useSceneManifestStaged(
         // Backend returns array directly, but API client expects { categories: [...] }
         // Handle both formats for compatibility
         const result = Array.isArray(response) ? response : (response?.categories || []);
-        log('debug', 'Categories loaded successfully', result);
+        log('debug', 'Categories loaded successfully', Array.isArray(result) ? result.length : 0);
         return result;
       } catch (error) {
         log('error', 'Failed to load categories', error);
@@ -130,7 +133,7 @@ export function useSceneManifestStaged(
       log('info', `🚀 StagedManifest: Loading ${stageName} stage with categories: ${Array.isArray(categories) ? categories.join(',') : ''}`);
 
       const manifest = await scenesApi.getManifest(sceneId, {
-        categories: categories.length > 0 ? categories : undefined,
+        categories: Array.isArray(categories) && categories.length > 0 ? categories : undefined,
         includeMetadata
       });
 
@@ -181,7 +184,7 @@ export function useSceneManifestStaged(
         if (!categoriesData || state.stage !== 'discovering') return;
 
         const availableCategories = Array.isArray(categoriesData) 
-          ? categoriesData.map((cat: any) => cat?.categoryKey || cat?.key || cat?.name || String(cat))
+          ? categoriesData.map((cat: any) => cat?.categoryKey || cat?.key || cat?.name || String(cat)).filter(Boolean)
           : [];
 
         setState(prev => ({

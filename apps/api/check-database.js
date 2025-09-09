@@ -17,8 +17,8 @@ async function checkDatabase() {
         createdAt: true,
         _count: {
           select: {
-            projectMemberships: true,
-            ownedProjects: true
+            projectMembers: true,
+            projects: true
           }
         }
       }
@@ -43,7 +43,7 @@ async function checkDatabase() {
     console.log('\n2️⃣ PROJECTS IN DATABASE:');
     const projects = await prisma.project.findMany({
       include: {
-        owner: {
+        user: {
           select: { email: true }
         },
         members: {
@@ -68,7 +68,7 @@ async function checkDatabase() {
       console.log(`Found ${projects.length} projects:`);
       for (const project of projects) {
         console.log(`\n  📁 ${project.name} (${project.id})`);
-        console.log(`     Owner: ${project.owner.email}`);
+        console.log(`     Owner: ${project.user.email}`);
         console.log(`     Members: ${project.members.length}`);
         
         if (project.members.length > 0) {
@@ -96,7 +96,7 @@ async function checkDatabase() {
       include: {
         project: {
           include: {
-            owner: { select: { email: true } },
+            user: { select: { email: true } },
             members: {
               include: {
                 user: { select: { email: true } }
@@ -115,7 +115,7 @@ async function checkDatabase() {
       console.log('✅ Target scene found:');
       console.log(`   Name: ${targetScene.name}`);
       console.log(`   Project: ${targetScene.project.name}`);
-      console.log(`   Project Owner: ${targetScene.project.owner.email}`);
+      console.log(`   Project Owner: ${targetScene.project.user.email}`);
       console.log(`   Project Members: ${targetScene.project.members.length}`);
       
       if (targetScene.project.members.length > 0) {

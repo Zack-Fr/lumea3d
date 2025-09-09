@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { SceneManifestV2 } from '../services/scenesApi';
-import { useSceneManifestStaged } from '../hooks/scenes/useSceneManifestStaged';
 import { useSceneCategories } from '../hooks/scenes/useSceneQuery';
 import { useAuth } from '../providers/AuthProvider';
 
@@ -58,6 +57,7 @@ export interface SceneContextState {
   toggleCategory: (categoryId: string) => void;
   setPriorityCategories: (categories: string[]) => void;
   refreshScene: () => void;
+  updateManifest: (newManifest: SceneManifestV2 | null, newMetrics?: any, newError?: string | null) => void;
 }
 
 // Scene Context
@@ -85,6 +85,24 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     'shell', 'lighting', 'environment'
   ]);
 
+  // Add state for manifest data
+  const [manifest, setManifest] = useState<SceneManifestV2 | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [sceneError, setSceneError] = useState<string | null>(null);
+  const [sceneMetrics, setSceneMetrics] = useState(null);
+
+  // Add method to update manifest
+  const updateManifest = useCallback((newManifest: SceneManifestV2 | null, newMetrics?: any, newError?: string | null) => {
+    setManifest(newManifest);
+    if (newMetrics !== undefined) {
+      setSceneMetrics(newMetrics);
+    }
+    if (newError !== undefined) {
+      setSceneError(newError);
+    }
+    setLoading(false);
+  }, []);
+
   // Log authentication status for debugging
   console.log('🔐 SceneProvider Auth Status:', {
     hasToken: !!token,
@@ -94,38 +112,38 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     mode: sceneId ? 'SCENE_MODE' : projectId ? 'PROJECT_MODE' : 'NO_MODE'
   });
 
-  // Scene manifest staged loading
-  const {
-    manifest,
-    stage,
-    progress,
-    isLoading,
-    error,
-    metrics,
-    refresh: refreshManifest
-  } = useSceneManifestStaged(sceneId || '', {
-    enabled: !!sceneId && !!token && !!user, // Only load if we have a sceneId
-    priorityCategories,
-    onStageComplete: (stageName, categories) => {
-      console.log(`Scene stage completed: ${stageName}`, categories);
-    },
-    onComplete: (completeManifest) => {
-      console.log('Scene loading complete:', completeManifest);
-    },
-    onError: (err) => {
-      console.error('Scene loading error:', err);
-      const errorMessage = err?.message || String(err);
-      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-        console.error('Authentication issue detected. Please check if user is logged in.');
-        console.error('Scene ID being requested:', sceneId);
-        console.error('Token available:', !!token);
-        console.error('User available:', !!user);
-      } else if (errorMessage.includes('404') || errorMessage.includes('Not found')) {
-        console.error('Scene not found. Scene ID may not exist:', sceneId);
-        console.error('This might be a project ID instead of a scene ID');
-      }
-    }
-  });
+  // Scene manifest staged loading - REMOVED to avoid conflicts with StagedSceneLoader
+  // const {
+  //   manifest,
+  //   stage,
+  //   progress,
+  //   isLoading,
+  //   error,
+  //   metrics,
+  //   refresh: refreshManifest
+  // } = useSceneManifestStaged(sceneId || '', {
+  //   enabled: !!sceneId && !!token && !!user, // Only load if we have a sceneId
+  //   priorityCategories,
+  //   onStageComplete: (stageName, categories) => {
+  //     console.log(`Scene stage completed: ${stageName}`, categories);
+  //   },
+  //   onComplete: (completeManifest) => {
+  //     console.log('Scene loading complete:', completeManifest);
+  //   },
+  //   onError: (err) => {
+  //     console.error('Scene loading error:', err);
+  //     const errorMessage = err?.message || String(err);
+  //     if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+  //       console.error('Authentication issue detected. Please check if user is logged in.');
+  //       console.error('Scene ID being requested:', sceneId);
+  //       console.error('Token available:', !!token);
+  //       console.error('User available:', !!user);
+  //     } else if (errorMessage.includes('404') || errorMessage.includes('Not found')) {
+  //       console.error('Scene not found. Scene ID may not exist:', sceneId);
+  //       console.error('This might be a project ID instead of a scene ID');
+  //     }
+  //   }
+  // });
 
   // Scene categories - only load if we have a sceneId
   const { 
@@ -137,7 +155,7 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
 
   // Scene actions
   const setScene = useCallback((newProjectId: string, newSceneId: string) => {
-    console.log('Loading scene:', { projectId: newProjectId, sceneId: newSceneId });
+    console.log('🎯 setScene called with:', { projectId: newProjectId, sceneId: newSceneId });
     setProjectId(newProjectId);
     setSceneId(newSceneId);
     
@@ -171,19 +189,17 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
 
   const refreshScene = useCallback(() => {
     console.log('Refreshing scene');
-    if (refreshManifest) {
-      refreshManifest();
-    }
-  }, [refreshManifest]);
+    // Refresh functionality removed - StagedSceneLoader handles this
+  }, []);
 
   // Create loading state
-  const loading: SceneLoadingState = {
-    stage,
-    progress,
+  const sceneLoadingState: SceneLoadingState = {
+    stage: 'complete', // Default to complete since StagedSceneLoader handles loading
+    progress: 1,
     loadedCategories: manifest ? Object.keys(manifest.categories || {}) : [],
     availableCategories: allCategories,
-    isComplete: !isLoading && !!manifest,
-    hasError: !!error
+    isComplete: !!manifest,
+    hasError: !!sceneError
   };
 
   // Context value
@@ -197,14 +213,14 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     categories: allCategories,
     
     // Loading state
-    loading,
-    isLoading: isLoading || categoriesLoading,
-    error,
+    loading: sceneLoadingState,
+    isLoading: loading || categoriesLoading,
+    error: sceneError,
     
     // Performance metrics
-    metrics: metrics ? {
-      ...metrics,
-      performanceScore: calculatePerformanceScore(metrics)
+    metrics: sceneMetrics && typeof sceneMetrics === 'object' ? {
+      ...(sceneMetrics as any),
+      performanceScore: calculatePerformanceScore(sceneMetrics as any)
     } : null,
     
     // Category filtering
@@ -216,7 +232,8 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     clearScene,
     toggleCategory,
     setPriorityCategories,
-    refreshScene
+    refreshScene,
+    updateManifest
   };
 
   return (

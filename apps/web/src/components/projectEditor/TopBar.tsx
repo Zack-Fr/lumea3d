@@ -79,9 +79,12 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
 
   const handleCreateScene = async () => {
     if (!projectId) {
-      console.error('No project ID available for scene creation');
+      console.error('❌ No project ID available for scene creation');
+      alert('No project selected. Please select a project first.');
       return;
     }
+
+    console.log('🎨 Creating scene in project:', projectId);
 
     try {
       // Import scenesApi dynamically to avoid circular dependencies
@@ -92,18 +95,24 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
         return;
       }
 
-      const newScene = await scenesApi.createScene(projectId, { 
-        name: sceneName.trim() 
+      console.log('🎨 Calling scenesApi.createScene with:', { 
+        name: sceneName.trim(),
+        projectId: projectId
+      });
+
+      const newScene = await scenesApi.createScene({ 
+        name: sceneName.trim(),
+        projectId: projectId
       });
       
-      console.log('Scene created:', newScene);
+      console.log('✅ Scene created successfully:', newScene);
       
       // Navigate to the new scene
       if (newScene && newScene.id) {
         setScene(projectId, newScene.id);
       }
     } catch (error) {
-      console.error('Failed to create scene:', error);
+      console.error('❌ Failed to create scene:', error);
       alert('Failed to create scene. Please try again.');
     }
   };

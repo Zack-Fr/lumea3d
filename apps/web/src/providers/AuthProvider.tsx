@@ -91,19 +91,22 @@ const [state, setState] = useState<AuthState>(() => {
     // Additional debugging for authentication issues
     console.log('🔐 Auth token updated:', {
       hasToken: !!state.token,
-      tokenLength: state.token?.length,
+      tokenPreview: state.token ? state.token.substring(0, 20) + '...' : 'NULL',
       userId: state.user?.id,
-      userEmail: state.user?.email
+      userEmail: state.user?.email,
+      timestamp: new Date().toISOString()
     });
 
     if (state.token) {
       // log once to avoid repeated token lines
       logOnce('auth:set-tokens', 'info', '🔐 AUTH_PROVIDER: Setting token for all API services');
+      console.log('🔐 AUTH_PROVIDER: Calling updateApiClientToken with token');
       updateApiClientToken(state.token);
       updateAssetApiToken(state.token);
       updateDashboardApiToken(state.token);
     } else {
       logOnce('auth:clear-tokens', 'info', '🔐 AUTH_PROVIDER: Clearing tokens from all API services');
+      console.log('🔐 AUTH_PROVIDER: Clearing tokens (no token available)');
       updateApiClientToken(null);
       updateAssetApiToken(null);
       updateDashboardApiToken(null);

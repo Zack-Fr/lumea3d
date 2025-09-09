@@ -82,7 +82,7 @@ export function useScene(projectId: string, sceneId: string, options: { enabled?
       if (!token) {
         throw new SceneApiError(401, 'Authentication required');
       }
-      return scenesApi.getScene(projectId, sceneId);
+      return scenesApi.getScene(sceneId);
     },
     enabled: !!projectId && !!sceneId && !!token && (options.enabled !== false),
     staleTime: 60000, // 1 minute
@@ -107,7 +107,7 @@ export function useSceneVersion(projectId: string, sceneId: string, options: { e
       if (!token) {
         throw new SceneApiError(401, 'Authentication required');
       }
-      return scenesApi.getVersion(projectId, sceneId);
+      return scenesApi.getVersion(sceneId);
     },
     enabled: !!projectId && !!sceneId && !!token && (options.enabled !== false),
     staleTime: 5000, // 5 seconds - version changes frequently
@@ -124,14 +124,15 @@ export function useSceneVersion(projectId: string, sceneId: string, options: { e
 /**
  * Hook to fetch available categories in a scene (flat route)
  */
-export function useSceneCategories(sceneId: string, options: { enabled?: boolean } = {}) {
+export function useSceneCategories(sceneId: string, options: { enabled?: boolean; querySuffix?: string } = {}) {
   const { token } = useAuth();
 
   // Only enable query if token is present and sceneId is set
   const enabled = !!sceneId && !!token && (options.enabled !== false);
+  const { querySuffix = '' } = options;
 
   return useQuery({
-    queryKey: ['scene-categories', sceneId, token],
+    queryKey: ['scene-categories', sceneId, token, querySuffix].filter(Boolean),
     queryFn: async () => {
       log('debug', '🔄 useSceneCategories: Loading categories for scene:', sceneId);
       const response = await scenesApi.getCategories(sceneId);
@@ -139,7 +140,7 @@ export function useSceneCategories(sceneId: string, options: { enabled?: boolean
       // Handle both formats for compatibility
       const categories = Array.isArray(response) ? response : (response?.categories || []);
       logOnce(`scene:categories:loaded:${sceneId}`, 'info', '✅ useSceneCategories: Loaded categories (logged once)');
-      log('debug', '✅ useSceneCategories: Loaded categories count', categories.length);
+      log('debug', '✅ useSceneCategories: Loaded categories count', Array.isArray(categories) ? categories.length : 0);
       return categories;
     },
     enabled,

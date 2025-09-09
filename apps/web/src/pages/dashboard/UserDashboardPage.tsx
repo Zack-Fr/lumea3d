@@ -118,7 +118,7 @@ const UserDashboardPage = memo(() => {
 
   const handleProjectCardClick = useCallback((project: any) => {
     onProjectClick(project);
-    handleNavigate("project", project.id);
+    handleNavigate("project", project.originalId || project.id);
   }, [onProjectClick, handleNavigate]);
 
   const handleQuickActionClick = useCallback((action: string) => {

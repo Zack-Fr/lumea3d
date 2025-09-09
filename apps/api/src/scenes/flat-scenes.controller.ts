@@ -33,6 +33,8 @@ import { UpdateSceneItemDto } from './dto/update-scene-item.dto';
 import { SceneManifestV2, SceneDelta } from './dto/scene-manifest.dto';
 import { JwtAuthGuard } from '../auth/shared/guards/jwt-auth.guard';
 import { ScenesAuthGuard } from '../shared/guards/scenes-auth.guard';
+import { ProjectAuthGuard } from '../shared/guards/project-auth.guard';
+import { CreateSceneDto } from './dto/create-scene.dto';
 
 interface RequestWithSceneContext extends Request {
   user: any;
@@ -44,7 +46,7 @@ interface RequestWithSceneContext extends Request {
 
 @ApiTags('Flat Scenes')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, ScenesAuthGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('scenes')
 export class FlatScenesController {
   constructor(
@@ -52,7 +54,29 @@ export class FlatScenesController {
     private readonly projectCategory3DService: ProjectCategory3DService,
   ) {}
 
+  @Post()
+  @UseGuards(ProjectAuthGuard)
+  @ApiOperation({
+    summary: 'Create a new 3D scene',
+    description: 'Creates a scene within a project. The projectId must be provided in the request body.',
+  })
+  @ApiResponse({ status: 201, description: 'Scene created successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid scene data or missing projectId' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  create(
+    @Body() createSceneDto: CreateSceneDto & { projectId: string },
+    @Request() req: any,
+  ) {
+    const { projectId, ...sceneData } = createSceneDto;
+    if (!projectId) {
+      throw new BadRequestException('projectId is required in request body');
+    }
+    return this.scenesService.create(projectId, req.user.id, sceneData as CreateSceneDto);
+  }
+
   @Get(':sceneId')
+  @UseGuards(ScenesAuthGuard)
   @ApiOperation({ 
     summary: 'Get a specific scene with items',
     description: 'Flat route - no project ID required in path',
@@ -70,6 +94,7 @@ export class FlatScenesController {
   }
 
   @Patch(':sceneId')
+  @UseGuards(ScenesAuthGuard)
   @ApiOperation({ 
     summary: 'Update scene properties',
     description: 'Flat route - no project ID required in path. Requires If-Match header for optimistic locking.',
@@ -119,6 +144,7 @@ export class FlatScenesController {
   }
 
   @Delete(':sceneId')
+  @UseGuards(ScenesAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ 
     summary: 'Delete a scene and all its items',
@@ -139,6 +165,7 @@ export class FlatScenesController {
   // Scene Items endpoints
 
   @Post(':sceneId/items')
+  @UseGuards(ScenesAuthGuard)
   @ApiOperation({ 
     summary: 'Add an item to a scene',
     description: 'Flat route - no project ID required in path. Requires If-Match header for optimistic locking.',
@@ -187,6 +214,7 @@ export class FlatScenesController {
   }
 
   @Patch(':sceneId/items/:itemId')
+  @UseGuards(ScenesAuthGuard)
   @ApiOperation({ 
     summary: 'Update a scene item',
     description: 'Flat route - no project ID required in path. Requires If-Match header for optimistic locking.',
@@ -238,6 +266,7 @@ export class FlatScenesController {
   }
 
   @Delete(':sceneId/items/:itemId')
+  @UseGuards(ScenesAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ 
     summary: 'Remove an item from a scene',
@@ -285,6 +314,7 @@ export class FlatScenesController {
   // Scene Manifest endpoints
 
   @Get(':sceneId/manifest')
+  @UseGuards(ScenesAuthGuard)
   @ApiOperation({
     summary: 'Generate scene manifest for client consumption',
     description: 'Flat route - returns a complete scene manifest with all items, transforms, and asset references. Supports category filtering.',
@@ -329,6 +359,7 @@ export class FlatScenesController {
   }
 
   @Get(':sceneId/categories')
+  @UseGuards(ScenesAuthGuard)
   @ApiOperation({
     summary: 'Get available categories in scene',
     description: 'Flat route - returns all unique categories used by items in the scene with their metadata',
@@ -377,6 +408,7 @@ export class FlatScenesController {
   }
 
   @Get(':sceneId/delta')
+  @UseGuards(ScenesAuthGuard)
   @ApiOperation({
     summary: 'Generate delta between scene versions',
     description: 'Flat route - returns operations needed to transform scene from one version to another',
@@ -408,6 +440,7 @@ export class FlatScenesController {
   }
 
   @Get(':sceneId/version')
+  @UseGuards(ScenesAuthGuard)
   @ApiOperation({
     summary: 'Get current scene version',
     description: 'Flat route - returns the current version number for optimistic locking',

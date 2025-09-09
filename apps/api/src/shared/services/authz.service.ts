@@ -19,23 +19,42 @@ export class AuthzService {
     method: string,
   ): Promise<boolean> {
     // Input validation
-    if (!userId || typeof userId !== 'string') return false;
-    if (!projectId || typeof projectId !== 'string') return false;
+    if (!userId || typeof userId !== 'string') {
+      console.log('❌ AuthzService: Invalid userId:', userId);
+      return false;
+    }
+    if (!projectId || typeof projectId !== 'string') {
+      console.log('❌ AuthzService: Invalid projectId:', projectId);
+      return false;
+    }
+
+    console.log('🔍 AuthzService: Checking access for user:', userId, 'project:', projectId, 'method:', method);
 
     const member = await this.prisma.projectMember.findUnique({
       where: { userId_projectId: { userId, projectId } },
       select: { role: true },
     });
 
-    if (!member) return false;
+    console.log('🔍 AuthzService: Membership lookup result:', member);
+
+    if (!member) {
+      console.log('❌ AuthzService: User is not a member of this project');
+      return false;
+    }
 
     const isRead = ['GET', 'HEAD'].includes(method.toUpperCase());
     
     // All roles can read
-    if (isRead) return true;
+    if (isRead) {
+      console.log('✅ AuthzService: Read access granted');
+      return true;
+    }
 
     // Only DESIGNER and ADMIN can write
-    return member.role === ProjectRole.DESIGNER || member.role === ProjectRole.ADMIN;
+    const canWrite = member.role === ProjectRole.DESIGNER || member.role === ProjectRole.ADMIN;
+    console.log('🔍 AuthzService: Write access check - Role:', member.role, 'Can write:', canWrite);
+    
+    return canWrite;
   }
 
   /**
