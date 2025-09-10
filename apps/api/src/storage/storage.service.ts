@@ -229,6 +229,20 @@ export class StorageService {
   }
 
   /**
+   * Generate a public download URL that uses our backend proxy instead of presigned URLs
+   */
+  generatePublicDownloadUrl(objectKey: string): string {
+    // Get the backend API base URL from config, fallback to localhost:3001
+    const apiBaseUrl = this.configService.get<string>('API_BASE_URL', 'http://localhost:3001');
+    
+    // Encode the object key to handle special characters
+    const encodedObjectKey = encodeURIComponent(objectKey);
+    
+    // Return the public storage serve endpoint URL
+    return `${apiBaseUrl}/public/storage/serve/${this.bucketName}/${encodedObjectKey}`;
+  }
+
+  /**
    * Check if an object exists in storage
    */
   async objectExists(objectKey: string): Promise<boolean> {

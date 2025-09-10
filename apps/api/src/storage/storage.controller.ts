@@ -1,8 +1,9 @@
-import { Controller, Get, Param, Query, UseGuards, Req, Logger, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards, Req, Res, Logger, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/shared/guards/jwt-auth.guard';
 import { StorageService } from './storage.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
 
 @ApiTags('Storage')
 @Controller('storage')
@@ -137,5 +138,64 @@ export class StorageController {
       redirectUrl: assetUrl,
       message: 'Use the redirect URL to download the asset',
     };
+  }
+
+}
+
+// Public asset serving (no authentication required)
+@Controller('public/storage')
+export class PublicStorageController {
+  private readonly logger = new Logger(PublicStorageController.name);
+
+  constructor(private readonly storageService: StorageService) {}
+
+  @Get('serve/:bucketName/:objectKey(*)')
+  @ApiOperation({ summary: 'Serve asset file directly (public endpoint for 3D viewer)' })
+  @ApiResponse({ status: 200, description: 'Asset file content' })
+  @ApiResponse({ status: 404, description: 'Asset not found' })
+  async serveAsset(
+    @Param('bucketName') bucketName: string,
+    @Param('objectKey') encodedObjectKey: string,
+    @Res() res: any,
+  ) {
+    try {
+      // Decode the object key
+      const objectKey = decodeURIComponent(encodedObjectKey);
+      this.logger.log(`[DEBUG] PublicStorageController - bucketName: ${bucketName}`);
+      this.logger.log(`[DEBUG] PublicStorageController - encodedObjectKey: ${encodedObjectKey}`);
+      this.logger.log(`[DEBUG] PublicStorageController - decodedObjectKey: ${objectKey}`);
+      this.logger.log(`Public serving asset: ${objectKey}`);
+      
+      // Extract filename from object key for temp file and content type
+      const filename = objectKey.split('/').pop() || 'asset';
+      
+      // Use storage service to download the file to a buffer
+      const tempFile = `/tmp/${Date.now()}-${filename}`;
+      await this.storageService.downloadAssetToFile(objectKey, tempFile);
+      
+      // Set appropriate headers
+      if (filename.endsWith('.glb') || filename.endsWith('.gltf')) {
+        res.set('Content-Type', 'model/gltf-binary');
+      } else {
+        res.set('Content-Type', 'application/octet-stream');
+      }
+      
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Access-Control-Allow-Methods', 'GET');
+      res.set('Access-Control-Allow-Headers', 'Content-Type');
+      
+      // Send the file
+      res.sendFile(tempFile, (err) => {
+        if (err) {
+          this.logger.error(`Error sending file: ${err.message}`);
+        }
+        // Clean up temp file
+        require('fs').unlink(tempFile, () => {});
+      });
+      
+    } catch (error) {
+      this.logger.error(`Failed to serve asset: ${error.message}`);
+      throw new NotFoundException('Asset not found or inaccessible');
+    }
   }
 }

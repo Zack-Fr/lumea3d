@@ -7,6 +7,15 @@ import { log } from '../../utils/logger';
  */
 export function pickCategoryUrl(category: CategoryInfo): string {
   console.log('🎯 pickCategoryUrl called with category:', category);
+  console.log('🎯 Category structure breakdown:', {
+    categoryKey: (category as any).categoryKey,
+    assetId: (category as any).assetId,
+    asset: (category as any).asset,
+    meshopt: category.meshopt,
+    draco: category.draco,
+    glb_url: category.glb_url,
+    url: (category as any).url
+  });
   
   // Handle the actual data structure from your logs
   // Categories have an 'asset' property with the URLs
@@ -29,26 +38,7 @@ export function pickCategoryUrl(category: CategoryInfo): string {
     }
     
     if (selectedUrl) {
-      // Convert MinIO URLs to API proxy URLs to avoid 403 Forbidden issues
-      if (selectedUrl.includes('localhost:9000') || selectedUrl.includes('minio')) {
-        // Try to get asset ID from the category data
-        const assetId = (category as any).assetId || asset.id;
-        if (assetId) {
-          // Determine variant type from URL
-          let variant = 'original';
-          if (selectedUrl.includes('meshopt') || selectedUrl.includes('optimized')) {
-            variant = 'meshopt';
-          } else if (selectedUrl.includes('draco')) {
-            variant = 'draco';
-          }
-          
-          const proxyUrl = `http://localhost:3001/storage/assets/${assetId}?variant=${variant}`;
-          console.log('🔄 Converting MinIO URL to asset endpoint:', selectedUrl, '->', proxyUrl);
-          return proxyUrl;
-        } else {
-          console.warn('⚠️ No asset ID found, cannot convert URL:', selectedUrl);
-        }
-      }
+      console.log('✅ Selected URL for category:', selectedUrl);
       return selectedUrl;
     }
   }

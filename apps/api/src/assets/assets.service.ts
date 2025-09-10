@@ -302,7 +302,12 @@ export class AssetsService {
       throw new BadRequestException('Asset processing failed');
     }
 
-    return this.storageService.generatePresignedDownloadUrl(objectKey, expiresIn);
+    // Return public download URL instead of presigned URL to avoid MinIO permission issues
+    const publicUrl = this.storageService.generatePublicDownloadUrl(objectKey);
+    return {
+      downloadUrl: publicUrl,
+      expiresIn: expiresIn, // Keep the interface consistent
+    };
   }
 
   /**

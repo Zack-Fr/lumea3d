@@ -791,13 +791,12 @@ export class ScenesService {
       let assetUrl = category.asset.meshoptUrl || category.asset.originalUrl;
       
       if (assetUrl) {
-        // If it's not already a full URL, generate a presigned URL
+        // If it's not already a full URL, generate a public URL
         if (!assetUrl.startsWith('http')) {
           try {
-            const presignedResult = await this.storageService.generatePresignedDownloadUrl(assetUrl);
-            assetUrl = presignedResult.downloadUrl;
+            assetUrl = this.storageService.generatePublicDownloadUrl(assetUrl);
           } catch (error) {
-            console.warn(`Failed to generate presigned URL for asset ${category.asset.id}:`, error);
+            console.warn(`Failed to generate public URL for asset ${category.asset.id}:`, error);
             assetUrl = ''; // Fallback to empty URL
           }
         }
@@ -911,13 +910,12 @@ export class ScenesService {
         let assetUrl = navmeshAsset.navmeshUrl || navmeshAsset.originalUrl;
         
         if (assetUrl) {
-          // If it's not already a full URL, generate a presigned URL
+          // If it's not already a full URL, generate a public URL
           if (!assetUrl.startsWith('http')) {
             try {
-              const presignedResult = await this.storageService.generatePresignedDownloadUrl(assetUrl);
-              assetUrl = presignedResult.downloadUrl;
+              assetUrl = this.storageService.generatePublicDownloadUrl(assetUrl);
             } catch (error) {
-              console.warn(`Failed to generate presigned URL for navmesh asset ${scene.navmeshAssetId}:`, error);
+              console.warn(`Failed to generate public URL for navmesh asset ${scene.navmeshAssetId}:`, error);
               assetUrl = undefined;
             }
           }
