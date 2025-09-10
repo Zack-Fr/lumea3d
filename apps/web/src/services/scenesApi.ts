@@ -201,20 +201,13 @@ export interface SceneApiErrorData {
 }
 
 export function getCurrentToken(): string | null {
-  // Enhanced logging for debugging with stack trace context
-  const stackTrace = new Error().stack?.split('\n')[2]?.trim() || 'Unknown caller';
-  
-  console.log('🔍 SCENES_API: getCurrentToken called from:', stackTrace);
-  console.log('🔍 SCENES_API: Token state:', {
-    hasToken: !!currentAuthToken,
-    tokenLength: currentAuthToken?.length || 0,
-    tokenPreview: currentAuthToken ? currentAuthToken.substring(0, 30) + '...' : 'NULL',
-    timestamp: new Date().toISOString()
-  });
-  
+  // Fallback to localStorage if in-memory token is missing (fixes page refresh issue)
   if (!currentAuthToken) {
-    console.warn('⚠️ SCENES_API: No token available!');
-    console.warn('⚠️ Check that user is logged in and AuthProvider has set the token');
+    const storedToken = localStorage.getItem('lumea_auth_token');
+    if (storedToken) {
+      console.log('🔄 SCENES_API: Restored token from localStorage after page refresh');
+      currentAuthToken = storedToken;
+    }
   }
   
   return currentAuthToken;
