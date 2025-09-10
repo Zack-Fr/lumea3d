@@ -794,11 +794,15 @@ export class ScenesService {
         // If it's not already a full URL, generate a public URL
         if (!assetUrl.startsWith('http')) {
           try {
+            const originalAssetUrl = assetUrl;
             assetUrl = this.storageService.generatePublicDownloadUrl(assetUrl);
+            console.log(`[DEBUG] URL Generation - Original: ${originalAssetUrl} -> Generated: ${assetUrl}`);
           } catch (error) {
             console.warn(`Failed to generate public URL for asset ${category.asset.id}:`, error);
             assetUrl = ''; // Fallback to empty URL
           }
+        } else {
+          console.log(`[DEBUG] URL Generation - Already full URL: ${assetUrl}`);
         }
         
         categoriesMap[category.categoryKey] = {

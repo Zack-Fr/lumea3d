@@ -26,7 +26,9 @@ export function SafeInstancedObject({
 
   useEffect(() => {
     // Test if the URL is accessible
-    console.log(`🔍 SafeInstancedObject: Testing URL accessibility: ${glbUrl}`);
+    console.log(`🔍 SafeInstancedObject: Received glbUrl:`, glbUrl);
+console.log(`🔍 SafeInstancedObject: glbUrl length:`, glbUrl.length);  
+console.log(`🔍 SafeInstancedObject: Testing URL accessibility: ${glbUrl}`);
     
     fetch(glbUrl, { method: 'HEAD' })
       .then(response => {

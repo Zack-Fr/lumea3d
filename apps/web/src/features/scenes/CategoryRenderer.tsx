@@ -80,7 +80,10 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
       {shouldUseInstancing ? (
         // Use instanced rendering for repeated objects
         Array.from(instanceGroups.entries()).map(([model, groupItems], index) => {
-          const glbUrl = `${categoryUrl}${model}`;
+          // Fix: Don't concatenate if categoryUrl is already a complete URL
+          const glbUrl = categoryUrl.startsWith('http') ? categoryUrl : `${categoryUrl}${model}`;
+          console.log(`🎯 CategoryRenderer - categoryUrl: ${categoryUrl}`);
+          console.log(`🎯 CategoryRenderer - model: ${model}`);
           console.log(`🎯 Attempting to load instanced GLB: ${glbUrl}`);
           
           return (

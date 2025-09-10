@@ -235,11 +235,18 @@ export class StorageService {
     // Get the backend API base URL from config, fallback to localhost:3001
     const apiBaseUrl = this.configService.get<string>('API_BASE_URL', 'http://localhost:3001');
     
+    console.log(`[DEBUG] generatePublicDownloadUrl - Input objectKey: ${objectKey}`);
+    console.log(`[DEBUG] generatePublicDownloadUrl - API Base URL: ${apiBaseUrl}`);
+    console.log(`[DEBUG] generatePublicDownloadUrl - Bucket: ${this.bucketName}`);
+    
     // Encode the object key to handle special characters
     const encodedObjectKey = encodeURIComponent(objectKey);
     
     // Return the public storage serve endpoint URL
-    return `${apiBaseUrl}/public/storage/serve/${this.bucketName}/${encodedObjectKey}`;
+    const finalUrl = `${apiBaseUrl}/public/storage/serve/${this.bucketName}/${encodedObjectKey}`;
+    console.log(`[DEBUG] generatePublicDownloadUrl - Final URL: ${finalUrl}`);
+    
+    return finalUrl;
   }
 
   /**

@@ -1,4 +1,4 @@
-import { Controller, Get, Head, Param, Query, UseGuards, Req, Res, Logger, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Head, Options, Param, Query, UseGuards, Req, Res, Logger, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/shared/guards/jwt-auth.guard';
 import { StorageService } from './storage.service';
@@ -151,6 +151,7 @@ export class PublicStorageController {
 
   @Get('serve/:bucketName/:objectKey(*)')
   @Head('serve/:bucketName/:objectKey(*)')
+  @Options('serve/:bucketName/:objectKey(*)')
   @ApiOperation({ summary: 'Serve asset file directly (public endpoint for 3D viewer)' })
   @ApiResponse({ status: 200, description: 'Asset file content' })
   @ApiResponse({ status: 404, description: 'Asset not found' })
@@ -180,8 +181,14 @@ export class PublicStorageController {
       }
       
       res.set('Access-Control-Allow-Origin', '*');
-      res.set('Access-Control-Allow-Methods', 'GET, HEAD');
+      res.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
       res.set('Access-Control-Allow-Headers', 'Content-Type');
+      res.set('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
+      
+      // For OPTIONS requests (CORS preflight), just return headers
+      if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+      }
       
       // For HEAD requests, just return headers without body
       if (req.method === 'HEAD') {
