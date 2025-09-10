@@ -1,5 +1,6 @@
 import { memo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { Gamepad2, ArrowRight, Play, Sparkles, Zap, Menu, Settings, Volume2, VolumeX } from "lucide-react";
 import { Button } from "../../components/ui/Button";
 import { useMouse } from "../../hooks/useMouse";
@@ -13,11 +14,10 @@ import ProgressPanel from "../../components/landing/ProgressPanel";
 import FeaturePill from "../../components/landing/FeaturePill";
 import s from "./Landing.module.css";
 
-interface LandingPageProps {
-  onNavigate?: (page: string) => void;
-}
+interface LandingPageProps {}
 
-const LandingPage = memo(({ onNavigate }: LandingPageProps) => {
+const LandingPage = memo(({}: LandingPageProps) => {
+  const navigate = useNavigate();
   const [selectedMenuItem, setSelectedMenuItem] = useState<string | null>(null);
   
   // Custom hooks for clean state management
@@ -29,14 +29,26 @@ const LandingPage = memo(({ onNavigate }: LandingPageProps) => {
   const handleMenuItemClick = useCallback((item: MenuItem) => {
     if (!item.unlocked) return;
     setSelectedMenuItem(item.id);
-    if (item.action && onNavigate) {
-      onNavigate(item.action);
+    if (item.action) {
+      if (item.action === 'dashboard') {
+        navigate('/app/dashboard');
+      } else if (item.action === 'guest') {
+        navigate('/app/guest');
+      } else {
+        navigate(`/${item.action}`);
+      }
     }
-  }, [onNavigate]);
+  }, [navigate]);
 
   const handleNavigate = useCallback((page: string) => {
-    onNavigate?.(page);
-  }, [onNavigate]);
+    if (page === 'dashboard') {
+      navigate('/app/dashboard');
+    } else if (page === 'guest') {
+      navigate('/app/guest');
+    } else {
+      navigate(`/${page}`);
+    }
+  }, [navigate]);
 
   return (
     <div className={s.root}>

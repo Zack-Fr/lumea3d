@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards, Req, Res, Logger, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Head, Param, Query, UseGuards, Req, Res, Logger, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/shared/guards/jwt-auth.guard';
 import { StorageService } from './storage.service';
@@ -150,6 +150,7 @@ export class PublicStorageController {
   constructor(private readonly storageService: StorageService) {}
 
   @Get('serve/:bucketName/:objectKey(*)')
+  @Head('serve/:bucketName/:objectKey(*)')
   @ApiOperation({ summary: 'Serve asset file directly (public endpoint for 3D viewer)' })
   @ApiResponse({ status: 200, description: 'Asset file content' })
   @ApiResponse({ status: 404, description: 'Asset not found' })
@@ -157,10 +158,12 @@ export class PublicStorageController {
     @Param('bucketName') bucketName: string,
     @Param('objectKey') encodedObjectKey: string,
     @Res() res: any,
+    @Req() req: any,
   ) {
     try {
       // Decode the object key
       const objectKey = decodeURIComponent(encodedObjectKey);
+      this.logger.log(`[DEBUG] PublicStorageController - method: ${req.method}`);
       this.logger.log(`[DEBUG] PublicStorageController - bucketName: ${bucketName}`);
       this.logger.log(`[DEBUG] PublicStorageController - encodedObjectKey: ${encodedObjectKey}`);
       this.logger.log(`[DEBUG] PublicStorageController - decodedObjectKey: ${objectKey}`);
@@ -169,11 +172,7 @@ export class PublicStorageController {
       // Extract filename from object key for temp file and content type
       const filename = objectKey.split('/').pop() || 'asset';
       
-      // Use storage service to download the file to a buffer
-      const tempFile = `/tmp/${Date.now()}-${filename}`;
-      await this.storageService.downloadAssetToFile(objectKey, tempFile);
-      
-      // Set appropriate headers
+      // Set appropriate headers first
       if (filename.endsWith('.glb') || filename.endsWith('.gltf')) {
         res.set('Content-Type', 'model/gltf-binary');
       } else {
@@ -181,8 +180,22 @@ export class PublicStorageController {
       }
       
       res.set('Access-Control-Allow-Origin', '*');
-      res.set('Access-Control-Allow-Methods', 'GET');
+      res.set('Access-Control-Allow-Methods', 'GET, HEAD');
       res.set('Access-Control-Allow-Headers', 'Content-Type');
+      
+      // For HEAD requests, just return headers without body
+      if (req.method === 'HEAD') {
+        // Check if file exists first
+        const exists = await this.storageService.objectExists(objectKey);
+        if (!exists) {
+          throw new NotFoundException('Asset not found');
+        }
+        return res.status(200).end();
+      }
+      
+      // For GET requests, download and serve the file
+      const tempFile = `/tmp/${Date.now()}-${filename}`;
+      await this.storageService.downloadAssetToFile(objectKey, tempFile);
       
       // Send the file
       res.sendFile(tempFile, (err) => {
