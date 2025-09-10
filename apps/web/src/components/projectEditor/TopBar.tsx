@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useSceneContext } from '../../contexts/SceneContext';
 import { useScenes } from '../../hooks/scenes/useSceneQuery';
+import { useScenesList } from '../../hooks/scenes/useScenesList';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 
 interface TopBarProps {
@@ -53,6 +54,17 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
   const { data: availableScenes = [], isLoading: scenesLoading, error: scenesError } = useScenes(projectId || '', {
     enabled: !!projectId
   });
+  
+  // Fallback scene list if primary scenes query fails
+  const { scenes: fallbackScenes = [], isLoading: fallbackLoading, error: fallbackError } = useScenesList({
+    enabled: !!projectId && (!!scenesError || availableScenes.length === 0),
+    projectId: projectId || undefined
+  });
+  
+  // Use primary scenes if available, otherwise use fallback
+  const finalScenes = availableScenes.length > 0 ? availableScenes : fallbackScenes;
+  const finalLoading = scenesLoading || fallbackLoading;
+  const finalError = scenesError && fallbackError;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -68,7 +80,7 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
     }
   }, [showSceneSelector]);
 
-  const currentScene = availableScenes.find(scene => scene.id === sceneId);
+  const currentScene = finalScenes.find(scene => scene.id === sceneId);
 
   const handleSceneSelect = (scene: any) => {
     setScene(projectId || '', scene.id);
@@ -136,7 +148,7 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
               className={styles.sceneSelectorButton}
             >
               <Folder className="w-4 h-4 mr-2" />
-              {scenesLoading ? 'Loading...' : currentScene ? (currentScene.name || currentScene.id) : (sceneId || 'Select Scene')}
+              {finalLoading ? 'Loading...' : currentScene ? (currentScene.name || currentScene.id) : (sceneId || 'Select Scene')}
               <ChevronDown className="w-4 h-4 ml-2" />
             </Button>
             
@@ -166,20 +178,20 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
               minWidth: '200px',
               padding: '4px'
             }}>
-              {scenesLoading ? (
+              {finalLoading ? (
                 <div style={{ padding: '8px 12px', color: 'var(--muted-foreground)', fontSize: '14px' }}>
                   Loading scenes...
                 </div>
-              ) : scenesError ? (
+              ) : finalError ? (
                 <div style={{ padding: '8px 12px', color: 'var(--destructive)', fontSize: '14px' }}>
                   Failed to load scenes
                 </div>
-              ) : availableScenes.length === 0 ? (
+              ) : finalScenes.length === 0 ? (
                 <div style={{ padding: '8px 12px', color: 'var(--muted-foreground)', fontSize: '14px' }}>
                   No scenes found
                 </div>
               ) : (
-                availableScenes.map((scene) => (
+                finalScenes.map((scene) => (
                   <button
                     key={scene.id}
                     onClick={() => handleSceneSelect(scene)}
@@ -195,8 +207,18 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
                       cursor: 'pointer',
                       fontSize: '14px'
                     }}
+                    title={scene.description}
                   >
-                    {scene.name || scene.id}
+                    <div style={{ fontWeight: '500' }}>{scene.name || scene.id}</div>
+                    {scene.description && (
+                      <div style={{ 
+                        fontSize: '12px', 
+                        opacity: 0.7,
+                        marginTop: '2px'
+                      }}>
+                        {scene.description.substring(0, 50)}...
+                      </div>
+                    )}
                   </button>
                 ))
               )}

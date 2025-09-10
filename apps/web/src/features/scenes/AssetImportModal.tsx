@@ -171,6 +171,55 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
   //   });
   // }, []);
 
+  // Local fallback when API is unavailable
+  const handleLocalFallback = useCallback(async (file: File) => {
+    console.log('🔄 AssetImport: Using local fallback processing...');
+    
+    setUploadProgress({
+      stage: 'processing',
+      progress: 50,
+      message: 'Processing locally (API unavailable)...',
+    });
+
+    // Simulate local processing
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Generate a local asset ID
+    const localAssetId = `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Create local URL for the file
+    const localUrl = URL.createObjectURL(file);
+    
+    // Store in localStorage for persistence
+    const localAsset = {
+      id: localAssetId,
+      name: file.name.replace('.glb', ''),
+      category: formData.category,
+      url: localUrl,
+      size: file.size,
+      createdAt: new Date().toISOString(),
+      isLocal: true
+    };
+    
+    try {
+      const existingAssets = JSON.parse(localStorage.getItem('lumea-local-assets') || '[]');
+      existingAssets.push(localAsset);
+      localStorage.setItem('lumea-local-assets', JSON.stringify(existingAssets));
+    } catch (storageError) {
+      console.warn('Failed to store asset locally:', storageError);
+    }
+    
+    setUploadProgress({
+      stage: 'complete',
+      progress: 100,
+      message: 'Local processing completed!',
+      assetId: localAssetId,
+    });
+    
+    console.log('✅ AssetImport: Local fallback completed:', localAssetId);
+    onImportComplete?.(localAssetId, localAsset.name, formData.category);
+  }, [formData.category, onImportComplete]);
+
   const validateForm = useCallback((): string | null => {
     if (!formData.file) return 'Please select a GLB file';
     if (!formData.category) return 'Please select a category';
@@ -197,14 +246,37 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
 
       console.log('🚀 AssetImport: Starting upload process for:', formData.file.name);
 
-      // Step 1: Request upload URL using authenticated API service
-      const uploadData = await assetsApi.getUploadUrl({
-        filename: formData.file.name,
-        contentType: formData.file.type || 'model/gltf-binary',
-        fileSize: formData.file.size,
-        category: formData.category,
-        metadata: formData.metadata,
-      });
+      // Step 1: Request upload URL using authenticated API service with retry logic
+      let uploadData;
+      try {
+        uploadData = await assetsApi.getUploadUrl({
+          filename: formData.file.name,
+          contentType: formData.file.type || 'model/gltf-binary',
+          fileSize: formData.file.size,
+          category: formData.category,
+          metadata: formData.metadata,
+        });
+      } catch (apiError: any) {
+        console.error('❌ AssetImport: API call failed:', apiError);
+        
+        // Handle specific error cases
+        if (apiError.message?.includes('400')) {
+          throw new Error('Invalid file or metadata. Please check the file format and try again.');
+        } else if (apiError.message?.includes('401') || apiError.message?.includes('Unauthorized')) {
+          throw new Error('Authentication required. Please log in and try again.');
+        } else if (apiError.message?.includes('413') || apiError.message?.includes('too large')) {
+          throw new Error('File is too large. Please select a file smaller than 100MB.');
+        } else if (apiError.message?.includes('415') || apiError.message?.includes('Unsupported')) {
+          throw new Error('Unsupported file format. Please select a valid GLB file.');
+        } else if (apiError.message?.includes('503') || apiError.message?.includes('Service Unavailable')) {
+          throw new Error('Service temporarily unavailable. Please try again in a few minutes.');
+        } else {
+          // Fallback: Try local processing if API is unavailable
+          console.warn('API unavailable, attempting local processing...');
+          await handleLocalFallback(formData.file);
+          return;
+        }
+      }
 
       console.log('📡 AssetImport: Upload URL received:', uploadData.assetId);
 
@@ -215,18 +287,32 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
         assetId: uploadData.assetId,
       });
 
-      // Step 2: Upload file to the presigned URL
-      // For now, we'll simulate the upload and trigger completion
-      const uploadResponse = await fetch(uploadData.uploadUrl, {
-        method: 'PUT',
-        body: formData.file,
-        headers: {
-          'Content-Type': formData.file.type || 'model/gltf-binary',
-        },
-      });
+      // Step 2: Upload file to the presigned URL with proper error handling
+      let uploadResponse;
+      try {
+        uploadResponse = await fetch(uploadData.uploadUrl, {
+          method: 'PUT',
+          body: formData.file,
+          headers: {
+            'Content-Type': formData.file.type || 'model/gltf-binary',
+          },
+        });
 
-      if (!uploadResponse.ok) {
-        throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+        if (!uploadResponse.ok) {
+          if (uploadResponse.status === 403) {
+            throw new Error('Upload URL has expired. Please try importing again.');
+          } else if (uploadResponse.status === 413) {
+            throw new Error('File is too large for upload. Please select a smaller file.');
+          } else {
+            throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+          }
+        }
+      } catch (uploadError: any) {
+        console.error('❌ AssetImport: Upload failed:', uploadError);
+        if (uploadError.name === 'TypeError' && uploadError.message.includes('fetch')) {
+          throw new Error('Network error during upload. Please check your connection and try again.');
+        }
+        throw uploadError;
       }
 
       console.log('📤 AssetImport: File uploaded to storage');

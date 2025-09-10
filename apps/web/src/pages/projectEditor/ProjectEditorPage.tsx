@@ -334,6 +334,7 @@ const ProjectEditorContent: React.FC = () => {
             isWASDActive={isWASDActive}
             movement={movement}
             onViewportClick={handleViewportClickWithAchievement}
+            cameraMode={cameraMode}
           />
 
           {/* Viewport Tools */}

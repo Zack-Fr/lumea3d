@@ -5,8 +5,9 @@ import { motion } from "framer-motion";
 import { Box, Loader2 } from "lucide-react";
 import { ViewportMovement } from '../../types/projectEditor';
 import { useSceneContext } from '../../contexts/SceneContext';
-import { SceneRenderer } from '../../features/scenes/SceneRenderer';
 import { StagedSceneLoader } from '../../features/scenes/StagedSceneLoader';
+import SceneRenderer from './SceneRenderer';
+import CameraControlsComponent from './CameraControls';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 
 interface ViewportCanvasProps {
@@ -14,13 +15,15 @@ interface ViewportCanvasProps {
   isWASDActive: boolean;
   movement: ViewportMovement;
   onViewportClick: () => void;
+  cameraMode?: string;
 }
 
 const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
   viewportRef,
   isWASDActive,
   movement,
-  onViewportClick
+  onViewportClick,
+  cameraMode = 'orbit'
 }) => {
   // Get scene data from context
   const { 
@@ -239,16 +242,15 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
 
         {/* Scene Content */}
         <Suspense fallback={null}>
-          {projectId && sceneId && (
-            <SceneRenderer
-              key={`scene-renderer-${sceneId}`}
-              sceneId={sceneId}
-            />
-          )}
+          <SceneRenderer />
         </Suspense>
 
         {/* Camera Controls */}
-        {/* TODO: Integrate WASD controls with Three.js camera */}
+        <CameraControlsComponent
+          cameraMode={cameraMode}
+          isWASDActive={isWASDActive}
+          movement={movement}
+        />
       </Canvas>
 
       {/* Scene Loading UI */}
