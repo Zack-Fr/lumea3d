@@ -393,10 +393,12 @@ export const scenesApi = {
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'If-Match': version ? `W/"${version}"` : '"*"',
     };
     if (token) {
       headers.Authorization = `Bearer ${token}`;
+    }
+    if (version) {
+      headers['If-Match'] = `W/"${version}"`;
     }
     
     const response = await fetch(url, {

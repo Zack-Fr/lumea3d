@@ -56,7 +56,8 @@ const ProjectEditorContent: React.FC = () => {
     setScene, 
     sceneId: contextSceneId, 
     projectId: contextProjectId, 
-    refreshScene
+    refreshScene,
+    manifest
   } = useSceneContext();
   
   // Load scene when URL parameters change
@@ -249,12 +250,9 @@ const ProjectEditorContent: React.FC = () => {
           }
         };
 
-        // Get current scene version for optimistic locking
-        const versionResponse = await scenesApi.getVersion(contextSceneId);
-        const currentVersion = versionResponse.version;
-
-        // Add item to scene with version for optimistic locking
-        await scenesApi.addItem(contextSceneId, sceneItem, currentVersion.toString());
+        // Add item to scene
+        const currentVersion = manifest?.scene?.version?.toString();
+        await scenesApi.addItem(contextSceneId, sceneItem, currentVersion);
 
         log('info', 'ProjectEditor: Asset successfully added to scene');
         triggerAchievement(`✨ +15 XP - "${finalAssetName}" added to scene!`);
@@ -272,7 +270,7 @@ const ProjectEditorContent: React.FC = () => {
     }
 
     setIsAssetImportModalOpen(false);
-  }, [contextSceneId, contextProjectId, triggerAchievement, refreshScene]);
+  }, [contextSceneId, contextProjectId, triggerAchievement, refreshScene, manifest]);
 
   // Viewport click callback with achievement
   const handleViewportClickWithAchievement = useCallback(() => {
