@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../providers/AuthProvider';
+import { scenesApi, SceneApiError } from '../../services/scenesApi';
 import { log } from '../../utils/logger';
 
 export interface SceneListItem {
@@ -41,52 +42,35 @@ export const useScenesList = (options: UseScenesListOptions = {}): UseScenesList
     try {
       log('debug', 'useScenesList: Fetching scenes list', { projectId, hasToken: !!token });
 
-      const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
-      let url = `${API_BASE_URL}/scenes`;
+      let data: any;
       
-      // Add project filter if specified
       if (projectId) {
-        url += `?projectId=${encodeURIComponent(projectId)}`;
+        // Use scenesApi.getScenes for project-specific scenes
+        data = await scenesApi.getScenes(projectId);
+      } else {
+        // If no projectId provided, return empty array for now
+        // (could implement a general scenes endpoint later if needed)
+        log('warn', 'useScenesList: No projectId provided, cannot fetch scenes');
+        throw new Error('Project ID is required to fetch scenes');
       }
-
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication required. Please log in again.');
-        } else if (response.status === 403) {
-          throw new Error('Access denied. You may not have permission to view scenes.');
-        } else if (response.status === 404) {
-          throw new Error('Scenes API not found. Please check the server configuration.');
-        } else {
-          throw new Error(`Failed to fetch scenes: ${response.status} ${response.statusText}`);
-        }
-      }
-
-      const data = await response.json();
       
-      // Handle different response formats
+      // Process scenes data from scenesApi.getScenes response
       let scenesList: SceneListItem[] = [];
       
       if (Array.isArray(data)) {
         scenesList = data.map((scene: any) => ({
           id: scene.id || scene.sceneId,
           name: scene.name || scene.title || `Scene ${scene.id}`,
-          projectId: scene.projectId || scene.project_id || 'unknown',
+          projectId: scene.projectId || scene.project_id || projectId || 'unknown',
           description: scene.description,
           createdAt: scene.createdAt || scene.created_at || new Date().toISOString(),
           updatedAt: scene.updatedAt || scene.updated_at || new Date().toISOString(),
         }));
-      } else if (data.scenes && Array.isArray(data.scenes)) {
+      } else if (data && typeof data === 'object' && 'scenes' in data && Array.isArray(data.scenes)) {
         scenesList = data.scenes.map((scene: any) => ({
           id: scene.id || scene.sceneId,
           name: scene.name || scene.title || `Scene ${scene.id}`,
-          projectId: scene.projectId || scene.project_id || 'unknown',
+          projectId: scene.projectId || scene.project_id || projectId || 'unknown',
           description: scene.description,
           createdAt: scene.createdAt || scene.created_at || new Date().toISOString(),
           updatedAt: scene.updatedAt || scene.updated_at || new Date().toISOString(),
@@ -138,7 +122,22 @@ export const useScenesList = (options: UseScenesListOptions = {}): UseScenesList
       log('info', `useScenesList: Loaded ${scenesList.length} scenes`);
 
     } catch (err: any) {
-      const errorMessage = err?.message || 'Failed to load scenes';
+      let errorMessage = 'Failed to load scenes';
+      
+      if (err instanceof SceneApiError) {
+        if (err.statusCode === 401) {
+          errorMessage = 'Authentication required. Please log in again.';
+        } else if (err.statusCode === 403) {
+          errorMessage = 'Access denied. You may not have permission to view scenes.';
+        } else if (err.statusCode === 404) {
+          errorMessage = 'Scenes not found for this project.';
+        } else {
+          errorMessage = err.message || `API Error: ${err.statusCode}`;
+        }
+      } else {
+        errorMessage = err?.message || errorMessage;
+      }
+      
       log('error', 'useScenesList: Error fetching scenes', err);
       setError(errorMessage);
       

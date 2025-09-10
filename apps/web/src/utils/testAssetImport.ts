@@ -135,7 +135,6 @@ export async function runCompleteAssetImportTest(sceneId: string, currentVersion
  */
 export function validateSceneItemStructure(item: any): boolean {
   const requiredFields = ['id', 'name', 'category'];
-  const optionalFields = ['model', 'transform', 'selectable', 'locked', 'meta'];
   
   console.log('🧪 TEST: Validating scene item structure:', item);
   

@@ -31,7 +31,7 @@ export function useSceneMutations(sceneId: string, options: UseSceneMutationsOpt
       if (!token) {
         throw new SceneApiError(401, 'Authentication required');
       }
-      return scenesApi.updateScene(sceneId, updates, token, version);
+      return scenesApi.updateScene(sceneId, updates, version?.toString());
     },
     onSuccess: () => {
       invalidateSceneQueries();

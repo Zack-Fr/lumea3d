@@ -15,6 +15,8 @@ interface LeftSidebarProps {
   onAssetSelect: (assetId: number) => void;
   onAssetAdd: (assetName: string) => void;
   onImportAsset?: () => void;
+  selectedItemId?: string | null; // For properties panel integration
+  onItemSelect?: (itemId: string) => void; // For properties panel integration
 }
 
 const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
@@ -24,7 +26,9 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
   selectedAsset,
   onAssetSelect,
   onAssetAdd,
-  onImportAsset
+  onImportAsset,
+  selectedItemId,
+  onItemSelect
 }) => {
   const { 
     sceneId, 
@@ -125,10 +129,12 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
                     // Create unique key using combination of sceneId, id and index to prevent duplicates
                     const uniqueKey = `${sceneId}-${item.id || 'item'}-${index}`;
                     
+                    const isSelected = selectedItemId === item.id;
+                    
                     return (
                       <div
                         key={uniqueKey}
-                        className={`${styles.assetItem} ${isCategoryEnabled ? styles.assetEnabled : styles.assetDisabled}`}
+                        className={`${styles.assetItem} ${isCategoryEnabled ? styles.assetEnabled : styles.assetDisabled} ${isSelected ? styles.assetSelected : ''}`}
                         draggable={isCategoryEnabled}
                         onDragStart={(e) => {
                           if (!isCategoryEnabled) {
@@ -148,8 +154,11 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
                           console.log('📦 LeftSidebar: Started dragging asset:', dragData);
                         }}
                         onClick={() => {
-                          // Handle asset selection - you can add logic here to select the asset
+                          // Handle asset selection for properties panel
                           console.log('Asset selected:', item);
+                          if (onItemSelect && item.id) {
+                            onItemSelect(item.id);
+                          }
                         }}
                         style={{ cursor: isCategoryEnabled ? 'grab' : 'not-allowed' }}
                       >

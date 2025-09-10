@@ -408,10 +408,26 @@ export const scenesApi = {
       url,
       itemStructure: {
         categoryKey: item.categoryKey,
+        categoryKeyValid: /^[a-z0-9_]{1,50}$/.test(item.categoryKey),
         model: item.model || 'not specified',
         position: [item.positionX, item.positionY, item.positionZ],
+        positionValid: [
+          typeof item.positionX === 'number' && item.positionX >= -1000 && item.positionX <= 1000,
+          typeof item.positionY === 'number' && item.positionY >= -1000 && item.positionY <= 1000,
+          typeof item.positionZ === 'number' && item.positionZ >= -1000 && item.positionZ <= 1000
+        ],
         rotation: [item.rotationX, item.rotationY, item.rotationZ],
+        rotationValid: [
+          typeof item.rotationX === 'number' && item.rotationX >= -180 && item.rotationX <= 180,
+          typeof item.rotationY === 'number' && item.rotationY >= -180 && item.rotationY <= 180,
+          typeof item.rotationZ === 'number' && item.rotationZ >= -180 && item.rotationZ <= 180
+        ],
         scale: [item.scaleX, item.scaleY, item.scaleZ],
+        scaleValid: [
+          typeof item.scaleX === 'number' && item.scaleX >= 0.01 && item.scaleX <= 100,
+          typeof item.scaleY === 'number' && item.scaleY >= 0.01 && item.scaleY <= 100,
+          typeof item.scaleZ === 'number' && item.scaleZ >= 0.01 && item.scaleZ <= 100
+        ],
         selectable: item.selectable,
         locked: item.locked,
         hasMeta: !!item.meta,
@@ -528,6 +544,86 @@ export const scenesApi = {
     if (!response.ok) {
       throw new SceneApiError(response.status, `Failed to remove item: ${response.statusText}`);
     }
+  },
+
+  /**
+   * Update scene properties like environment, lighting, shell settings
+   */
+  async updateScene(
+    sceneId: string,
+    updates: SceneUpdateRequest,
+    version?: string
+  ): Promise<any> {
+    const token = getCurrentToken();
+    const url = `${API_BASE_URL}/scenes/${sceneId}`;
+    
+    // Validate required fields
+    if (!sceneId) {
+      throw new SceneApiError(400, 'sceneId is required');
+    }
+    if (!token) {
+      throw new SceneApiError(401, 'Authentication token required');
+    }
+    
+    console.log('🎨 SCENES_API: updateScene request:', {
+      sceneId,
+      version,
+      url,
+      updates
+    });
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    // Backend expects numeric version in If-Match header
+    const numericVersion = version ? parseInt(version.toString(), 10) : 1;
+    headers['If-Match'] = numericVersion.toString();
+    
+    console.log('🎨 SCENES_API: updateScene headers:', headers);
+    console.log('🎨 SCENES_API: updateScene payload:', JSON.stringify(updates, null, 2));
+    
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(updates),
+    });
+    
+    console.log('🎨 SCENES_API: updateScene response status:', response.status, response.statusText);
+    
+    if (!response.ok) {
+      let errorMessage = `Failed to update scene: ${response.statusText}`;
+      let errorDetails = '';
+      
+      try {
+        const errorBody = await response.text();
+        console.error('🎨 SCENES_API: updateScene error response body:', errorBody);
+        errorDetails = errorBody;
+        
+        // Try to parse as JSON for better error message
+        try {
+          const errorJson = JSON.parse(errorBody);
+          if (errorJson.message) {
+            errorMessage = errorJson.message;
+          }
+          if (errorJson.error) {
+            errorDetails = errorJson.error;
+          }
+        } catch (jsonError) {
+          // Not JSON, use raw text
+        }
+      } catch (textError) {
+        console.error('🎨 SCENES_API: Could not read error response body:', textError);
+      }
+      
+      throw new SceneApiError(response.status, errorMessage, errorDetails);
+    }
+    
+    const result = await response.json();
+    console.log('✅ SCENES_API: updateScene success:', result);
+    return result;
   },
 
   /**
@@ -726,7 +822,7 @@ export const scenesApi = {
   },
 
   // Legacy methods for backward compatibility
-  async updateScene(
+  async updateSceneLegacy(
     sceneId: string, 
     updates: any, 
     token: string,

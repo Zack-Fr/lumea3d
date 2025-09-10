@@ -25,6 +25,9 @@ import { AssetImportModal } from '../../features/scenes/AssetImportModal';
 // Scene Context
 import { SceneProvider, useSceneContext, useSceneParams } from '../../contexts/SceneContext';
 
+// Auth Context
+import { useAuth } from '../../providers/AuthProvider';
+
 // Services
 import { scenesApi, SceneItemCreateRequest } from '../../services/scenesApi';
 
@@ -51,6 +54,7 @@ const ProjectEditorPage: React.FC = () => {
 
 const ProjectEditorContent: React.FC = () => {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const { projectId: urlProjectId, sceneId: urlSceneId } = useSceneParams();
   const { 
     setScene, 
@@ -99,6 +103,9 @@ const ProjectEditorContent: React.FC = () => {
 
   // Asset Import Modal State
   const [isAssetImportModalOpen, setIsAssetImportModalOpen] = useState(false);
+
+  // Selection state for properties panel
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
   // Custom Hooks
   const {
@@ -200,12 +207,52 @@ const ProjectEditorContent: React.FC = () => {
 
         // Use provided name/category from import modal, or fallbacks if undefined
         const finalAssetName = assetName || 'Imported Asset';
-        const finalCategory = category || 'misc';
+        const rawCategory = category || 'imported_assets';
+        
+        // Normalize the category key to match backend validation (lowercase, alphanumeric + underscores only)
+        const normalizedCategory = rawCategory.toLowerCase().replace(/[^a-z0-9_]/g, '_').substring(0, 50);
+        
+        log('debug', 'ProjectEditor: Normalized import category', { rawCategory, normalizedCategory });
 
-        // Create scene item with default transform using backend DTO format
-        // Use the category directly since we can't create project categories via API
+        // STEP 1: Create ProjectCategory3D entry first (required by backend)
+        try {
+          log('info', 'ProjectEditor: Creating project category', { projectId: contextProjectId, assetId, categoryKey: normalizedCategory });
+          
+          const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+          const categoryResponse = await fetch(`${API_BASE_URL}/projects/${contextProjectId}/categories`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token || ''}`,
+            },
+            body: JSON.stringify({
+              assetId: assetId,
+              categoryKey: normalizedCategory,
+              draco: true,
+              meshopt: true,
+              ktx2: true,
+            }),
+          });
+
+          if (!categoryResponse.ok) {
+            const errorText = await categoryResponse.text();
+            if (categoryResponse.status === 409) {
+              log('info', 'ProjectEditor: Category already exists, proceeding with scene item creation');
+            } else {
+              throw new Error(`Failed to create project category: ${categoryResponse.status} - ${errorText}`);
+            }
+          } else {
+            log('info', 'ProjectEditor: Project category created successfully');
+          }
+        } catch (categoryError) {
+          log('error', 'ProjectEditor: Failed to create project category', categoryError);
+          // Continue anyway - the category might already exist
+        }
+
+        // STEP 2: Create scene item with default transform using backend DTO format
+        // Use the normalized category key to ensure backend validation passes
         const sceneItem: SceneItemCreateRequest = {
-          categoryKey: finalCategory, // Use the category from the import form
+          categoryKey: normalizedCategory,
           positionX: (Math.random() - 0.5) * 10, // Random position for demo
           positionY: 0,
           positionZ: (Math.random() - 0.5) * 10,
@@ -266,14 +313,29 @@ const ProjectEditorContent: React.FC = () => {
     try {
       log('info', 'ProjectEditor: Dropping asset into scene', { dragData, position, sceneId: contextSceneId });
       
+      // Normalize the category key to match backend validation requirements
+      const rawCategory = dragData.categoryName || dragData.item.category || 'misc';
+      const normalizedCategoryKey = typeof rawCategory === 'string' 
+        ? rawCategory.toLowerCase().replace(/[^a-z0-9_]/g, '_').substring(0, 50) 
+        : 'misc';
+      
+      log('debug', 'ProjectEditor: Normalized category key', { rawCategory, normalizedCategoryKey });
+      
+      // Ensure project category exists before adding scene item (this is required for existing items)
+      // Note: For existing items from manifest, the category should already exist
+      // But we'll check anyway to provide better error handling
+      if (!contextProjectId) {
+        throw new Error('No project context available for drag and drop');
+      }
+      
       // Create a duplicate of the item with a new position
       const droppedItem: SceneItemCreateRequest = {
-        categoryKey: dragData.categoryName || dragData.item.category || 'misc',
+        categoryKey: normalizedCategoryKey,
         positionX: (Math.random() - 0.5) * 10, // Random position near drop point
         positionY: 0,
         positionZ: (Math.random() - 0.5) * 10,
         rotationX: 0,
-        rotationY: Math.random() * 360, // Random rotation for variety
+        rotationY: (Math.random() - 0.5) * 360, // Random rotation between -180 and 180
         rotationZ: 0,
         scaleX: 1,
         scaleY: 1,
@@ -347,6 +409,8 @@ const ProjectEditorContent: React.FC = () => {
           onAssetSelect={handleAssetSelect}
           onAssetAdd={handleAssetAdd}
           onImportAsset={handleImportAsset}
+          selectedItemId={selectedItemId}
+          onItemSelect={setSelectedItemId}
         />
 
         {/* Main Viewport Area */}
@@ -376,6 +440,8 @@ const ProjectEditorContent: React.FC = () => {
           <PropertiesPanel
             show={showProperties}
             onClose={() => setShowProperties(false)}
+            sceneId={contextSceneId || undefined}
+            selectedItemId={selectedItemId || undefined}
           />
         )}
       </div>

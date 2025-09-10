@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Button } from "../ui/Button";
 import { Slider } from "../ui/Slider";
 import { ScrollArea } from "../ui/ScrollArea";
@@ -10,12 +10,14 @@ import {
   Eye
 } from "lucide-react";
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
-import { scenesApi } from '../../services/scenesApi';
+import { scenesApi, SceneItemUpdateRequest, SceneUpdateRequest } from '../../services/scenesApi';
+import { useSceneContext } from '../../contexts/SceneContext';
 
 interface PropertiesPanelProps {
   show: boolean;
   onClose: () => void;
   sceneId?: string; // Add sceneId for API calls
+  selectedItemId?: string; // Currently selected item for editing
 }
 
 interface ShellSettings {
@@ -24,11 +26,34 @@ interface ShellSettings {
   visible: boolean;
 }
 
+interface SelectedItemState {
+  id: string;
+  name: string;
+  position: { x: number; y: number; z: number };
+  rotation: { x: number; y: number; z: number };
+  scale: { x: number; y: number; z: number };
+  material: {
+    roughness: number;
+    metallic: number;
+    emission: number;
+    color: string;
+  };
+}
+
+interface EnvironmentSettings {
+  intensity: number;
+  shadowStrength: number;
+  exposure: number;
+}
+
 const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   show,
   onClose,
-  sceneId
+  sceneId,
+  selectedItemId
 }) => {
+  const { manifest, refreshScene } = useSceneContext();
+  
   // Shell shadow state
   const [shellSettings, setShellSettings] = useState<ShellSettings>({
     castShadow: false,
@@ -36,7 +61,18 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     visible: true
   });
   
+  // Environment lighting state
+  const [environmentSettings, setEnvironmentSettings] = useState<EnvironmentSettings>({
+    intensity: 100,
+    shadowStrength: 50,
+    exposure: 1.0
+  });
+  
+  // Selected item state
+  const [selectedItem, setSelectedItem] = useState<SelectedItemState | null>(null);
+  const [isUpdatingItem, setIsUpdatingItem] = useState(false);
   const [isUpdatingShell, setIsUpdatingShell] = useState(false);
+  const [isUpdatingEnvironment, setIsUpdatingEnvironment] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
 
   // Update shell properties via API
@@ -60,15 +96,21 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
         return;
       }
       
-      // For shadow settings, call the backend API
-      const shellPropName = property === 'castShadow' ? 'shellCastShadow' : 'shellReceiveShadow';
+      // For shadow settings, call the backend API using updateScene
+      const updateBody: SceneUpdateRequest = {} as any;
+      if (property === 'castShadow') {
+        (updateBody as any).shellCastShadow = value;
+      } else if (property === 'receiveShadow') {
+        (updateBody as any).shellReceiveShadow = value;
+      }
       
       // Call the backend API to update shell properties
-      await scenesApi.patchProps(sceneId, { 
-        shell: { [shellPropName]: value } 
-      }, '1'); // Use version 1 for now
+      await scenesApi.updateScene(sceneId, updateBody, manifest?.scene?.version?.toString());
       
-      console.log(`Successfully updated ${shellPropName} to ${value} for scene ${sceneId}`);
+      console.log(`Successfully updated shell ${property} to ${value} for scene ${sceneId}`);
+      
+      // Refresh scene to reflect changes
+      refreshScene();
       
     } catch (error) {
       console.error('Failed to update shell property:', error);
@@ -84,7 +126,175 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     } finally {
       setIsUpdatingShell(false);
     }
-  }, [sceneId]);
+  }, [sceneId, manifest?.scene?.version, refreshScene]);
+
+  // Update selected item transform properties
+  const updateItemTransform = useCallback(async (transform: { position?: any; rotation?: any; scale?: any }) => {
+    if (!selectedItemId || !sceneId || !selectedItem) {
+      console.warn('Cannot update item - missing selectedItemId, sceneId, or selectedItem');
+      return;
+    }
+    
+    setIsUpdatingItem(true);
+    try {
+      // Build update request
+      const updateRequest: SceneItemUpdateRequest = {} as any;
+      
+      if (transform.position) {
+        (updateRequest as any).positionX = parseFloat(transform.position.x);
+        (updateRequest as any).positionY = parseFloat(transform.position.y);
+        (updateRequest as any).positionZ = parseFloat(transform.position.z);
+      }
+      
+      if (transform.rotation) {
+        (updateRequest as any).rotationX = parseFloat(transform.rotation.x);
+        (updateRequest as any).rotationY = parseFloat(transform.rotation.y);
+        (updateRequest as any).rotationZ = parseFloat(transform.rotation.z);
+      }
+      
+      if (transform.scale) {
+        (updateRequest as any).scaleX = parseFloat(transform.scale.x);
+        (updateRequest as any).scaleY = parseFloat(transform.scale.y);
+        (updateRequest as any).scaleZ = parseFloat(transform.scale.z);
+      }
+      
+      // Call the backend API to update item
+      await scenesApi.updateItem(sceneId, selectedItemId, updateRequest, manifest?.scene?.version?.toString());
+      
+      console.log(`Successfully updated item ${selectedItemId} transform`);
+      
+      // Update local state
+      setSelectedItem(prev => prev ? { ...prev, ...transform } : null);
+      
+      // Refresh scene to reflect changes
+      refreshScene();
+      
+    } catch (error) {
+      console.error('Failed to update item transform:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setLastError(`Failed to update item transform: ${errorMessage}`);
+      setTimeout(() => setLastError(null), 5000);
+    } finally {
+      setIsUpdatingItem(false);
+    }
+  }, [selectedItemId, sceneId, selectedItem, manifest?.scene?.version, refreshScene]);
+  
+  // Update item material properties
+  const updateItemMaterial = useCallback(async (material: Partial<SelectedItemState['material']>) => {
+    if (!selectedItemId || !sceneId) {
+      console.warn('Cannot update material - missing selectedItemId or sceneId');
+      return;
+    }
+    
+    setIsUpdatingItem(true);
+    try {
+      // Build material overrides
+      const materialOverrides: any = {};
+      if (material.roughness !== undefined) materialOverrides.roughness = material.roughness / 100;
+      if (material.metallic !== undefined) materialOverrides.metallic = material.metallic / 100;
+      if (material.emission !== undefined) materialOverrides.emissive = material.emission / 100;
+      if (material.color) materialOverrides.baseColor = material.color;
+      
+      const updateRequest: SceneItemUpdateRequest = {
+        materialOverrides
+      } as any;
+      
+      // Call the backend API
+      await scenesApi.updateItem(sceneId, selectedItemId, updateRequest, manifest?.scene?.version?.toString());
+      
+      console.log(`Successfully updated item ${selectedItemId} material`);
+      
+      // Update local state
+      setSelectedItem(prev => prev ? { ...prev, material: { ...prev.material, ...material } } : null);
+      
+      // Refresh scene to reflect changes
+      refreshScene();
+      
+    } catch (error) {
+      console.error('Failed to update item material:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setLastError(`Failed to update material: ${errorMessage}`);
+      setTimeout(() => setLastError(null), 5000);
+    } finally {
+      setIsUpdatingItem(false);
+    }
+  }, [selectedItemId, sceneId, manifest?.scene?.version, refreshScene]);
+  
+  // Update environment lighting
+  const updateEnvironmentLighting = useCallback(async (settings: Partial<EnvironmentSettings>) => {
+    if (!sceneId) {
+      console.warn('Cannot update environment - missing sceneId');
+      return;
+    }
+    
+    setIsUpdatingEnvironment(true);
+    try {
+      // Update local state optimistically
+      setEnvironmentSettings(prev => ({ ...prev, ...settings }));
+      
+      // Build scene update request
+      const updateRequest: SceneUpdateRequest = {} as any;
+      if (settings.intensity !== undefined) (updateRequest as any).envIntensity = settings.intensity / 100;
+      if (settings.exposure !== undefined) (updateRequest as any).exposure = settings.exposure;
+      
+      // Call the backend API
+      await scenesApi.updateScene(sceneId, updateRequest, manifest?.scene?.version?.toString());
+      
+      console.log('Successfully updated environment lighting');
+      
+      // Refresh scene to reflect changes
+      refreshScene();
+      
+    } catch (error) {
+      console.error('Failed to update environment lighting:', error);
+      // Revert optimistic update on error
+      setEnvironmentSettings(prev => ({ ...prev, ...Object.keys(settings).reduce((acc, key) => ({ ...acc, [key]: prev[key as keyof EnvironmentSettings] }), {}) }));
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setLastError(`Failed to update lighting: ${errorMessage}`);
+      setTimeout(() => setLastError(null), 5000);
+    } finally {
+      setIsUpdatingEnvironment(false);
+    }
+  }, [sceneId, manifest?.scene?.version, refreshScene]);
+  
+  // Load selected item data when selectedItemId changes
+  useEffect(() => {
+    if (selectedItemId && manifest) {
+      const item = manifest.items.find(item => item.id === selectedItemId);
+      if (item) {
+        setSelectedItem({
+          id: item.id,
+          name: item.name || 'Unnamed Item',
+          position: {
+            x: item.transform?.position?.[0] || 0,
+            y: item.transform?.position?.[1] || 0,
+            z: item.transform?.position?.[2] || 0
+          },
+          rotation: {
+            x: item.transform?.rotation_euler?.[0] || 0,
+            y: item.transform?.rotation_euler?.[1] || 0,
+            z: item.transform?.rotation_euler?.[2] || 0
+          },
+          scale: {
+            x: item.transform?.scale?.[0] || 1,
+            y: item.transform?.scale?.[1] || 1,
+            z: item.transform?.scale?.[2] || 1
+          },
+          material: {
+            roughness: (item.material?.roughness || 0.5) * 100,
+            metallic: (item.material?.metallic || 0) * 100,
+            emission: (item.material?.emissive || 0) * 100,
+            color: item.material?.baseColor || '#ffffff'
+          }
+        });
+      } else {
+        setSelectedItem(null);
+      }
+    } else {
+      setSelectedItem(null);
+    }
+  }, [selectedItemId, manifest]);
 
   if (!show) return null;
 
@@ -110,33 +320,116 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
           <div className={styles.propertySection}>
             <h3 className={styles.propertySectionTitle}>
               <Move className="w-4 h-4 mr-2" />
-              Transform
+              Transform {selectedItem && `- ${selectedItem.name}`}
             </h3>
             <div className={styles.propertySectionContent}>
-              <div className={styles.propertyGroup}>
-                <label className={styles.propertyLabel}>Position</label>
-                <div className={styles.inputGrid}>
-                  <input type="number" placeholder="X" className={styles.propertyInput} defaultValue="0" />
-                  <input type="number" placeholder="Y" className={styles.propertyInput} defaultValue="0" />
-                  <input type="number" placeholder="Z" className={styles.propertyInput} defaultValue="0" />
+              {selectedItem ? (
+                <>
+                  <div className={styles.propertyGroup}>
+                    <label className={styles.propertyLabel}>Position</label>
+                    <div className={styles.inputGrid}>
+                      <input 
+                        type="number" 
+                        placeholder="X" 
+                        className={styles.propertyInput} 
+                        value={selectedItem.position.x}
+                        onChange={(e) => updateItemTransform({ position: { ...selectedItem.position, x: e.target.value } })}
+                        disabled={isUpdatingItem}
+                        step="0.1"
+                      />
+                      <input 
+                        type="number" 
+                        placeholder="Y" 
+                        className={styles.propertyInput} 
+                        value={selectedItem.position.y}
+                        onChange={(e) => updateItemTransform({ position: { ...selectedItem.position, y: e.target.value } })}
+                        disabled={isUpdatingItem}
+                        step="0.1"
+                      />
+                      <input 
+                        type="number" 
+                        placeholder="Z" 
+                        className={styles.propertyInput} 
+                        value={selectedItem.position.z}
+                        onChange={(e) => updateItemTransform({ position: { ...selectedItem.position, z: e.target.value } })}
+                        disabled={isUpdatingItem}
+                        step="0.1"
+                      />
+                    </div>
+                  </div>
+                  <div className={styles.propertyGroup}>
+                    <label className={styles.propertyLabel}>Rotation</label>
+                    <div className={styles.inputGrid}>
+                      <input 
+                        type="number" 
+                        placeholder="X" 
+                        className={styles.propertyInput} 
+                        value={selectedItem.rotation.x}
+                        onChange={(e) => updateItemTransform({ rotation: { ...selectedItem.rotation, x: e.target.value } })}
+                        disabled={isUpdatingItem}
+                        step="1"
+                      />
+                      <input 
+                        type="number" 
+                        placeholder="Y" 
+                        className={styles.propertyInput} 
+                        value={selectedItem.rotation.y}
+                        onChange={(e) => updateItemTransform({ rotation: { ...selectedItem.rotation, y: e.target.value } })}
+                        disabled={isUpdatingItem}
+                        step="1"
+                      />
+                      <input 
+                        type="number" 
+                        placeholder="Z" 
+                        className={styles.propertyInput} 
+                        value={selectedItem.rotation.z}
+                        onChange={(e) => updateItemTransform({ rotation: { ...selectedItem.rotation, z: e.target.value } })}
+                        disabled={isUpdatingItem}
+                        step="1"
+                      />
+                    </div>
+                  </div>
+                  <div className={styles.propertyGroup}>
+                    <label className={styles.propertyLabel}>Scale</label>
+                    <div className={styles.inputGrid}>
+                      <input 
+                        type="number" 
+                        placeholder="X" 
+                        className={styles.propertyInput} 
+                        value={selectedItem.scale.x}
+                        onChange={(e) => updateItemTransform({ scale: { ...selectedItem.scale, x: e.target.value } })}
+                        disabled={isUpdatingItem}
+                        step="0.1"
+                        min="0.01"
+                      />
+                      <input 
+                        type="number" 
+                        placeholder="Y" 
+                        className={styles.propertyInput} 
+                        value={selectedItem.scale.y}
+                        onChange={(e) => updateItemTransform({ scale: { ...selectedItem.scale, y: e.target.value } })}
+                        disabled={isUpdatingItem}
+                        step="0.1"
+                        min="0.01"
+                      />
+                      <input 
+                        type="number" 
+                        placeholder="Z" 
+                        className={styles.propertyInput} 
+                        value={selectedItem.scale.z}
+                        onChange={(e) => updateItemTransform({ scale: { ...selectedItem.scale, z: e.target.value } })}
+                        disabled={isUpdatingItem}
+                        step="0.1"
+                        min="0.01"
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className={styles.propertyGroup}>
+                  <span className={styles.propertyLabel} style={{ opacity: 0.6 }}>Select an object to edit its transform</span>
                 </div>
-              </div>
-              <div className={styles.propertyGroup}>
-                <label className={styles.propertyLabel}>Rotation</label>
-                <div className={styles.inputGrid}>
-                  <input type="number" placeholder="X" className={styles.propertyInput} defaultValue="0" />
-                  <input type="number" placeholder="Y" className={styles.propertyInput} defaultValue="0" />
-                  <input type="number" placeholder="Z" className={styles.propertyInput} defaultValue="0" />
-                </div>
-              </div>
-              <div className={styles.propertyGroup}>
-                <label className={styles.propertyLabel}>Scale</label>
-                <div className={styles.inputGrid}>
-                  <input type="number" placeholder="X" className={styles.propertyInput} defaultValue="1" />
-                  <input type="number" placeholder="Y" className={styles.propertyInput} defaultValue="1" />
-                  <input type="number" placeholder="Z" className={styles.propertyInput} defaultValue="1" />
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -147,24 +440,69 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
               Material
             </h3>
             <div className={styles.propertySectionContent}>
-              <div className={styles.materialSwatches}>
-                <div className={`${styles.materialSwatch} ${styles.materialSwatchRed}`}></div>
-                <div className={`${styles.materialSwatch} ${styles.materialSwatchBlue}`}></div>
-                <div className={`${styles.materialSwatch} ${styles.materialSwatchGreen}`}></div>
-                <div className={`${styles.materialSwatch} ${styles.materialSwatchYellow}`}></div>
-              </div>
-              <div className={styles.propertyGroup}>
-                <label className={styles.propertyLabel}>Roughness</label>
-                <Slider defaultValue={50} max={100} step={1} className={styles.sliderContainer} />
-              </div>
-              <div className={styles.propertyGroup}>
-                <label className={styles.propertyLabel}>Metallic</label>
-                <Slider defaultValue={0} max={100} step={1} className={styles.sliderContainer} />
-              </div>
-              <div className={styles.propertyGroup}>
-                <label className={styles.propertyLabel}>Emission</label>
-                <Slider defaultValue={0} max={100} step={1} className={styles.sliderContainer} />
-              </div>
+              {selectedItem ? (
+                <>
+                  <div className={styles.materialSwatches}>
+                    <div 
+                      className={`${styles.materialSwatch} ${styles.materialSwatchRed}`}
+                      onClick={() => updateItemMaterial({ color: '#ff0000' })}
+                      style={{ cursor: isUpdatingItem ? 'wait' : 'pointer' }}
+                    ></div>
+                    <div 
+                      className={`${styles.materialSwatch} ${styles.materialSwatchBlue}`}
+                      onClick={() => updateItemMaterial({ color: '#0066ff' })}
+                      style={{ cursor: isUpdatingItem ? 'wait' : 'pointer' }}
+                    ></div>
+                    <div 
+                      className={`${styles.materialSwatch} ${styles.materialSwatchGreen}`}
+                      onClick={() => updateItemMaterial({ color: '#00ff66' })}
+                      style={{ cursor: isUpdatingItem ? 'wait' : 'pointer' }}
+                    ></div>
+                    <div 
+                      className={`${styles.materialSwatch} ${styles.materialSwatchYellow}`}
+                      onClick={() => updateItemMaterial({ color: '#ffff00' })}
+                      style={{ cursor: isUpdatingItem ? 'wait' : 'pointer' }}
+                    ></div>
+                  </div>
+                  <div className={styles.propertyGroup}>
+                    <label className={styles.propertyLabel}>Roughness</label>
+                    <Slider 
+                      value={selectedItem.material.roughness} 
+                      onChange={(e) => updateItemMaterial({ roughness: parseFloat(e.target.value) })}
+                      max={100} 
+                      step={1} 
+                      className={styles.sliderContainer}
+                      disabled={isUpdatingItem}
+                    />
+                  </div>
+                  <div className={styles.propertyGroup}>
+                    <label className={styles.propertyLabel}>Metallic</label>
+                    <Slider 
+                      value={selectedItem.material.metallic} 
+                      onChange={(e) => updateItemMaterial({ metallic: parseFloat(e.target.value) })}
+                      max={100} 
+                      step={1} 
+                      className={styles.sliderContainer}
+                      disabled={isUpdatingItem}
+                    />
+                  </div>
+                  <div className={styles.propertyGroup}>
+                    <label className={styles.propertyLabel}>Emission</label>
+                    <Slider 
+                      value={selectedItem.material.emission} 
+                      onChange={(e) => updateItemMaterial({ emission: parseFloat(e.target.value) })}
+                      max={100} 
+                      step={1} 
+                      className={styles.sliderContainer}
+                      disabled={isUpdatingItem}
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className={styles.propertyGroup}>
+                  <span className={styles.propertyLabel} style={{ opacity: 0.6 }}>Select an object to edit its material</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -172,23 +510,48 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
           <div className={styles.propertySection}>
             <h3 className={styles.propertySectionTitle}>
               <Lightbulb className="w-4 h-4 mr-2" />
-              Lighting
+              Lighting (Environment)
             </h3>
             <div className={styles.propertySectionContent}>
               <div className={styles.propertyGroup}>
                 <label className={styles.propertyLabel}>Intensity</label>
-                <Slider defaultValue={100} max={200} step={5} className={styles.sliderContainer} />
+                <Slider 
+                  value={environmentSettings.intensity} 
+                  onChange={(e) => updateEnvironmentLighting({ intensity: parseFloat(e.target.value) })}
+                  max={200} 
+                  step={5} 
+                  className={styles.sliderContainer}
+                  disabled={isUpdatingEnvironment}
+                />
               </div>
               <div className={styles.propertyGroup}>
-                <label className={styles.propertyLabel}>Shadow</label>
-                <Slider defaultValue={50} max={100} step={1} className={styles.sliderContainer} />
+                <label className={styles.propertyLabel}>Shadow Strength</label>
+                <Slider 
+                  value={environmentSettings.shadowStrength} 
+                  onChange={(e) => updateEnvironmentLighting({ shadowStrength: parseFloat(e.target.value) })}
+                  max={100} 
+                  step={1} 
+                  className={styles.sliderContainer}
+                  disabled={isUpdatingEnvironment}
+                />
               </div>
               <div className={styles.propertyGroup}>
-                <span className={styles.propertyLabel}>Cast Shadows</span>
-                <div className={styles.toggleSwitch}>
-                  <div className={styles.toggleKnob}></div>
+                <label className={styles.propertyLabel}>Exposure</label>
+                <Slider 
+                  value={environmentSettings.exposure * 100} 
+                  onChange={(e) => updateEnvironmentLighting({ exposure: parseFloat(e.target.value) / 100 })}
+                  max={300} 
+                  min={10}
+                  step={5} 
+                  className={styles.sliderContainer}
+                  disabled={isUpdatingEnvironment}
+                />
+              </div>
+              {isUpdatingEnvironment && (
+                <div style={{ padding: '4px 8px', fontSize: '11px', opacity: 0.7 }}>
+                  Updating environment...
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
