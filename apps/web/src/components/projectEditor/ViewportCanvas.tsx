@@ -16,6 +16,7 @@ interface ViewportCanvasProps {
   movement: ViewportMovement;
   onViewportClick: () => void;
   cameraMode?: string;
+  onAssetDrop?: (assetData: any, position: { x: number; y: number }) => void;
 }
 
 const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
@@ -23,7 +24,8 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
   isWASDActive,
   movement,
   onViewportClick,
-  cameraMode = 'orbit'
+  cameraMode = 'orbit',
+  onAssetDrop
 }) => {
   // Get scene data from context
   const { 
@@ -186,6 +188,31 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
       className={styles.viewportCanvas}
       onClick={onViewportClick}
       tabIndex={0}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        
+        try {
+          const dragDataString = e.dataTransfer.getData('application/json');
+          if (!dragDataString) return;
+          
+          const dragData = JSON.parse(dragDataString);
+          if (dragData.type === 'asset' && onAssetDrop) {
+            const dropPosition = {
+              x: e.clientX,
+              y: e.clientY
+            };
+            
+            console.log('🎯 ViewportCanvas: Asset dropped:', { dragData, dropPosition });
+            onAssetDrop(dragData, dropPosition);
+          }
+        } catch (error) {
+          console.error('❌ ViewportCanvas: Error handling drop:', error);
+        }
+      }}
     >
       {/* 3D Canvas */}
       <Canvas

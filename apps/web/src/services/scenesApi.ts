@@ -391,15 +391,46 @@ export const scenesApi = {
     const token = getCurrentToken();
     const url = `${API_BASE_URL}/scenes/${sceneId}/items`;
     
+    // Validate required fields
+    if (!sceneId) {
+      throw new SceneApiError(400, 'sceneId is required');
+    }
+    if (!item.categoryKey) {
+      throw new SceneApiError(400, 'categoryKey is required in item payload');
+    }
+    if (!token) {
+      throw new SceneApiError(401, 'Authentication token required');
+    }
+    
+    console.log('📦 SCENES_API: addItem request:', {
+      sceneId,
+      version,
+      url,
+      itemStructure: {
+        categoryKey: item.categoryKey,
+        model: item.model || 'not specified',
+        position: [item.positionX, item.positionY, item.positionZ],
+        rotation: [item.rotationX, item.rotationY, item.rotationZ],
+        scale: [item.scaleX, item.scaleY, item.scaleZ],
+        selectable: item.selectable,
+        locked: item.locked,
+        hasMeta: !!item.meta,
+        metaKeys: item.meta ? Object.keys(item.meta) : []
+      }
+    });
+    
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
-    if (version) {
-      headers['If-Match'] = `W/"${version}"`;
-    }
+    // Backend expects numeric version in If-Match header (required)
+    const numericVersion = version ? parseInt(version.toString(), 10) : 1;
+    headers['If-Match'] = numericVersion.toString();
+    
+    console.log('📦 SCENES_API: addItem headers:', headers);
+    console.log('📦 SCENES_API: addItem payload:', JSON.stringify(item, null, 2));
     
     const response = await fetch(url, {
       method: 'POST',
@@ -407,11 +438,39 @@ export const scenesApi = {
       body: JSON.stringify(item),
     });
     
+    console.log('📦 SCENES_API: addItem response status:', response.status, response.statusText);
+    
     if (!response.ok) {
-      throw new SceneApiError(response.status, `Failed to add item: ${response.statusText}`);
+      let errorMessage = `Failed to add item: ${response.statusText}`;
+      let errorDetails = '';
+      
+      try {
+        const errorBody = await response.text();
+        console.error('📦 SCENES_API: addItem error response body:', errorBody);
+        errorDetails = errorBody;
+        
+        // Try to parse as JSON for better error message
+        try {
+          const errorJson = JSON.parse(errorBody);
+          if (errorJson.message) {
+            errorMessage = errorJson.message;
+          }
+          if (errorJson.error) {
+            errorDetails = errorJson.error;
+          }
+        } catch (jsonError) {
+          // Not JSON, use raw text
+        }
+      } catch (textError) {
+        console.error('📦 SCENES_API: Could not read error response body:', textError);
+      }
+      
+      throw new SceneApiError(response.status, errorMessage, errorDetails);
     }
     
-    return response.json();
+    const result = await response.json();
+    console.log('✅ SCENES_API: addItem success:', result);
+    return result;
   },
 
   /**

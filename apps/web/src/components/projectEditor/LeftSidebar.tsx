@@ -69,7 +69,13 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
       sceneCategories: sceneCategories,
       uniqueCategories: [...new Set(sceneCategories.map((cat: any) => typeof cat === 'string' ? cat : cat?.categoryKey || ''))],
       uploadedAssetsCount: uploadedAssets.length,
-      uploadedAssets: uploadedAssets
+      uploadedAssets: uploadedAssets,
+      manifestStructure: {
+        hasManifest: !!manifest,
+        hasItems: !!manifest?.items,
+        itemsLength: manifest?.items?.length || 0,
+        firstItem: uploadedAssets[0] || null
+      }
     });
     
     return (
@@ -123,20 +129,39 @@ const LeftSidebar: React.FC<LeftSidebarProps> = React.memo(({
                       <div
                         key={uniqueKey}
                         className={`${styles.assetItem} ${isCategoryEnabled ? styles.assetEnabled : styles.assetDisabled}`}
+                        draggable={isCategoryEnabled}
+                        onDragStart={(e) => {
+                          if (!isCategoryEnabled) {
+                            e.preventDefault();
+                            return;
+                          }
+                          
+                          // Store the item data for drop handling
+                          const dragData = {
+                            type: 'asset',
+                            item: item,
+                            categoryName: categoryName
+                          };
+                          e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+                          e.dataTransfer.effectAllowed = 'copy';
+                          
+                          console.log('📦 LeftSidebar: Started dragging asset:', dragData);
+                        }}
                         onClick={() => {
                           // Handle asset selection - you can add logic here to select the asset
                           console.log('Asset selected:', item);
                         }}
+                        style={{ cursor: isCategoryEnabled ? 'grab' : 'not-allowed' }}
                       >
                         <div className={styles.assetIcon}>
                           <Box className="w-4 h-4" />
                         </div>
                         <div className={styles.assetInfo}>
                           <span className={styles.assetName}>
-                            {item.name}
+                            {item.name || item.meta?.assetName || `Item ${index + 1}`}
                           </span>
                           <span className={styles.assetCategory}>
-                            {categoryName}
+                            {categoryName || 'Unknown'}
                           </span>
                         </div>
                         <div className={styles.assetActions}>

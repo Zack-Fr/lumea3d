@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "../ui/Button";
 import { Separator } from "../ui/Separator";
 import { Badge } from "../ui/Badge";
@@ -46,7 +47,8 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
   onPropertiesToggle,
   onAIAssist
 }) => {
-  const { sceneId, setScene, projectId } = useSceneContext();
+  const navigate = useNavigate();
+  const { sceneId, projectId } = useSceneContext();
   const [showSceneSelector, setShowSceneSelector] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -83,7 +85,18 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
   const currentScene = finalScenes.find(scene => scene.id === sceneId);
 
   const handleSceneSelect = (scene: any) => {
-    setScene(projectId || '', scene.id);
+    console.log('🎯 TopBar: Scene selected:', { scene, projectId });
+    
+    if (!projectId) {
+      console.error('❌ TopBar: No projectId available for scene selection');
+      return;
+    }
+    
+    // Navigate to the scene URL which will trigger the context update
+    const sceneUrl = `/app/projects/${projectId}/scenes/${scene.id}/editor`;
+    console.log('📦 TopBar: Navigating to:', sceneUrl);
+    
+    navigate(sceneUrl);
     setShowSceneSelector(false);
   };
 
@@ -117,9 +130,11 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
       
       console.log('✅ Scene created successfully:', newScene);
       
-      // Navigate to the new scene
+      // Navigate to the new scene URL
       if (newScene && newScene.id) {
-        setScene(projectId, newScene.id);
+        const newSceneUrl = `/app/projects/${projectId}/scenes/${newScene.id}/editor`;
+        console.log('🚀 TopBar: Navigating to new scene:', newSceneUrl);
+        navigate(newSceneUrl);
       }
     } catch (error) {
       console.error('❌ Failed to create scene:', error);

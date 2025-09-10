@@ -26,7 +26,7 @@ import { AssetImportModal } from '../../features/scenes/AssetImportModal';
 import { SceneProvider, useSceneContext, useSceneParams } from '../../contexts/SceneContext';
 
 // Services
-import { scenesApi } from '../../services/scenesApi';
+import { scenesApi, SceneItemCreateRequest } from '../../services/scenesApi';
 
 // Data Layer (fallback for when no scene is loaded)
 import { assetCategories } from '../../data/projectEditorData';
@@ -202,39 +202,13 @@ const ProjectEditorContent: React.FC = () => {
         const finalAssetName = assetName || 'Imported Asset';
         const finalCategory = category || 'misc';
 
-        // Check if the asset already has a category in this project
-        log('info', 'ProjectEditor: Checking existing project categories');
-        const projectCategories = await scenesApi.getProjectCategories(contextProjectId);
-        
-        // Look for an existing category for this asset
-        let existingCategory = projectCategories.find(cat => cat.assetId === assetId);
-        
-        if (!existingCategory) {
-          // Asset doesn't have a category yet, create one
-          log('info', 'ProjectEditor: Creating new category for asset', { assetId, categoryKey: finalCategory });
-          
-          const categoryData = {
-            assetId: assetId,
-            categoryKey: finalCategory,
-            instancing: false,
-            draco: true,
-            meshopt: true,
-            ktx2: true,
-          };
-          
-          existingCategory = await scenesApi.createProjectCategory(contextProjectId, categoryData);
-          log('info', 'ProjectEditor: Category created successfully', existingCategory);
-        } else {
-          log('info', 'ProjectEditor: Using existing category', existingCategory.categoryKey);
-        }
-
         // Create scene item with default transform using backend DTO format
-        const sceneItem = {
-          categoryKey: existingCategory.categoryKey,
-          name: finalAssetName, // Add the asset name
-          positionX: 0,
+        // Use the category directly since we can't create project categories via API
+        const sceneItem: SceneItemCreateRequest = {
+          categoryKey: finalCategory, // Use the category from the import form
+          positionX: (Math.random() - 0.5) * 10, // Random position for demo
           positionY: 0,
-          positionZ: 0,
+          positionZ: (Math.random() - 0.5) * 10,
           rotationX: 0,
           rotationY: 0,
           rotationZ: 0,
@@ -246,11 +220,13 @@ const ProjectEditorContent: React.FC = () => {
           meta: {
             assetName: finalAssetName,
             assetId: assetId,
-            uploadedAt: new Date().toISOString()
+            uploadedAt: new Date().toISOString(),
+            isImported: true
           }
         };
 
         // Add item to scene
+        log('info', 'ProjectEditor: Adding scene item', { sceneItem, sceneId: contextSceneId });
         const currentVersion = manifest?.scene?.version?.toString();
         await scenesApi.addItem(contextSceneId, sceneItem, currentVersion);
 
@@ -279,6 +255,53 @@ const ProjectEditorContent: React.FC = () => {
       triggerAchievement('🎮 Viewport Activated! Use WASD to navigate');
     }
   }, [handleViewportClick, isWASDActive, triggerAchievement]);
+
+  // Asset drop handler for drag and drop from sidebar
+  const handleAssetDrop = useCallback(async (dragData: any, position: { x: number; y: number }) => {
+    if (!contextSceneId || !dragData.item) {
+      console.warn('ProjectEditor: Cannot drop asset - missing scene or item data');
+      return;
+    }
+
+    try {
+      log('info', 'ProjectEditor: Dropping asset into scene', { dragData, position, sceneId: contextSceneId });
+      
+      // Create a duplicate of the item with a new position
+      const droppedItem: SceneItemCreateRequest = {
+        categoryKey: dragData.categoryName || dragData.item.category || 'misc',
+        positionX: (Math.random() - 0.5) * 10, // Random position near drop point
+        positionY: 0,
+        positionZ: (Math.random() - 0.5) * 10,
+        rotationX: 0,
+        rotationY: Math.random() * 360, // Random rotation for variety
+        rotationZ: 0,
+        scaleX: 1,
+        scaleY: 1,
+        scaleZ: 1,
+        selectable: true,
+        locked: false,
+        meta: {
+          ...dragData.item.meta,
+          droppedAt: new Date().toISOString(),
+          dropPosition: position
+        }
+      };
+
+      // Add the dropped item to the scene
+      const currentVersion = manifest?.scene?.version?.toString();
+      await scenesApi.addItem(contextSceneId, droppedItem, currentVersion);
+
+      log('info', 'ProjectEditor: Asset successfully dropped into scene');
+      triggerAchievement(`✨ +10 XP - Asset placed in scene!`);
+
+      // Refresh the scene to show the new item
+      refreshScene();
+
+    } catch (error) {
+      log('error', 'ProjectEditor: Failed to drop asset into scene', error);
+      triggerAchievement(`❌ Failed to place asset`);
+    }
+  }, [contextSceneId, manifest, scenesApi, refreshScene, triggerAchievement]);
 
   return (
     <div className={styles.projectEditorRoot}>
@@ -335,6 +358,7 @@ const ProjectEditorContent: React.FC = () => {
             movement={movement}
             onViewportClick={handleViewportClickWithAchievement}
             cameraMode={cameraMode}
+            onAssetDrop={handleAssetDrop}
           />
 
           {/* Viewport Tools */}
