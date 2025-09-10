@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-import { SceneManifestV2 } from '../services/scenesApi';
+import { SceneManifestV2, updateApiClientToken } from '../services/scenesApi';
 import { useSceneCategories } from '../hooks/scenes/useSceneQuery';
 import { useSceneManifestStaged } from '../hooks/scenes/useSceneManifestStaged';
 import { useAuth } from '../providers/AuthProvider';
@@ -76,7 +76,7 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
   defaultSceneId,
   defaultProjectId
 }) => {
-  const { token, user } = useAuth();
+  const { token, user, isLoading: authLoading } = useAuth();
   
   // Scene state
   const [sceneId, setSceneId] = useState<string | null>(defaultSceneId || null);
@@ -104,13 +104,23 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     setLoading(false);
   }, []);
 
+  // Ensure token is immediately available to scenesApi when auth state changes
+  useEffect(() => {
+    if (token && !authLoading) {
+      console.log('🔐 SceneProvider: Ensuring token is set in scenesApi');
+      updateApiClientToken(token);
+    }
+  }, [token, authLoading]);
+
   // Log authentication status for debugging
   console.log('🔐 SceneProvider Auth Status:', {
     hasToken: !!token,
     hasUser: !!user,
+    authLoading,
     sceneId,
     projectId,
-    mode: sceneId ? 'SCENE_MODE' : projectId ? 'PROJECT_MODE' : 'NO_MODE'
+    mode: sceneId ? 'SCENE_MODE' : projectId ? 'PROJECT_MODE' : 'NO_MODE',
+    hooksShouldRun: !!sceneId && !!token && !!user && !authLoading
   });
 
   // Scene manifest loading - use the staged loader for progressive loading
@@ -120,7 +130,7 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     error: manifestError,
     refresh: refreshManifest
   } = useSceneManifestStaged(sceneId || '', {
-    enabled: !!sceneId && !!token && !!user,
+    enabled: !!sceneId && !!token && !!user && !authLoading,
     priorityCategories,
     onStageComplete: (stageName: string, manifest: SceneManifestV2) => {
       console.log(`Scene stage completed: ${stageName}`, manifest?.items?.length || 0, 'items');
@@ -148,7 +158,7 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     data: allCategories = [],
     isLoading: categoriesLoading 
   } = useSceneCategories(sceneId || '', {
-    enabled: !!sceneId && !!token && !!user // Only load if we have a sceneId
+    enabled: !!sceneId && !!token && !!user && !authLoading // Only load if we have a sceneId and auth is ready
   });
 
   console.log('🎯 SceneContext: Categories data', {

@@ -6,19 +6,67 @@ import { log } from '../../utils/logger';
  * Priority: meshopt > draco > base GLB
  */
 export function pickCategoryUrl(category: CategoryInfo): string {
-  // Priority order: meshopt (preferred), draco (fallback), base GLB
+  console.log('🎯 pickCategoryUrl called with category:', category);
+  
+  // Handle the actual data structure from your logs
+  // Categories have an 'asset' property with the URLs
+  const asset = (category as any).asset;
+  if (asset) {
+    console.log('🎯 Found asset in category:', asset);
+    
+    // Priority order: meshopt (preferred), draco (fallback), original
+    let selectedUrl = null;
+    
+    if (category.meshopt && asset.meshoptUrl) {
+      console.log('🎯 Selected Meshopt URL:', asset.meshoptUrl);
+      selectedUrl = asset.meshoptUrl;
+    } else if (category.draco && asset.dracoUrl) {
+      console.log('🎯 Selected Draco URL:', asset.dracoUrl);
+      selectedUrl = asset.dracoUrl;
+    } else if (asset.originalUrl) {
+      console.log('🎯 Selected original URL:', asset.originalUrl);
+      selectedUrl = asset.originalUrl;
+    }
+    
+    if (selectedUrl) {
+      // Convert MinIO URLs to API proxy URLs to avoid 403 Forbidden issues
+      if (selectedUrl.includes('localhost:9000') || selectedUrl.includes('minio')) {
+        // Try to get asset ID from the category data
+        const assetId = (category as any).assetId || asset.id;
+        if (assetId) {
+          // Determine variant type from URL
+          let variant = 'original';
+          if (selectedUrl.includes('meshopt') || selectedUrl.includes('optimized')) {
+            variant = 'meshopt';
+          } else if (selectedUrl.includes('draco')) {
+            variant = 'draco';
+          }
+          
+          const proxyUrl = `http://localhost:3001/storage/assets/${assetId}?variant=${variant}`;
+          console.log('🔄 Converting MinIO URL to asset endpoint:', selectedUrl, '->', proxyUrl);
+          return proxyUrl;
+        } else {
+          console.warn('⚠️ No asset ID found, cannot convert URL:', selectedUrl);
+        }
+      }
+      return selectedUrl;
+    }
+  }
+  
+  // Fallback to old structure if available
   if (category.meshopt && category.encodings?.meshopt_url) {
-    log('debug', '🎯 Using Meshopt encoding for category');
+    console.log('🎯 Using legacy Meshopt encoding');
     return category.encodings.meshopt_url;
   }
   
   if (category.draco && category.encodings?.draco_url) {
-    log('debug', '🎯 Using Draco encoding for category');
+    console.log('🎯 Using legacy Draco encoding');
     return category.encodings.draco_url;
   }
   
-  log('debug', '🎯 Using base GLB for category');
-  return category.glb_url || '';
+  const fallbackUrl = category.glb_url || (category as any).url || '';
+  console.log('🎯 Using fallback URL:', fallbackUrl);
+  return fallbackUrl;
 }
 
 /**

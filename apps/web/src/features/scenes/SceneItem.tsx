@@ -43,26 +43,24 @@ export function SceneItem({ item, categoryUrl, categoryKey }: SceneItemProps) {
     // Clone the object to avoid modifying the original loaded scene
     const cloned = modelNode.clone(true);
     
-    // Apply transform from manifest
-    if (item.transform) {
-      const { position, rotation_euler, scale } = item.transform;
-      
-      if (position) {
-        cloned.position.set(position[0], position[1], position[2]);
-      }
-      
-      if (rotation_euler) {
-        cloned.rotation.set(
-          (rotation_euler[0] * Math.PI) / 180, // Convert degrees to radians
-          (rotation_euler[1] * Math.PI) / 180,
-          (rotation_euler[2] * Math.PI) / 180
-        );
-      }
-      
-      if (scale) {
-        cloned.scale.set(scale[0], scale[1], scale[2]);
-      }
-    }
+    // Apply transform from manifest with safe defaults
+    const transform = item.transform || {};
+    const position = transform.position || [0, 0, 0];
+    const rotation_euler = transform.rotation_euler || [0, 0, 0];
+    const scale = transform.scale || [1, 1, 1];
+    
+    // Apply position
+    cloned.position.set(position[0], position[1], position[2]);
+    
+    // Apply rotation (convert degrees to radians)
+    cloned.rotation.set(
+      (rotation_euler[0] * Math.PI) / 180,
+      (rotation_euler[1] * Math.PI) / 180,
+      (rotation_euler[2] * Math.PI) / 180
+    );
+    
+    // Apply scale
+    cloned.scale.set(scale[0], scale[1], scale[2]);
     
     // Set name and userData for identification
     cloned.name = `item-${item.id}`;

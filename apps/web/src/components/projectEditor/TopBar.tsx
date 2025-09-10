@@ -20,6 +20,7 @@ import {
 import { useSceneContext } from '../../contexts/SceneContext';
 import { useScenes } from '../../hooks/scenes/useSceneQuery';
 import { useScenesList } from '../../hooks/scenes/useScenesList';
+import { useAuth } from '../../providers/AuthProvider';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 
 interface TopBarProps {
@@ -49,8 +50,21 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
 }) => {
   const navigate = useNavigate();
   const { sceneId, projectId } = useSceneContext();
+  const { token, isAuthenticated, isLoading: authLoading } = useAuth();
   const [showSceneSelector, setShowSceneSelector] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Debug logging for auth state
+  useEffect(() => {
+    console.log('🔐 TopBar auth state:', {
+      hasToken: !!token,
+      tokenPreview: token ? token.substring(0, 20) + '...' : 'NULL',
+      isAuthenticated,
+      authLoading,
+      projectId,
+      sceneId
+    });
+  }, [token, isAuthenticated, authLoading, projectId, sceneId]);
 
   // Fetch scenes for the current project
   const { data: availableScenes = [], isLoading: scenesLoading, error: scenesError } = useScenes(projectId || '', {

@@ -200,14 +200,23 @@ export interface SceneApiErrorData {
   error?: string;
 }
 
-function getCurrentToken(): string | null {
-  // Log token access for debugging
-  console.log('🔍 SCENES_API: getCurrentToken called, token:', currentAuthToken ? 'SET' : 'NULL');
-  if (currentAuthToken) {
-    console.log('🔍 SCENES_API: Token preview:', currentAuthToken.substring(0, 20) + '...');
-  } else {
-    console.log('❌ SCENES_API: NO TOKEN AVAILABLE!');
+export function getCurrentToken(): string | null {
+  // Enhanced logging for debugging with stack trace context
+  const stackTrace = new Error().stack?.split('\n')[2]?.trim() || 'Unknown caller';
+  
+  console.log('🔍 SCENES_API: getCurrentToken called from:', stackTrace);
+  console.log('🔍 SCENES_API: Token state:', {
+    hasToken: !!currentAuthToken,
+    tokenLength: currentAuthToken?.length || 0,
+    tokenPreview: currentAuthToken ? currentAuthToken.substring(0, 30) + '...' : 'NULL',
+    timestamp: new Date().toISOString()
+  });
+  
+  if (!currentAuthToken) {
+    console.warn('⚠️ SCENES_API: No token available!');
+    console.warn('⚠️ Check that user is logged in and AuthProvider has set the token');
   }
+  
   return currentAuthToken;
 }
 
@@ -706,7 +715,7 @@ export const scenesApi = {
         headers.Authorization = `Bearer ${token}`;
         console.log('✅ SCENE_API: Token available, adding Authorization header');
       } else {
-        console.error('❌ SCENE_API: NO TOKEN AVAILABLE - this will cause 401 error!');
+        console.warn('⚠️ SCENE_API: No token available for getCategories - may cause 401 error if not loading');
         console.log('🔍 SCENE_API: currentAuthToken value:', currentAuthToken);
         console.log('🔍 SCENE_API: Debugging token state...');
         

@@ -26,13 +26,21 @@ interface UseScenesListResult {
 
 export const useScenesList = (options: UseScenesListOptions = {}): UseScenesListResult => {
   const { enabled = true, projectId } = options;
-  const { token } = useAuth();
+  const { token, isAuthenticated, isLoading: authLoading } = useAuth();
   const [scenes, setScenes] = useState<SceneListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchScenes = useCallback(async () => {
-    if (!enabled || !token) {
+    // Don't fetch if disabled, still loading auth, or not authenticated
+    if (!enabled || authLoading || !isAuthenticated || !token) {
+      console.log('📋 useScenesList: Skipping fetch:', { 
+        enabled, 
+        authLoading, 
+        isAuthenticated, 
+        hasToken: !!token,
+        projectId 
+      });
       return;
     }
 
@@ -156,7 +164,7 @@ export const useScenesList = (options: UseScenesListOptions = {}): UseScenesList
     } finally {
       setIsLoading(false);
     }
-  }, [enabled, token, projectId]);
+  }, [enabled, token, projectId, authLoading, isAuthenticated]);
 
   const refresh = useCallback(() => {
     fetchScenes();

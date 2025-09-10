@@ -14,6 +14,25 @@ interface CategoryRendererProps {
 export function CategoryRenderer({ categoryKey, category, items, sceneId }: CategoryRendererProps) {
   const categoryUrl = pickCategoryUrl(category);
   
+  // CRITICAL: Prevent crash if URL is empty
+  if (!categoryUrl || categoryUrl.trim() === '') {
+    console.error(`❌ CategoryRenderer: Empty URL for category "${categoryKey}". Category:`, category);
+    return (
+      <group name={`category-${categoryKey}-error`}>
+        {/* Render placeholder boxes for items with missing assets */}
+        {items.filter(item => {
+          const itemCategory = typeof item.category === 'string' ? item.category : (item.category as any)?.categoryKey || '';
+          return itemCategory === categoryKey;
+        }).map((item) => (
+          <mesh key={item.id} position={item.transform?.position || [0, 0, 0]}>
+            <boxGeometry args={[1, 1, 1]} />
+            <meshBasicMaterial color="red" wireframe />
+          </mesh>
+        ))}
+      </group>
+    );
+  }
+  
   // Filter items that belong to this category
   const categoryItems = items.filter(item => {
     const itemCategory = typeof item.category === 'string' ? item.category : (item.category as any)?.categoryKey || '';
@@ -64,9 +83,9 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
               glbUrl={`${categoryUrl}${model}`}
               items={groupItems.map((item: any) => ({
                 id: item.id,
-                position: item.transform.position,
-                rotation: item.transform.rotation_euler,
-                scale: item.transform.scale
+                position: item.transform?.position || [0, 0, 0],
+                rotation: item.transform?.rotation_euler || [0, 0, 0],
+                scale: item.transform?.scale || [1, 1, 1]
               }))}
               frustumCulling={true}
               maxInstances={1000}

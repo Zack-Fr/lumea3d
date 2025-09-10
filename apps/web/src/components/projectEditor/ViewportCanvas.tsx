@@ -6,7 +6,7 @@ import { Box, Loader2 } from "lucide-react";
 import { ViewportMovement } from '../../types/projectEditor';
 import { useSceneContext } from '../../contexts/SceneContext';
 import { StagedSceneLoader } from '../../features/scenes/StagedSceneLoader';
-import SceneRenderer from './SceneRenderer';
+import { SceneRenderer } from '../../features/scenes/SceneRenderer';
 import CameraControlsComponent from './CameraControls';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 
@@ -269,7 +269,7 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
 
         {/* Scene Content */}
         <Suspense fallback={null}>
-          <SceneRenderer />
+          {sceneId && <SceneRenderer sceneId={sceneId} />}
         </Suspense>
 
         {/* Camera Controls */}

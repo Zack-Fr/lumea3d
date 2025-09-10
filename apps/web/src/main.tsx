@@ -1,7 +1,12 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
 import { QueryProvider } from './providers/QueryProvider.tsx'
+import App from './App.tsx'
+import './index.css'
+
+// Import auth diagnostics for debugging
+import './utils/authDiagnostics';
+import './utils/autoRunDiagnostics';
 import { AuthProvider } from './providers/AuthProvider.tsx'
 import './index.css'
 // Import R3F setup
