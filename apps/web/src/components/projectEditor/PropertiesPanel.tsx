@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button } from "../ui/Button";
 import { Slider } from "../ui/Slider";
 import { ScrollArea } from "../ui/ScrollArea";
@@ -7,8 +7,11 @@ import {
   Palette,
   Lightbulb,
   Layers,
-  Eye
+  Eye,
+  Ruler
 } from "lucide-react";
+import ScaleUnitSystem, { ScaleUnit } from './ScaleUnitSystem';
+import ObjectsCounter from './ObjectsCounter';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 import { scenesApi, SceneItemUpdateRequest, SceneUpdateRequest } from '../../services/scenesApi';
 import { useSceneContext } from '../../contexts/SceneContext';
@@ -46,6 +49,11 @@ interface EnvironmentSettings {
   exposure: number;
 }
 
+interface ScaleSettings {
+  unit: ScaleUnit;
+  sceneScale: number;
+}
+
 const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   show,
   onClose,
@@ -66,6 +74,12 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     intensity: 100,
     shadowStrength: 50,
     exposure: 1.0
+  });
+  
+  // Scene scale settings state
+  const [scaleSettings, setScaleSettings] = useState<ScaleSettings>({
+    unit: 'cm',
+    sceneScale: 1.0
   });
   
   // Selected item state
@@ -178,6 +192,44 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       setIsUpdatingItem(false);
     }
   }, [selectedItemId, sceneId, selectedItem, manifest?.scene?.version, refreshScene]);
+  
+  // Scale system handlers
+  const handleUnitChange = useCallback((unit: ScaleUnit) => {
+    setScaleSettings(prev => ({ ...prev, unit }));
+    // TODO: Update 3D scene with new unit display
+    console.log('Scene unit changed to:', unit);
+  }, []);
+  
+  const handleScaleChange = useCallback((sceneScale: number) => {
+    setScaleSettings(prev => ({ ...prev, sceneScale }));
+    // TODO: Update 3D scene scale multiplier
+    console.log('Scene scale changed to:', sceneScale);
+  }, []);
+  
+  // Calculate object information from scene manifest
+  const objectInfo = useMemo(() => {
+    const items = manifest?.items || [];
+    
+    // Count by category
+    const byCategory: Record<string, number> = {};
+    items.forEach(item => {
+      const category = typeof item.category === 'string' ? item.category : (item.category as any)?.categoryKey || 'unknown';
+      byCategory[category] = (byCategory[category] || 0) + 1;
+    });
+    
+    return {
+      total: items.length,
+      visible: items.length, // TODO: Track actual visibility state
+      selected: selectedItemId ? 1 : 0, // TODO: Support multi-selection
+      byCategory
+    };
+  }, [manifest?.items, selectedItemId]);
+  
+  // Objects visibility handler
+  const handleToggleAllVisibility = useCallback((show: boolean) => {
+    console.log('Toggle all objects visibility:', show);
+    // TODO: Implement global object visibility toggle
+  }, []);
   
   // Update item material properties
   const updateItemMaterial = useCallback(async (material: Partial<SelectedItemState['material']>) => {
@@ -555,76 +607,91 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
             </div>
           </div>
 
-          {/* Layer Controls */}
+          {/* Scene Scale */}
+          <div className={styles.propertySection}>
+            <h3 className={styles.propertySectionTitle}>
+              <Ruler className="w-4 h-4 mr-2" />
+              Scene Scale
+            </h3>
+            <div className={styles.propertySectionContent}>
+              <ScaleUnitSystem
+                currentUnit={scaleSettings.unit}
+                sceneScale={scaleSettings.sceneScale}
+                onUnitChange={handleUnitChange}
+                onScaleChange={handleScaleChange}
+                className=""
+              />
+            </div>
+          </div>
+
+          {/* Layer Controls / Objects */}
           <div className={styles.propertySection}>
             <h3 className={styles.propertySectionTitle}>
               <Layers className="w-4 h-4 mr-2" />
               Layers
             </h3>
             <div className={styles.propertySectionContent}>
-              {['Background', 'Objects', 'Lighting', 'Effects'].map((layer) => (
-                <div key={layer} className={styles.layerItem}>
-                  <div className={styles.layerInfo}>
-                    <Eye className="w-4 h-4 text-glass-gray" />
-                    <span className={styles.layerName}>{layer}</span>
-                  </div>
-                  <div className={styles.layerToggle}>
-                    <div className={styles.layerToggleKnob}></div>
-                  </div>
+              <ObjectsCounter
+                objectInfo={objectInfo}
+                onToggleVisibility={handleToggleAllVisibility}
+                className=""
+              />
+            </div>
+          </div>
+          
+          {/* Shell Settings */}
+          <div className={styles.propertySection}>
+            <h3 className={styles.propertySectionTitle}>
+              <Eye className="w-4 h-4 mr-2" />
+              Shell Settings
+            </h3>
+            <div className={styles.propertySectionContent}>
+              {/* Error Message */}
+              {lastError && (
+                <div style={{ 
+                  padding: '6px 8px', 
+                  marginBottom: '8px', 
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+                  border: '1px solid rgba(239, 68, 68, 0.3)', 
+                  borderRadius: '4px', 
+                  fontSize: '11px', 
+                  color: '#fecaca',
+                  wordBreak: 'break-word'
+                }}>
+                  {lastError}
                 </div>
-              ))}
+              )}
               
-              {/* Shell Shadow Controls */}
-              <div className={styles.propertyGroup} style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                <span className={styles.propertyLabel} style={{ marginBottom: '8px', display: 'block', fontSize: '12px', opacity: 0.8 }}>Shell Settings</span>
-                
-                {/* Error Message */}
-                {lastError && (
-                  <div style={{ 
-                    padding: '6px 8px', 
-                    marginBottom: '8px', 
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)', 
-                    border: '1px solid rgba(239, 68, 68, 0.3)', 
-                    borderRadius: '4px', 
-                    fontSize: '11px', 
-                    color: '#fecaca',
-                    wordBreak: 'break-word'
-                  }}>
-                    {lastError}
-                  </div>
-                )}
-                
-                <div className={styles.propertyGroup}>
-                  <span className={styles.propertyLabel}>Shell Cast Shadow</span>
-                  <div 
-                    className={`${styles.toggleSwitch} ${shellSettings.castShadow ? styles.toggleActive : ''}`}
-                    onClick={() => updateShellProperty('castShadow', !shellSettings.castShadow)}
-                    style={{ cursor: isUpdatingShell ? 'wait' : 'pointer', opacity: isUpdatingShell ? 0.6 : 1 }}
-                  >
-                    <div className={styles.toggleKnob}></div>
-                  </div>
+              <div className={styles.propertyGroup}>
+                <span className={styles.propertyLabel}>Shell Cast Shadow</span>
+                <div 
+                  className={`${styles.toggleSwitch} ${shellSettings.castShadow ? styles.toggleActive : ''}`}
+                  onClick={() => updateShellProperty('castShadow', !shellSettings.castShadow)}
+                  style={{ cursor: isUpdatingShell ? 'wait' : 'pointer', opacity: isUpdatingShell ? 0.6 : 1 }}
+                >
+                  <div className={styles.toggleKnob}></div>
                 </div>
-                
-                <div className={styles.propertyGroup}>
-                  <span className={styles.propertyLabel}>Shell Receive Shadow</span>
-                  <div 
-                    className={`${styles.toggleSwitch} ${shellSettings.receiveShadow ? styles.toggleActive : ''}`}
-                    onClick={() => updateShellProperty('receiveShadow', !shellSettings.receiveShadow)}
-                    style={{ cursor: isUpdatingShell ? 'wait' : 'pointer', opacity: isUpdatingShell ? 0.6 : 1 }}
-                  >
-                    <div className={styles.toggleKnob}></div>
-                  </div>
+              </div>
+              
+              <div className={styles.propertyGroup}>
+                <span className={styles.propertyLabel}>Shell Receive Shadow</span>
+                <div 
+                  className={`${styles.toggleSwitch} ${shellSettings.receiveShadow ? styles.toggleActive : ''}`}
+                  onClick={() => updateShellProperty('receiveShadow', !shellSettings.receiveShadow)}
+                  style={{ cursor: isUpdatingShell ? 'wait' : 'pointer', opacity: isUpdatingShell ? 0.6 : 1 }}
+                >
+                  <div className={styles.toggleKnob}></div>
                 </div>
-                
-                <div className={styles.propertyGroup}>
-                  <span className={styles.propertyLabel}>Shell Visibility</span>
-                  <div 
-                    className={`${styles.toggleSwitch} ${shellSettings.visible ? styles.toggleActive : ''}`}
-                    onClick={() => updateShellProperty('visible', !shellSettings.visible)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <div className={styles.toggleKnob}></div>
-                  </div>
+              </div>
+              
+              <div className={styles.propertyGroup}>
+                <span className={styles.propertyLabel}>Shell Visibility</span>
+                <div 
+                  className={`${styles.toggleSwitch} ${shellSettings.visible ? styles.toggleActive : ''}`}
+                  onClick={() => updateShellProperty('visible', !shellSettings.visible)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div className={styles.toggleKnob}></div>
                 </div>
               </div>
             </div>

@@ -1,7 +1,6 @@
 import { Suspense, useMemo } from 'react';
 import type { SceneItem, CategoryInfo } from '../../services/scenesApi';
-import { SceneItem as SceneItemComponent } from './SceneItem';
-import { InstancedObject, useInstancedRenderer } from './InstancedRenderer';
+import { useInstancedRenderer } from './InstancedRenderer';
 import { pickCategoryUrl } from './useSceneAssets';
 import { SafeInstancedObject } from './SafeInstancedObject';
 import { SafeSceneItem } from './SafeSceneItem';
