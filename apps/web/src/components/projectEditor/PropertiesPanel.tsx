@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import ScaleUnitSystem, { ScaleUnit } from './ScaleUnitSystem';
 import ObjectsCounter from './ObjectsCounter';
+import HdrEnvironmentUpload from './HdrEnvironmentUpload';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 import { scenesApi, SceneItemUpdateRequest, SceneUpdateRequest } from '../../services/scenesApi';
 import { useSceneContext } from '../../contexts/SceneContext';
@@ -75,6 +76,18 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     shadowStrength: 50,
     exposure: 1.0
   });
+  
+  // HDR environment state
+  const [currentHdriUrl, setCurrentHdriUrl] = useState<string | null>(null);
+  
+  // Load current HDR URL from scene manifest
+  useEffect(() => {
+    if (manifest?.scene?.env?.hdri_url) {
+      setCurrentHdriUrl(manifest.scene.env.hdri_url);
+    } else {
+      setCurrentHdriUrl(null);
+    }
+  }, [manifest?.scene?.env?.hdri_url]);
   
   // Scene scale settings state
   const [scaleSettings, setScaleSettings] = useState<ScaleSettings>({
@@ -604,6 +617,19 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                   Updating environment...
                 </div>
               )}
+              
+              {/* HDR Environment Upload */}
+              <HdrEnvironmentUpload
+                sceneId={sceneId}
+                currentHdriUrl={currentHdriUrl}
+                onHdriUpdate={(hdriUrl) => {
+                  setCurrentHdriUrl(hdriUrl);
+                  // Optionally refresh the scene to apply new HDR
+                  if (refreshScene) {
+                    refreshScene();
+                  }
+                }}
+              />
             </div>
           </div>
 

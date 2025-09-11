@@ -288,12 +288,11 @@
   margin-bottom: 0.75rem;
 }
 
+.leftSidebar .sidebarTitle,
 .sidebarTitle {
-  color: var(--glass-yellow);
-}
-
-.sidebarTitle {
-  color: var(--glass-yellow);
+  color: var(--glass-yellow) !important;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .addButton {
