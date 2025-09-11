@@ -70,7 +70,13 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
 
   // Determine which models should use instancing (more than 1 instance)
   const { instanceGroups } = useInstancedRenderer(categoryItems, categoryUrl);
-  const shouldUseInstancing = instanceGroups.size > 0;
+  // Only use instancing if there are multiple instances of the same model
+  const shouldUseInstancing = Array.from(instanceGroups.values()).some(group => group.length > 1);
+  
+  console.log('🔍 DEBUG: Instancing decision:', {
+    instanceGroups: Array.from(instanceGroups.entries()).map(([model, group]) => ({ model, count: group.length })),
+    shouldUseInstancing
+  });
   
   console.log(`🏗️ CategoryRenderer "${categoryKey}":`, {
     url: categoryUrl,

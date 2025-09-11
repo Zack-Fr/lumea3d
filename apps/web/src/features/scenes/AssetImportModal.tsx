@@ -217,6 +217,8 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
     });
     
     console.log('✅ AssetImport: Local fallback completed:', localAssetId);
+    console.log('🚨 DEBUG: LOCAL FALLBACK calling onImportComplete with:', { localAssetId, name: localAsset.name, category: formData.category });
+    console.log('🚨 DEBUG: Local asset stored in localStorage as blob URL - this needs special handling!');
     onImportComplete?.(localAssetId, localAsset.name, formData.category);
   }, [formData.category, onImportComplete]);
 
@@ -258,6 +260,11 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
         });
       } catch (apiError: any) {
         console.error('❌ AssetImport: API call failed:', apiError);
+        console.log('🔍 DEBUG: API Error details:', {
+          message: apiError.message,
+          status: apiError.status || apiError.statusCode,
+          stack: apiError.stack
+        });
         
         // Handle specific error cases
         if (apiError.message?.includes('400')) {
@@ -272,7 +279,8 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
           throw new Error('Service temporarily unavailable. Please try again in a few minutes.');
         } else {
           // Fallback: Try local processing if API is unavailable
-          console.warn('API unavailable, attempting local processing...');
+          console.warn('🚨 DEBUG: API unavailable, using LOCAL FALLBACK processing...');
+          console.log('🚨 DEBUG: This creates blob URLs and localStorage assets - NOT proper scene items!');
           await handleLocalFallback(formData.file);
           return;
         }
@@ -338,6 +346,7 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
         },
         onComplete: (status) => {
           console.log('✅ AssetImport: Processing completed:', status);
+          console.log('🔍 DEBUG: Using NORMAL API PATH - this should create proper scene items');
           setUploadProgress({
             stage: 'complete',
             progress: 100,
@@ -346,6 +355,7 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
           });
           // Pass asset name (derived from file name) and category to callback
           const assetName = formData.file?.name.replace('.glb', '') || 'Unnamed Asset';
+          console.log('🔍 DEBUG: Calling onImportComplete with:', { assetId: status.assetId, assetName, category: formData.category });
           onImportComplete?.(status.assetId, assetName, formData.category);
         },
         onError: (status) => {

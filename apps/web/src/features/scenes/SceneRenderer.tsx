@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { useSceneManifestStaged } from '../../hooks/scenes/useSceneManifestStaged';
 import { CategoryRenderer } from './CategoryRenderer';
+import { SafeSceneItem } from './SafeSceneItem';
 import { log } from '../../utils/logger';
 
 interface SceneRendererProps {
@@ -46,6 +47,18 @@ export function SceneRenderer({ sceneId }: SceneRendererProps) {
 
   log('info', `🎨 SceneRenderer: Rendering scene with ${Object.keys(categories).length} categories and ${items.length} items`);
   
+  console.log('🔍 DEBUG: features/scenes/SceneRenderer - MANIFEST ITEMS:');
+  items.forEach((item, index) => {
+    console.log(`🔍 Item ${index}:`, {
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      selectable: item.selectable,
+      hasTransform: !!item.transform,
+      meta: item.meta
+    });
+  });
+  
   // Debug logging for imported mesh detection
   console.log('🔍 SceneRenderer Debug Data:');
   console.log('Categories:', Object.keys(categories));
@@ -73,8 +86,18 @@ export function SceneRenderer({ sceneId }: SceneRendererProps) {
     });
   });
 
+  // Load local assets from localStorage
+  let localAssets: any[] = [];
+  try {
+    localAssets = JSON.parse(localStorage.getItem('lumea-local-assets') || '[]');
+    console.log('🔍 SceneRenderer: Found local assets:', localAssets.length);
+  } catch (error) {
+    console.warn('Failed to load local assets:', error);
+  }
+
   return (
     <group name="scene-root">
+      {/* Render manifest items via CategoryRenderer */}
       {Object.entries(categories).map(([categoryKey, category]) => (
         <Suspense key={`${sceneId}-${categoryKey}`} fallback={null}>
           <CategoryRenderer
@@ -85,6 +108,63 @@ export function SceneRenderer({ sceneId }: SceneRendererProps) {
           />
         </Suspense>
       ))}
+      
+      {/* Render local assets directly */}
+      {localAssets.map((asset) => {
+        console.log('🔍 SceneRenderer: Rendering local asset:', {
+          id: asset.id,
+          name: asset.name,
+          url: asset.url,
+          category: asset.category
+        });
+        
+        // Convert local asset to scene item format
+        const localItem = {
+          id: asset.id,
+          name: asset.name,
+          category: asset.category,
+          selectable: true,
+          locked: false,
+          meta: {
+            isLocal: true,
+            assetName: asset.name,
+            importedAt: asset.createdAt
+          },
+          transform: {
+            position: [(Math.random() - 0.5) * 10, 0, (Math.random() - 0.5) * 10],
+            rotation_euler: [0, 0, 0],
+            scale: [1, 1, 1]
+          }
+        };
+        
+        return (
+          <Suspense 
+            key={`local-${asset.id}`}
+            fallback={
+              <mesh 
+                name={`local-fallback-${asset.id}`}
+                position={localItem.transform.position}
+                userData={{
+                  itemId: asset.id,
+                  category: asset.category,
+                  selectable: true,
+                  locked: false,
+                  meta: localItem.meta
+                }}
+              >
+                <boxGeometry args={[1, 1, 1]} />
+                <meshBasicMaterial color="purple" wireframe />
+              </mesh>
+            }
+          >
+            <SafeSceneItem
+              item={localItem}
+              categoryUrl={asset.url}
+              categoryKey={asset.category}
+            />
+          </Suspense>
+        );
+      })}
     </group>
   );
 }

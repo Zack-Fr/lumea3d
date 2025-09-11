@@ -19,7 +19,9 @@ export function SafeSceneItem({ item, categoryUrl, categoryKey }: SafeSceneItemP
     categoryKey,
     categoryUrl,
     selectable: item.selectable,
-    position: item.transform?.position
+    position: item.transform?.position,
+    isLocal: (item as any).meta?.isLocal,
+    isBlobUrl: categoryUrl.startsWith('blob:')
   });
 
   useEffect(() => {

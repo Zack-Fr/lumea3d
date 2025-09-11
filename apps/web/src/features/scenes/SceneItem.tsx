@@ -74,9 +74,17 @@ export function SceneItem({ item, categoryUrl, categoryKey }: SceneItemProps) {
     
     // Set userData on the root object and all children
     cloned.userData = userData;
+    console.log('🔍 DEBUG: SceneItem applying userData to:', cloned.name, userData);
+    
+    let meshCount = 0;
     cloned.traverse((child) => {
       child.userData = { ...userData };
+      if (child.type === 'Mesh') {
+        meshCount++;
+        console.log('🔍 DEBUG: Applied userData to mesh:', child.name || 'unnamed', child.userData);
+      }
     });
+    console.log('🔍 DEBUG: Applied userData to', meshCount, 'mesh children');
     
     console.log(`🎯 Item "${item.id}" positioned at:`, {
       position: cloned.position.toArray(),

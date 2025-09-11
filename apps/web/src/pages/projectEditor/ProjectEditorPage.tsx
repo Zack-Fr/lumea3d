@@ -219,6 +219,11 @@ const ProjectEditorContent: React.FC = () => {
   const handleAssetImportComplete = useCallback(async (assetId: string, assetName: string, category: string) => {
     logOnce('projecteditor:asset-imported', 'info', '✅ ProjectEditor: Asset imported');
     log('debug', 'ProjectEditor: Asset imported id', assetId);
+    console.log('🔍 DEBUG: handleAssetImportComplete called with:', { assetId, assetName, category });
+    
+    // Check if this is a local fallback asset
+    const isLocalAsset = assetId.startsWith('local-');
+    console.log('🔍 DEBUG: Asset type:', isLocalAsset ? 'LOCAL FALLBACK (blob URL)' : 'NORMAL API ASSET');
     triggerAchievement('🎯 +20 XP - New 3D asset imported!');
 
     // Add the imported asset to the current scene if we have a sceneId
@@ -295,7 +300,9 @@ const ProjectEditorContent: React.FC = () => {
 
         // Add item to scene
         log('info', 'ProjectEditor: Adding scene item', { sceneItem, sceneId: contextSceneId });
+        console.log('🔍 DEBUG: Scene item being added:', JSON.stringify(sceneItem, null, 2));
         const currentVersion = manifest?.scene?.version?.toString();
+        console.log('🔍 DEBUG: Adding to scene via scenesApi.addItem...');
         await scenesApi.addItem(contextSceneId, sceneItem, currentVersion);
 
         log('info', 'ProjectEditor: Asset successfully added to scene');
