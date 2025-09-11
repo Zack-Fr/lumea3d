@@ -16,8 +16,8 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
   const isClickingRef = useRef(false);
   const clickStartPos = useRef({ x: 0, y: 0 });
   const clickStartTime = useRef(0);
-  const dragThreshold = 5; // pixels
-  const maxClickDuration = 200; // milliseconds
+  const dragThreshold = 3; // pixels - reduced for better click detection
+  const maxClickDuration = 300; // milliseconds - increased for better click detection
   const lastInteractionRef = useRef(0);
   const interactionCooldown = 100; // milliseconds
 
@@ -62,8 +62,8 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
       return;
     }
     
-    // Add cooldown to prevent conflicts with camera controls
-    if (now - lastInteractionRef.current < interactionCooldown) {
+    // Reduce cooldown for better responsiveness
+    if (now - lastInteractionRef.current < 50) {
       console.log('🎯 Click selection: Cooldown active');
       return;
     }
@@ -87,17 +87,21 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
     
     scene.traverse((child) => {
       // Log all objects for debugging
-      allObjects.push({
-        name: child.name,
-        type: child.type,
-        userData: child.userData,
-        hasUserData: !!child.userData,
-        hasItemId: !!(child.userData?.itemId),
-        isSelectable: !!(child.userData?.selectable)
-      });
+      if (child.type === 'Mesh' || child.userData?.itemId) {
+        allObjects.push({
+          name: child.name,
+          type: child.type,
+          userData: child.userData,
+          hasUserData: !!child.userData,
+          hasItemId: !!(child.userData?.itemId),
+          isSelectable: !!(child.userData?.selectable),
+          position: child.position.toArray(),
+          visible: child.visible
+        });
+      }
       
-      // Only include objects with selectable userData
-      if (child.userData && child.userData.selectable && child.userData.itemId) {
+      // Only include mesh objects with selectable userData
+      if (child.type === 'Mesh' && child.userData && child.userData.selectable && child.userData.itemId) {
         intersectableObjects.push(child);
       }
     });
@@ -156,12 +160,19 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
     
     const canvas = gl.domElement;
     
+    // Simple test event listener
+    const testClickHandler = (event: PointerEvent) => {
+      console.log('🎯 Canvas clicked at:', { x: event.clientX, y: event.clientY, button: event.button });
+    };
+    
     canvas.addEventListener('pointerdown', handlePointerDown);
     canvas.addEventListener('pointerup', handlePointerUp);
+    canvas.addEventListener('click', testClickHandler); // Additional click event for debugging
     
     return () => {
       canvas.removeEventListener('pointerdown', handlePointerDown);
       canvas.removeEventListener('pointerup', handlePointerUp);
+      canvas.removeEventListener('click', testClickHandler);
     };
   }, [enabled, gl.domElement, handlePointerDown, handlePointerUp]);
 

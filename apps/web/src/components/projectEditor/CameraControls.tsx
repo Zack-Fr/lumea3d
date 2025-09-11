@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { ViewportMovement } from '../../types/projectEditor';
+import { useSelection } from '../../features/scenes/SelectionContext';
 import * as THREE from 'three';
 
 interface CameraControlsProps {
@@ -28,6 +29,7 @@ const CameraControlsComponent: React.FC<CameraControlsProps> = ({
   enableRotate = true
 }) => {
   const { camera, gl } = useThree();
+  const { selection } = useSelection();
   const orbitControlsRef = useRef<any>();
   const moveSpeed = propMoveSpeed;
   const velocity = useRef(new THREE.Vector3());
@@ -65,12 +67,13 @@ const CameraControlsComponent: React.FC<CameraControlsProps> = ({
     }
   });
 
-  // Disable orbit controls when in FPS mode and WASD is active
+  // Disable orbit controls when in FPS mode, WASD is active, or transform is active
   useEffect(() => {
     if (orbitControlsRef.current) {
-      orbitControlsRef.current.enabled = !(cameraMode === 'fps' && isWASDActive);
+      const shouldDisable = (cameraMode === 'fps' && isWASDActive) || selection.isTransforming;
+      orbitControlsRef.current.enabled = !shouldDisable;
     }
-  }, [cameraMode, isWASDActive]);
+  }, [cameraMode, isWASDActive, selection.isTransforming]);
 
   if (cameraMode === 'fps') {
     return (
@@ -83,9 +86,16 @@ const CameraControlsComponent: React.FC<CameraControlsProps> = ({
           enablePan={enablePan}
           enableZoom={enableZoom}
           enableRotate={enableRotate}
-          maxPolarAngle={Math.PI * 0.9}
+          maxPolarAngle={Math.PI * 0.95}
+          minPolarAngle={0.05}
           minDistance={minDistance}
           maxDistance={maxDistance}
+          dampingFactor={0.05}
+          enableDamping={true}
+          rotateSpeed={0.8}
+          panSpeed={0.8}
+          zoomSpeed={1.0}
+          target={[0, 0, 0]}
         />
       </>
     );
@@ -99,11 +109,17 @@ const CameraControlsComponent: React.FC<CameraControlsProps> = ({
       enablePan={enablePan}
       enableZoom={enableZoom}
       enableRotate={enableRotate}
-      maxPolarAngle={Math.PI * 0.9}
+      maxPolarAngle={Math.PI * 0.95} // Allow more vertical rotation
+      minPolarAngle={0.05} // Prevent going completely upside down
       minDistance={minDistance}
       maxDistance={maxDistance}
       autoRotate={false}
-      autoRotateSpeed={0.5}
+      dampingFactor={0.05} // Smooth camera movement
+      enableDamping={true}
+      rotateSpeed={0.8} // More natural rotation speed
+      panSpeed={0.8}
+      zoomSpeed={1.0}
+      target={[0, 0, 0]} // Look at scene center
     />
   );
 };

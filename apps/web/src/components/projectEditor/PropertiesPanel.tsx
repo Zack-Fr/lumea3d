@@ -16,6 +16,7 @@ import HdrEnvironmentUpload from './HdrEnvironmentUpload';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 import { scenesApi, SceneItemUpdateRequest, SceneUpdateRequest } from '../../services/scenesApi';
 import { useSceneContext } from '../../contexts/SceneContext';
+import { useSelection } from '../../features/scenes/SelectionContext';
 
 interface PropertiesPanelProps {
   show: boolean;
@@ -62,6 +63,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   selectedItemId
 }) => {
   const { manifest, refreshScene } = useSceneContext();
+  const { selection } = useSelection();
   
   // Shell shadow state
   const [shellSettings, setShellSettings] = useState<ShellSettings>({
@@ -323,8 +325,42 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     }
   }, [sceneId, manifest?.scene?.version, refreshScene]);
   
-  // Load selected item data when selectedItemId changes
+  // Load selected item data when selectedItemId changes or selection changes
   useEffect(() => {
+    // Priority 1: Check if we have a selected object from SelectionContext (includes debug objects)
+    if (selection.selectedObject) {
+      const obj = selection.selectedObject.object;
+      const meta = obj.userData.meta || {};
+      
+      setSelectedItem({
+        id: selection.selectedObject.itemId,
+        name: meta.name || obj.name || selection.selectedObject.itemId,
+        position: {
+          x: parseFloat(obj.position.x.toFixed(3)),
+          y: parseFloat(obj.position.y.toFixed(3)),
+          z: parseFloat(obj.position.z.toFixed(3))
+        },
+        rotation: {
+          x: parseFloat((obj.rotation.x * 180 / Math.PI).toFixed(1)),
+          y: parseFloat((obj.rotation.y * 180 / Math.PI).toFixed(1)),
+          z: parseFloat((obj.rotation.z * 180 / Math.PI).toFixed(1))
+        },
+        scale: {
+          x: parseFloat(obj.scale.x.toFixed(3)),
+          y: parseFloat(obj.scale.y.toFixed(3)),
+          z: parseFloat(obj.scale.z.toFixed(3))
+        },
+        material: {
+          roughness: 50, // Default for debug objects
+          metallic: 0,
+          emission: 0,
+          color: '#ffffff'
+        }
+      });
+      return;
+    }
+    
+    // Priority 2: Check manifest for scene items (for imported objects)
     if (selectedItemId && manifest) {
       const item = manifest.items.find(item => item.id === selectedItemId);
       if (item) {
@@ -353,13 +389,13 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
             color: item.material?.baseColor || '#ffffff'
           }
         });
-      } else {
-        setSelectedItem(null);
+        return;
       }
-    } else {
-      setSelectedItem(null);
     }
-  }, [selectedItemId, manifest]);
+    
+    // No selection found
+    setSelectedItem(null);
+  }, [selectedItemId, manifest, selection.selectedObject]);
 
   if (!show) return null;
 

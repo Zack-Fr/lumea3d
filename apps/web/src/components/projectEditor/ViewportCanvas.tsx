@@ -13,6 +13,7 @@ import { TransformGizmos } from '../../features/scenes/TransformGizmos';
 import { SelectionHighlightSystem } from '../../features/scenes/SelectionHighlight';
 import { TransformControlsPanel } from '../../features/scenes/TransformControlsPanel';
 import { TransformKeyboardControls } from '../../features/scenes/TransformKeyboardControls';
+import { GridSystem } from '../../features/scenes/GridSystem';
 import CameraControlsComponent from './CameraControls';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 
@@ -247,10 +248,10 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
       {/* 3D Canvas */}
       <Canvas
         camera={{ 
-          position: [0, 5, 10], 
-          fov: 60,
-          near: Math.max(0.01, nearClip), // Ensure near is not too large
-          far: Math.max(100, farClip) // Ensure far is reasonable
+          position: [0, 8, 12], 
+          fov: 50,
+          near: Math.max(0.01, nearClip || 0.01), // Ensure near is not too large
+          far: Math.max(1000, farClip || 1000) // Ensure far is reasonable
         }}
         style={{ 
           width: '100%', 
@@ -296,6 +297,15 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
         <pointLight position={[0, 5, 0]} intensity={0.5} distance={20} />
         <pointLight position={[5, 3, 5]} intensity={0.3} distance={15} color="#FFF8DC" />
         <pointLight position={[-5, 3, -5]} intensity={0.3} distance={15} color="#F0E68C" />
+        
+        {/* Grid System for spatial reference */}
+        <GridSystem 
+          size={100}
+          divisions={100}
+          colorCenterLine="#ffffff"
+          colorGrid="#555555"
+          visible={true}
+        />
 
       {/* Scene Content */}
       <Suspense fallback={null}>
@@ -303,50 +313,68 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
       </Suspense>
       
       {/* Debug test cubes for selection testing */}
-      <mesh 
-        name="debug-cube-center"
-        position={[0, 2, 0]}
-        userData={{
-          itemId: 'debug-cube-center',
-          category: 'debug',
-          selectable: true,
-          locked: false,
-          meta: { isDebug: true }
-        }}
-      >
-        <boxGeometry args={[2, 2, 2]} />
-        <meshStandardMaterial color="#ff0000" wireframe />
-      </mesh>
-      
-      <mesh 
-        name="debug-cube-left"
-        position={[-2, 1, 0]}
-        userData={{
-          itemId: 'debug-cube-left',
-          category: 'debug',
-          selectable: true,
-          locked: false,
-          meta: { isDebug: true }
-        }}
-      >
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="#00ff00" />
-      </mesh>
-      
-      <mesh 
-        name="debug-cube-right"
-        position={[2, 1, 0]}
-        userData={{
-          itemId: 'debug-cube-right',
-          category: 'debug',
-          selectable: true,
-          locked: false,
-          meta: { isDebug: true }
-        }}
-      >
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="#0000ff" />
-      </mesh>
+      <group name="debug-objects">
+        <mesh 
+          name="debug-cube-center"
+          position={[0, 1, 0]}
+          userData={{
+            itemId: 'debug-cube-center',
+            category: 'debug',
+            selectable: true,
+            locked: false,
+            meta: { isDebug: true, name: 'Center Cube' }
+          }}
+        >
+          <boxGeometry args={[2, 2, 2]} />
+          <meshStandardMaterial color="#ff4444" transparent opacity={0.8} />
+        </mesh>
+        
+        <mesh 
+          name="debug-cube-left"
+          position={[-4, 0.5, 0]}
+          userData={{
+            itemId: 'debug-cube-left',
+            category: 'debug',
+            selectable: true,
+            locked: false,
+            meta: { isDebug: true, name: 'Left Cube' }
+          }}
+        >
+          <boxGeometry args={[1, 1, 1]} />
+          <meshStandardMaterial color="#44ff44" transparent opacity={0.8} />
+        </mesh>
+        
+        <mesh 
+          name="debug-cube-right"
+          position={[4, 0.5, 0]}
+          userData={{
+            itemId: 'debug-cube-right',
+            category: 'debug',
+            selectable: true,
+            locked: false,
+            meta: { isDebug: true, name: 'Right Cube' }
+          }}
+        >
+          <boxGeometry args={[1, 1, 1]} />
+          <meshStandardMaterial color="#4444ff" transparent opacity={0.8} />
+        </mesh>
+        
+        {/* Additional sphere for testing */}
+        <mesh 
+          name="debug-sphere"
+          position={[0, 0.5, 4]}
+          userData={{
+            itemId: 'debug-sphere',
+            category: 'debug',
+            selectable: true,
+            locked: false,
+            meta: { isDebug: true, name: 'Test Sphere' }
+          }}
+        >
+          <sphereGeometry args={[0.8, 16, 16]} />
+          <meshStandardMaterial color="#ffaa44" transparent opacity={0.8} />
+        </mesh>
+      </group>
       
       {/* Selection and Transform System */}
       <ClickSelection enabled={true} />
@@ -354,9 +382,10 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
       <SelectionHighlightSystem 
         enabled={true}
         highlightColor="#f5c842"
+        boxColor="#ff0066"
         showOutline={true}
-        showBox={false}
-        intensity={1.0}
+        showBox={true}
+        intensity={1.2}
         pulseSpeed={2.0}
       />
 

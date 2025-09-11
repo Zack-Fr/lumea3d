@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { once as logOnce, log } from '../../utils/logger';
 import { useNavigate } from 'react-router-dom';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import styles from './ProjectEditor.module.css';
 
 // Custom Hooks
@@ -116,8 +117,8 @@ const ProjectEditorContent: React.FC = () => {
   const [enableRotate, setEnableRotate] = useState(true);
   
   // Clipping plane state
-  const [cameraNearClip, setCameraNearClip] = useState(0.1);
-  const [cameraFarClip, setCameraFarClip] = useState(1000);
+  const [cameraNearClip, setCameraNearClip] = useState(0.01);
+  const [cameraFarClip, setCameraFarClip] = useState(2000);
 
   // Custom Hooks
   const {
@@ -448,101 +449,117 @@ const ProjectEditorContent: React.FC = () => {
         onAIAssist={handleAIAssist}
       />
 
-      {/* Main Layout */}
+      {/* Main Layout with Resizable Panels */}
       <div className={styles.projectEditorLayout}>
-        {/* Left Assets Panel */}
-        <TabbedLeftPanel
-          // Asset props
-          assetCategories={assetCategories}
-          selectedTool={selectedTool}
-          onToolChange={setSelectedTool}
-          selectedAsset={selectedAsset}
-          onAssetSelect={handleAssetSelect}
-          onAssetAdd={handleAssetAdd}
-          onImportAsset={handleImportAsset}
-          
-          // Properties panel props (not used but kept for compatibility)
-          selectedItemId={selectedItemId}
-          onItemSelect={setSelectedItemId}
-          showProperties={showProperties}
-          onPropertiesClose={() => setShowProperties(false)}
-          
-          // Camera controls props (not used but kept for compatibility)
-          cameraMode={cameraMode}
-          onCameraModeChange={handleCameraModeChange}
-          minDistance={cameraMinDistance}
-          maxDistance={cameraMaxDistance}
-          moveSpeed={cameraMoveSpeed}
-          onZoomLimitsChange={handleZoomLimitsChange}
-          onMoveSpeedChange={handleMoveSpeedChange}
-          onCameraPreset={handleCameraPreset}
-          enablePan={enablePan}
-          enableZoom={enableZoom}
-          enableRotate={enableRotate}
-          onControlsToggle={handleControlsToggle}
-        />
+        <PanelGroup direction="horizontal" className={styles.resizablePanelGroup}>
+          {/* Left Assets Panel */}
+          <Panel defaultSize={25} minSize={15} maxSize={35} className={styles.leftPanelContainer}>
+            <TabbedLeftPanel
+              // Asset props
+              assetCategories={assetCategories}
+              selectedTool={selectedTool}
+              onToolChange={setSelectedTool}
+              selectedAsset={selectedAsset}
+              onAssetSelect={handleAssetSelect}
+              onAssetAdd={handleAssetAdd}
+              onImportAsset={handleImportAsset}
+              
+              // Properties panel props (not used but kept for compatibility)
+              selectedItemId={selectedItemId}
+              onItemSelect={setSelectedItemId}
+              showProperties={showProperties}
+              onPropertiesClose={() => setShowProperties(false)}
+              
+              // Camera controls props (not used but kept for compatibility)
+              cameraMode={cameraMode}
+              onCameraModeChange={handleCameraModeChange}
+              minDistance={cameraMinDistance}
+              maxDistance={cameraMaxDistance}
+              moveSpeed={cameraMoveSpeed}
+              onZoomLimitsChange={handleZoomLimitsChange}
+              onMoveSpeedChange={handleMoveSpeedChange}
+              onCameraPreset={handleCameraPreset}
+              enablePan={enablePan}
+              enableZoom={enableZoom}
+              enableRotate={enableRotate}
+              onControlsToggle={handleControlsToggle}
+            />
+          </Panel>
 
-        {/* Main Viewport Area */}
-        <main className={styles.mainViewportArea}>
-          {/* Viewport Canvas */}
-          <ViewportCanvas
-            viewportRef={viewportRef}
-            isWASDActive={isWASDActive}
-            movement={movement}
-            onViewportClick={handleViewportClickWithAchievement}
-            cameraMode={cameraMode}
-            onAssetDrop={handleAssetDrop}
-            // Camera control props
-            minDistance={cameraMinDistance}
-            maxDistance={cameraMaxDistance}
-            moveSpeed={cameraMoveSpeed}
-            enablePan={enablePan}
-            enableZoom={enableZoom}
-            enableRotate={enableRotate}
-            // Clipping plane props
-            nearClip={cameraNearClip}
-            farClip={cameraFarClip}
-          />
+          {/* Left Panel Resize Handle */}
+          <PanelResizeHandle className={styles.panelResizeHandle} />
 
-          {/* Viewport Tools */}
-          <ViewportTools />
+          {/* Main Viewport Area */}
+          <Panel className={styles.mainViewportPanelContainer}>
+            <main className={styles.mainViewportArea}>
+              {/* Viewport Canvas */}
+              <ViewportCanvas
+                viewportRef={viewportRef}
+                isWASDActive={isWASDActive}
+                movement={movement}
+                onViewportClick={handleViewportClickWithAchievement}
+                cameraMode={cameraMode}
+                onAssetDrop={handleAssetDrop}
+                // Camera control props
+                minDistance={cameraMinDistance}
+                maxDistance={cameraMaxDistance}
+                moveSpeed={cameraMoveSpeed}
+                enablePan={enablePan}
+                enableZoom={enableZoom}
+                enableRotate={enableRotate}
+                // Clipping plane props
+                nearClip={cameraNearClip}
+                farClip={cameraFarClip}
+              />
 
-          {/* Viewport Settings */}
-          <ViewportSettings
-            cameraMode={cameraMode}
-            renderMode="realistic"
-          />
-        </main>
+              {/* Viewport Tools */}
+              <ViewportTools />
 
-        {/* Right Tabbed Panel (Properties + Camera) */}
-        {showProperties && (
-          <TabbedRightPanel
-            show={showProperties}
-            onClose={() => setShowProperties(false)}
-            
-            // Properties panel props
-            sceneId={contextSceneId || undefined}
-            selectedItemId={selectedItemId || undefined}
-            
-            // Camera controls props
-            cameraMode={cameraMode}
-            onCameraModeChange={handleCameraModeChange}
-            minDistance={cameraMinDistance}
-            maxDistance={cameraMaxDistance}
-            moveSpeed={cameraMoveSpeed}
-            onZoomLimitsChange={handleZoomLimitsChange}
-            onMoveSpeedChange={handleMoveSpeedChange}
-            onCameraPreset={handleCameraPreset}
-            enablePan={enablePan}
-            enableZoom={enableZoom}
-            enableRotate={enableRotate}
-            onControlsToggle={handleControlsToggle}
-            // Clipping plane props
-            nearClip={cameraNearClip}
-            farClip={cameraFarClip}
-            onClippingChange={handleClippingChange}
-          />
-        )}
+              {/* Viewport Settings */}
+              <ViewportSettings
+                cameraMode={cameraMode}
+                renderMode="realistic"
+              />
+            </main>
+          </Panel>
+
+          {/* Right Panel Resize Handle (only when properties panel is visible) */}
+          {showProperties && (
+            <>
+              <PanelResizeHandle className={styles.panelResizeHandle} />
+              
+              {/* Right Tabbed Panel (Properties + Camera) */}
+              <Panel defaultSize={25} minSize={20} maxSize={40} className={styles.rightPanelContainer}>
+                <TabbedRightPanel
+                  show={showProperties}
+                  onClose={() => setShowProperties(false)}
+                  
+                  // Properties panel props
+                  sceneId={contextSceneId || undefined}
+                  selectedItemId={selectedItemId || undefined}
+                  
+                  // Camera controls props
+                  cameraMode={cameraMode}
+                  onCameraModeChange={handleCameraModeChange}
+                  minDistance={cameraMinDistance}
+                  maxDistance={cameraMaxDistance}
+                  moveSpeed={cameraMoveSpeed}
+                  onZoomLimitsChange={handleZoomLimitsChange}
+                  onMoveSpeedChange={handleMoveSpeedChange}
+                  onCameraPreset={handleCameraPreset}
+                  enablePan={enablePan}
+                  enableZoom={enableZoom}
+                  enableRotate={enableRotate}
+                  onControlsToggle={handleControlsToggle}
+                  // Clipping plane props
+                  nearClip={cameraNearClip}
+                  farClip={cameraFarClip}
+                  onClippingChange={handleClippingChange}
+                />
+              </Panel>
+            </>
+          )}
+        </PanelGroup>
       </div>
 
       {/* Asset Import Modal */}
