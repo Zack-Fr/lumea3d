@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { Object3D, Vector3, Euler } from 'three';
+import * as THREE from 'three';
 import { log } from '../../utils/logger';
 
 export interface SelectedObject {
@@ -25,6 +26,7 @@ export interface SelectionContextType {
   setTransformMode: (mode: 'translate' | 'rotate' | 'scale') => void;
   setIsTransforming: (transforming: boolean) => void;
   updateObjectTransform: (position?: Vector3, rotation?: Euler, scale?: Vector3) => void;
+  deleteObject: () => void;
 }
 
 const SelectionContext = createContext<SelectionContextType | null>(null);
@@ -135,6 +137,42 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
     });
   }, []);
 
+  const deleteObject = useCallback(() => {
+    if (!selection.selectedObject) return;
+
+    const { object, itemId } = selection.selectedObject;
+    
+    log('info', '🗑️ Deleting object:', itemId);
+
+    // Remove object from scene
+    if (object.parent) {
+      object.parent.remove(object);
+    }
+
+    // Clean up geometry and materials
+    if (object instanceof THREE.Mesh) {
+      if (object.geometry) {
+        object.geometry.dispose();
+      }
+      if (object.material) {
+        if (Array.isArray(object.material)) {
+          object.material.forEach(material => material.dispose());
+        } else {
+          object.material.dispose();
+        }
+      }
+    }
+
+    // Deselect the object
+    setSelection(prev => ({
+      ...prev,
+      selectedObject: null,
+      isTransforming: false,
+    }));
+
+    log('info', '✅ Object deleted successfully:', itemId);
+  }, [selection.selectedObject]);
+
   return (
     <SelectionContext.Provider
       value={{
@@ -144,6 +182,7 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
         setTransformMode,
         setIsTransforming,
         updateObjectTransform,
+        deleteObject,
       }}
     >
       {children}

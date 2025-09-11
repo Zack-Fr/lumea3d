@@ -53,6 +53,9 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
   nearClip = 0.1,
   farClip = 1000
 }) => {
+  
+  // Debug log clipping plane values
+  console.log('🎥 Camera clipping planes:', { nearClip, farClip });
   // Get scene data from context
   const { 
     sceneId, 
@@ -246,8 +249,8 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
         camera={{ 
           position: [0, 5, 10], 
           fov: 60,
-          near: nearClip,
-          far: farClip
+          near: Math.max(0.01, nearClip), // Ensure near is not too large
+          far: Math.max(100, farClip) // Ensure far is reasonable
         }}
         style={{ 
           width: '100%', 
@@ -298,6 +301,52 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
       <Suspense fallback={null}>
         {sceneId && <SceneRenderer sceneId={sceneId} />}
       </Suspense>
+      
+      {/* Debug test cubes for selection testing */}
+      <mesh 
+        name="debug-cube-center"
+        position={[0, 2, 0]}
+        userData={{
+          itemId: 'debug-cube-center',
+          category: 'debug',
+          selectable: true,
+          locked: false,
+          meta: { isDebug: true }
+        }}
+      >
+        <boxGeometry args={[2, 2, 2]} />
+        <meshStandardMaterial color="#ff0000" wireframe />
+      </mesh>
+      
+      <mesh 
+        name="debug-cube-left"
+        position={[-2, 1, 0]}
+        userData={{
+          itemId: 'debug-cube-left',
+          category: 'debug',
+          selectable: true,
+          locked: false,
+          meta: { isDebug: true }
+        }}
+      >
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color="#00ff00" />
+      </mesh>
+      
+      <mesh 
+        name="debug-cube-right"
+        position={[2, 1, 0]}
+        userData={{
+          itemId: 'debug-cube-right',
+          category: 'debug',
+          selectable: true,
+          locked: false,
+          meta: { isDebug: true }
+        }}
+      >
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color="#0000ff" />
+      </mesh>
       
       {/* Selection and Transform System */}
       <ClickSelection enabled={true} />

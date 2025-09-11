@@ -27,6 +27,7 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
         }).map((item) => (
           <mesh 
             key={item.id} 
+            name={`fallback-${item.id}`}
             position={item.transform?.position || [0, 0, 0]}
             userData={{
               itemId: item.id,
@@ -103,6 +104,7 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
                   {groupItems.map((item: any) => (
                     <mesh 
                       key={item.id} 
+                      name={`instanced-fallback-${item.id}`}
                       position={item.transform?.position || [0, 0, 0]}
                       userData={{
                         itemId: item.id,
@@ -141,6 +143,7 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
             key={`${sceneId || 'unknown'}-${categoryKey}-${item.id}`} 
             fallback={
               <mesh 
+                name={`item-fallback-${item.id}`}
                 position={item.transform?.position || [0, 0, 0]}
                 userData={{
                   itemId: item.id,

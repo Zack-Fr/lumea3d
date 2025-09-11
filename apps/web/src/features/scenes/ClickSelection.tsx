@@ -83,16 +83,41 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
     
     // Get all intersectable objects from the scene
     const intersectableObjects: Object3D[] = [];
+    const allObjects: any[] = [];
+    
     scene.traverse((child) => {
+      // Log all objects for debugging
+      allObjects.push({
+        name: child.name,
+        type: child.type,
+        userData: child.userData,
+        hasUserData: !!child.userData,
+        hasItemId: !!(child.userData?.itemId),
+        isSelectable: !!(child.userData?.selectable)
+      });
+      
       // Only include objects with selectable userData
       if (child.userData && child.userData.selectable && child.userData.itemId) {
         intersectableObjects.push(child);
       }
     });
     
+    console.log('🎯 Scene traversal found', allObjects.length, 'total objects:', allObjects);
     console.log('🎯 Found', intersectableObjects.length, 'selectable objects');
 
     const intersects = raycasterRef.current.intersectObjects(intersectableObjects, true);
+    
+    console.log('🎯 Raycast results:', intersects.length, 'intersections');
+    if (intersects.length > 0) {
+      intersects.forEach((intersect, i) => {
+        console.log(`🎯 Intersect ${i}:`, {
+          distance: intersect.distance,
+          objectName: intersect.object.name,
+          objectType: intersect.object.type,
+          userData: intersect.object.userData
+        });
+      });
+    }
 
     if (intersects.length > 0) {
       // Find the closest selectable object

@@ -45,6 +45,7 @@ export function SafeSceneItem({ item, categoryUrl, categoryKey }: SafeSceneItemP
     // Show loading wireframe
     return (
       <mesh 
+        name={`loading-${item.id}`}
         position={item.transform?.position || [0, 0, 0]} 
         rotation={item.transform?.rotation_euler || [0, 0, 0]} 
         scale={item.transform?.scale || [1, 1, 1]}
@@ -67,6 +68,7 @@ export function SafeSceneItem({ item, categoryUrl, categoryKey }: SafeSceneItemP
     console.log(`🔴 SafeSceneItem: Rendering fallback for item ${item.id} (${categoryUrl} failed)`);
     return (
       <mesh 
+        name={`error-${item.id}`}
         position={item.transform?.position || [0, 0, 0]} 
         rotation={item.transform?.rotation_euler || [0, 0, 0]} 
         scale={item.transform?.scale || [1, 1, 1]}
@@ -98,6 +100,7 @@ export function SafeSceneItem({ item, categoryUrl, categoryKey }: SafeSceneItemP
     // Fallback to wireframe on runtime error
     return (
       <mesh 
+        name={`runtime-error-${item.id}`}
         position={item.transform?.position || [0, 0, 0]} 
         rotation={item.transform?.rotation_euler || [0, 0, 0]} 
         scale={item.transform?.scale || [1, 1, 1]}

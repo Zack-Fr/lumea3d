@@ -3,7 +3,7 @@ import { useSelection } from './SelectionContext';
 import { log } from '../../utils/logger';
 
 export function TransformKeyboardControls() {
-  const { selection, setTransformMode, deselectObject } = useSelection();
+  const { selection, setTransformMode, deselectObject, deleteObject } = useSelection();
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -41,9 +41,11 @@ export function TransformKeyboardControls() {
 
         case 'Delete':
         case 'Backspace':
-          // Future: Delete object functionality
-          event.preventDefault();
-          log('debug', 'Transform: Delete object requested (future feature)');
+          if (!selection.isTransforming) {
+            event.preventDefault();
+            deleteObject();
+            log('debug', 'Transform: Object deleted');
+          }
           break;
       }
     };
@@ -53,7 +55,7 @@ export function TransformKeyboardControls() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [selection.selectedObject, setTransformMode, deselectObject]);
+  }, [selection.selectedObject, setTransformMode, deselectObject, deleteObject]);
 
   // This component doesn't render anything
   return null;
