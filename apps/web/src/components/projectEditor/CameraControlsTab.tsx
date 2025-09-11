@@ -29,6 +29,10 @@ interface CameraControlsTabProps {
   enableZoom?: boolean;
   enableRotate?: boolean;
   onControlsToggle?: (control: string, enabled: boolean) => void;
+  // Clipping plane props
+  nearClip?: number;
+  farClip?: number;
+  onClippingChange?: (near: number, far: number) => void;
 }
 
 const CameraControlsTab: React.FC<CameraControlsTabProps> = ({
@@ -44,12 +48,18 @@ const CameraControlsTab: React.FC<CameraControlsTabProps> = ({
   enablePan = true,
   enableZoom = true,
   enableRotate = true,
-  onControlsToggle
+  onControlsToggle,
+  // Clipping plane props
+  nearClip = 0.1,
+  farClip = 1000,
+  onClippingChange
 }) => {
   // Local state for camera controls
   const [localMinDistance, setLocalMinDistance] = useState(minDistance);
   const [localMaxDistance, setLocalMaxDistance] = useState(maxDistance);
   const [localMoveSpeed, setLocalMoveSpeed] = useState(moveSpeed);
+  const [localNearClip, setLocalNearClip] = useState(nearClip);
+  const [localFarClip, setLocalFarClip] = useState(farClip);
 
   // Camera mode selection
   const handleCameraModeSelect = useCallback((mode: string) => {
@@ -95,6 +105,23 @@ const CameraControlsTab: React.FC<CameraControlsTabProps> = ({
       onControlsToggle(control, enabled);
     }
   }, [onControlsToggle]);
+
+  // Clipping plane handlers
+  const handleNearClipChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newNear = parseFloat(e.target.value);
+    setLocalNearClip(newNear);
+    if (onClippingChange && newNear < localFarClip) {
+      onClippingChange(newNear, localFarClip);
+    }
+  }, [localFarClip, onClippingChange]);
+
+  const handleFarClipChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newFar = parseFloat(e.target.value);
+    setLocalFarClip(newFar);
+    if (onClippingChange && newFar > localNearClip) {
+      onClippingChange(localNearClip, newFar);
+    }
+  }, [localNearClip, onClippingChange]);
 
   if (!show) return null;
 
@@ -164,6 +191,46 @@ const CameraControlsTab: React.FC<CameraControlsTabProps> = ({
                   className={styles.slider}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Clipping Planes Section */}
+          <div className={styles.sectionContainer}>
+            <h3 className={styles.sectionTitle}>
+              <ZoomOut className={styles.sectionIcon} />
+              Clipping Planes
+            </h3>
+            <div className={styles.controlGroup}>
+              <div className={styles.sliderContainer}>
+                <label className={styles.sliderLabel}>
+                  Near Clip: {localNearClip.toFixed(3)}
+                </label>
+                <Slider
+                  value={localNearClip}
+                  onChange={handleNearClipChange}
+                  min={0.001}
+                  max={10}
+                  step={0.001}
+                  className={styles.slider}
+                />
+              </div>
+              <div className={styles.sliderContainer}>
+                <label className={styles.sliderLabel}>
+                  Far Clip: {localFarClip.toFixed(0)}
+                </label>
+                <Slider
+                  value={localFarClip}
+                  onChange={handleFarClipChange}
+                  min={100}
+                  max={10000}
+                  step={100}
+                  className={styles.slider}
+                />
+              </div>
+            </div>
+            <div className={styles.helpText}>
+              <small>• Near: Objects closer than this won't render</small><br/>
+              <small>• Far: Objects further than this won't render</small>
             </div>
           </div>
 

@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { useThree, useFrame } from '@react-three/fiber';
+import { useRef, useEffect, useCallback } from 'react';
+import { useThree } from '@react-three/fiber';
 import { Raycaster, Vector2, Object3D } from 'three';
 import { useSelection } from './SelectionContext';
 
@@ -14,26 +14,62 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
   const raycasterRef = useRef(new Raycaster());
   const mouseRef = useRef(new Vector2());
   const isClickingRef = useRef(false);
+  const clickStartPos = useRef({ x: 0, y: 0 });
+  const clickStartTime = useRef(0);
+  const dragThreshold = 5; // pixels
+  const maxClickDuration = 200; // milliseconds
+  const lastInteractionRef = useRef(0);
+  const interactionCooldown = 100; // milliseconds
 
   // Handle mouse click for selection
-  const handlePointerDown = (event: PointerEvent) => {
+  const handlePointerDown = useCallback((event: PointerEvent) => {
     if (!enabled || selection.isTransforming) return;
 
     // Check if pointer is locked (FPS mode)
     if (document.pointerLockElement) return;
 
+    // Only track clicks, don't prevent default to allow camera controls
     isClickingRef.current = true;
-    event.preventDefault();
-    event.stopPropagation();
-  };
+    clickStartPos.current = { x: event.clientX, y: event.clientY };
+    clickStartTime.current = Date.now();
+  }, [enabled, selection.isTransforming]);
 
-  const handlePointerUp = (event: PointerEvent) => {
+  const handlePointerUp = useCallback((event: PointerEvent) => {
     if (!enabled || !isClickingRef.current) return;
     
     isClickingRef.current = false;
 
     // Check if pointer is locked (FPS mode)
     if (document.pointerLockElement) return;
+
+    // Check if this was a drag (camera movement) or a click
+    const dragDistance = Math.sqrt(
+      Math.pow(event.clientX - clickStartPos.current.x, 2) +
+      Math.pow(event.clientY - clickStartPos.current.y, 2)
+    );
+    
+    // If dragged too far, don't treat as selection click
+    if (dragDistance > dragThreshold) {
+      console.log('🎯 Click selection: Drag distance too far:', dragDistance);
+      return;
+    }
+    
+    // Check if click was too long (likely a drag that started as click)
+    const now = Date.now();
+    const clickDuration = now - clickStartTime.current;
+    if (clickDuration > maxClickDuration) {
+      console.log('🎯 Click selection: Click duration too long:', clickDuration);
+      return;
+    }
+    
+    // Add cooldown to prevent conflicts with camera controls
+    if (now - lastInteractionRef.current < interactionCooldown) {
+      console.log('🎯 Click selection: Cooldown active');
+      return;
+    }
+    lastInteractionRef.current = now;
+    
+    console.log('🎯 Click selection: Processing click at', { x: event.clientX, y: event.clientY });
 
     // Calculate mouse position in normalized device coordinates
     const canvas = gl.domElement;
@@ -53,6 +89,8 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
         intersectableObjects.push(child);
       }
     });
+    
+    console.log('🎯 Found', intersectableObjects.length, 'selectable objects');
 
     const intersects = raycasterRef.current.intersectObjects(intersectableObjects, true);
 
@@ -85,10 +123,12 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
       console.log('🎯 Click selection miss - deselecting');
       deselectObject();
     }
-  };
+  }, [enabled, camera, gl.domElement, scene, selectObject, deselectObject, dragThreshold, maxClickDuration, interactionCooldown]);
 
   // Set up event listeners
-  useFrame(() => {
+  useEffect(() => {
+    if (!enabled) return;
+    
     const canvas = gl.domElement;
     
     canvas.addEventListener('pointerdown', handlePointerDown);
@@ -98,7 +138,7 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
       canvas.removeEventListener('pointerdown', handlePointerDown);
       canvas.removeEventListener('pointerup', handlePointerUp);
     };
-  });
+  }, [enabled, gl.domElement, handlePointerDown, handlePointerUp]);
 
   return null; // This component doesn't render anything
 }

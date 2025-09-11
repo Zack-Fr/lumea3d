@@ -25,7 +25,17 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
           const itemCategory = typeof item.category === 'string' ? item.category : (item.category as any)?.categoryKey || '';
           return itemCategory === categoryKey;
         }).map((item) => (
-          <mesh key={item.id} position={item.transform?.position || [0, 0, 0]}>
+          <mesh 
+            key={item.id} 
+            position={item.transform?.position || [0, 0, 0]}
+            userData={{
+              itemId: item.id,
+              category: categoryKey,
+              selectable: item.selectable ?? true,
+              locked: item.locked ?? false,
+              meta: item.meta
+            }}
+          >
             <boxGeometry args={[1, 1, 1]} />
             <meshBasicMaterial color="red" wireframe />
           </mesh>
@@ -91,7 +101,17 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
               fallback={
                 <group>
                   {groupItems.map((item: any) => (
-                    <mesh key={item.id} position={item.transform?.position || [0, 0, 0]}>
+                    <mesh 
+                      key={item.id} 
+                      position={item.transform?.position || [0, 0, 0]}
+                      userData={{
+                        itemId: item.id,
+                        category: categoryKey,
+                        selectable: item.selectable ?? true,
+                        locked: item.locked ?? false,
+                        meta: item.meta
+                      }}
+                    >
                       <boxGeometry args={[1, 1, 1]} />
                       <meshBasicMaterial color="yellow" wireframe />
                     </mesh>
@@ -120,7 +140,16 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
           <Suspense 
             key={`${sceneId || 'unknown'}-${categoryKey}-${item.id}`} 
             fallback={
-              <mesh position={item.transform?.position || [0, 0, 0]}>
+              <mesh 
+                position={item.transform?.position || [0, 0, 0]}
+                userData={{
+                  itemId: item.id,
+                  category: categoryKey,
+                  selectable: item.selectable ?? true,
+                  locked: item.locked ?? false,
+                  meta: item.meta
+                }}
+              >
                 <boxGeometry args={[1, 1, 1]} />
                 <meshBasicMaterial color="blue" wireframe />
               </mesh>

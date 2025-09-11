@@ -621,7 +621,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
               {/* HDR Environment Upload */}
               <HdrEnvironmentUpload
                 sceneId={sceneId}
-                currentHdriUrl={currentHdriUrl}
+                currentHdriUrl={currentHdriUrl ?? undefined}
                 onHdriUpdate={(hdriUrl) => {
                   setCurrentHdriUrl(hdriUrl);
                   // Optionally refresh the scene to apply new HDR

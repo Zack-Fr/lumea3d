@@ -1668,3 +1668,231 @@
 .sceneOption:hover {
   background: var(--glass-bg-primary) !important;
 }
+
+/* Transform Controls Panel */
+.transformControlsPanel {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--glass-bg-primary);
+  border: 1px solid var(--glass-border-primary);
+  border-radius: var(--glass-border-radius);
+  backdrop-filter: blur(10px);
+  padding: 12px 16px;
+  color: var(--glass-text-primary);
+  font-size: 0.875rem;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.transformInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.objectName {
+  font-weight: 600;
+  color: var(--glass-text-primary);
+  margin-bottom: 4px;
+}
+
+.transformValues {
+  display: flex;
+  gap: 16px;
+  font-size: 0.75rem;
+  color: var(--glass-text-secondary);
+}
+
+.transformGroup {
+  text-align: center;
+}
+
+.transformLabel {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 2px;
+  color: var(--glass-text-primary);
+}
+
+.transformValue {
+  font-family: 'Courier New', monospace;
+  color: var(--glass-text-secondary);
+}
+
+/* Help text for clipping planes */
+.helpText {
+  margin-top: 8px;
+  padding: 6px;
+  background: var(--glass-bg-secondary);
+  border-radius: 4px;
+  color: var(--glass-text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+/* Glass Transform Controls Panel */
+.transformControlsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.transformHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--glass-border-primary);
+}
+
+.transformTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.selectedLabel {
+  font-size: 0.75rem;
+  color: var(--glass-text-secondary);
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.selectedName {
+  font-weight: 600;
+  color: var(--glass-text-primary);
+}
+
+.transformCloseButton {
+  background: transparent;
+  border: none;
+  color: var(--glass-text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.transformCloseButton:hover {
+  color: var(--glass-text-primary);
+  background: var(--glass-bg-secondary);
+}
+
+.transformModeButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.transformModeLabel {
+  font-size: 0.75rem;
+  color: var(--glass-text-secondary);
+  font-weight: 500;
+  min-width: fit-content;
+}
+
+.transformModeButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--glass-bg-secondary);
+  border: 1px solid var(--glass-border-primary);
+  border-radius: var(--glass-border-radius);
+  color: var(--glass-text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: fit-content;
+}
+
+.transformModeButton:hover {
+  background: var(--glass-bg-primary);
+  color: var(--glass-text-primary);
+  border-color: var(--glass-border-secondary);
+}
+
+.transformModeButtonActive {
+  background: var(--glass-accent-primary) !important;
+  color: var(--glass-text-on-accent) !important;
+  border-color: var(--glass-accent-primary) !important;
+}
+
+.transformObjectInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transformInfoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.transformInfoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.transformInfoLabel {
+  font-size: 0.75rem;
+  color: var(--glass-text-secondary);
+  font-weight: 500;
+}
+
+.transformInfoValue {
+  font-size: 0.875rem;
+  color: var(--glass-text-primary);
+  font-weight: 600;
+}
+
+.transformValues {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.transformValueRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.transformValueLabel {
+  font-size: 0.75rem;
+  color: var(--glass-text-secondary);
+  font-weight: 500;
+  min-width: fit-content;
+}
+
+.transformValueData {
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  color: var(--glass-text-primary);
+  text-align: right;
+}
+
+.transformShortcuts {
+  padding-top: 8px;
+  border-top: 1px solid var(--glass-border-primary);
+}
+
+.transformShortcutsText {
+  font-size: 0.75rem;
+  color: var(--glass-text-secondary);
+  font-style: italic;
+  text-align: center;
+  display: block;
+}

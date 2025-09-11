@@ -159,10 +159,26 @@ const MeshItem: React.FC<MeshItemProps> = React.memo(({ item, categoryKey, isEna
     return [1, 1, 1] as [number, number, number];
   }, [item]);
   
+  // Add selection userData to the group for object picking
+  const userData = useMemo(() => ({
+    itemId: item.id || `${categoryKey}-${Math.random()}`,
+    category: categoryKey,
+    selectable: true,
+    locked: item.locked || false,
+    name: item.name || `Item ${item.id}`,
+    originalData: item
+  }), [item, categoryKey]);
+
   // Handle different loading states
   if (loadingState === 'loading') {
     return (
-      <group position={position} rotation={rotation} scale={scale}>
+      <group 
+        position={position} 
+        rotation={rotation} 
+        scale={scale}
+        userData={userData}
+        name={`loading-item-${userData.itemId}`}
+      >
         {/* Loading placeholder */}
         <mesh>
           <boxGeometry args={[1, 1, 1]} />
@@ -174,7 +190,13 @@ const MeshItem: React.FC<MeshItemProps> = React.memo(({ item, categoryKey, isEna
   
   if (loadingState === 'error' || !currentUrl || !gltf) {
     return (
-      <group position={position} rotation={rotation} scale={scale}>
+      <group 
+        position={position} 
+        rotation={rotation} 
+        scale={scale}
+        userData={userData}
+        name={`error-item-${userData.itemId}`}
+      >
         {/* Error placeholder */}
         <mesh>
           <boxGeometry args={[1, 0.1, 1]} />
@@ -196,7 +218,13 @@ const MeshItem: React.FC<MeshItemProps> = React.memo(({ item, categoryKey, isEna
   });
 
   return (
-    <group position={position} rotation={rotation} scale={scale}>
+    <group 
+      position={position} 
+      rotation={rotation} 
+      scale={scale}
+      userData={userData}
+      name={`scene-item-${userData.itemId}`}
+    >
       <primitive object={gltf.scene.clone()} />
     </group>
   );

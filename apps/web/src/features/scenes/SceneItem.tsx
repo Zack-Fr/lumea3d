@@ -64,13 +64,19 @@ export function SceneItem({ item, categoryUrl, categoryKey }: SceneItemProps) {
     
     // Set name and userData for identification
     cloned.name = `item-${item.id}`;
-    cloned.userData = {
+    const userData = {
       itemId: item.id,
       category: categoryKey,
       selectable: item.selectable ?? true,
       locked: item.locked ?? false,
       meta: item.meta
     };
+    
+    // Set userData on the root object and all children
+    cloned.userData = userData;
+    cloned.traverse((child) => {
+      child.userData = { ...userData };
+    });
     
     console.log(`🎯 Item "${item.id}" positioned at:`, {
       position: cloned.position.toArray(),
@@ -86,7 +92,17 @@ export function SceneItem({ item, categoryUrl, categoryKey }: SceneItemProps) {
   }
   
   return (
-    <group ref={groupRef} name={`item-group-${item.id}`}>
+    <group 
+      ref={groupRef} 
+      name={`item-group-${item.id}`}
+      userData={{
+        itemId: item.id,
+        category: categoryKey,
+        selectable: item.selectable ?? true,
+        locked: item.locked ?? false,
+        meta: item.meta
+      }}
+    >
       <primitive object={clonedModel} />
     </group>
   );

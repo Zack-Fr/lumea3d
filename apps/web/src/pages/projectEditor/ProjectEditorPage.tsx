@@ -114,6 +114,10 @@ const ProjectEditorContent: React.FC = () => {
   const [enablePan, setEnablePan] = useState(true);
   const [enableZoom, setEnableZoom] = useState(true);
   const [enableRotate, setEnableRotate] = useState(true);
+  
+  // Clipping plane state
+  const [cameraNearClip, setCameraNearClip] = useState(0.1);
+  const [cameraFarClip, setCameraFarClip] = useState(1000);
 
   // Custom Hooks
   const {
@@ -341,6 +345,13 @@ const ProjectEditorContent: React.FC = () => {
     }
     triggerAchievement(`🎮 ${control} ${enabled ? 'enabled' : 'disabled'}`);
   }, [triggerAchievement]);
+  
+  // Clipping plane change callback
+  const handleClippingChange = useCallback((near: number, far: number) => {
+    setCameraNearClip(near);
+    setCameraFarClip(far);
+    triggerAchievement(`🎥 Clipping planes: ${near.toFixed(3)} - ${far.toFixed(0)}`);
+  }, [triggerAchievement]);
 
   // Asset drop handler for drag and drop from sidebar
   const handleAssetDrop = useCallback(async (dragData: any, position: { x: number; y: number }) => {
@@ -488,6 +499,9 @@ const ProjectEditorContent: React.FC = () => {
             enablePan={enablePan}
             enableZoom={enableZoom}
             enableRotate={enableRotate}
+            // Clipping plane props
+            nearClip={cameraNearClip}
+            farClip={cameraFarClip}
           />
 
           {/* Viewport Tools */}
@@ -523,6 +537,10 @@ const ProjectEditorContent: React.FC = () => {
             enableZoom={enableZoom}
             enableRotate={enableRotate}
             onControlsToggle={handleControlsToggle}
+            // Clipping plane props
+            nearClip={cameraNearClip}
+            farClip={cameraFarClip}
+            onClippingChange={handleClippingChange}
           />
         )}
       </div>

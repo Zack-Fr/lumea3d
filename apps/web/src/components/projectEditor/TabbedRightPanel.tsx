@@ -1,5 +1,4 @@
 import React, { useState, useCallback } from 'react';
-import { ScrollArea } from "../ui/ScrollArea";
 import { 
   Settings,
   Camera,
@@ -30,6 +29,10 @@ interface TabbedRightPanelProps {
   enableZoom?: boolean;
   enableRotate?: boolean;
   onControlsToggle?: (control: string, enabled: boolean) => void;
+  // Clipping plane props
+  nearClip?: number;
+  farClip?: number;
+  onClippingChange?: (near: number, far: number) => void;
 }
 
 type TabType = 'properties' | 'camera';
@@ -54,7 +57,12 @@ const TabbedRightPanel: React.FC<TabbedRightPanelProps> = ({
   enablePan,
   enableZoom,
   enableRotate,
-  onControlsToggle
+  onControlsToggle,
+  
+  // Clipping plane props
+  nearClip,
+  farClip,
+  onClippingChange
 }) => {
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('properties');
@@ -82,7 +90,7 @@ const TabbedRightPanel: React.FC<TabbedRightPanelProps> = ({
         show={true}
         onClose={onClose}
         sceneId={sceneId}
-        selectedItemId={selectedItemId}
+        selectedItemId={selectedItemId ?? undefined}
       />
     );
   };
@@ -103,6 +111,9 @@ const TabbedRightPanel: React.FC<TabbedRightPanelProps> = ({
         enableZoom={enableZoom}
         enableRotate={enableRotate}
         onControlsToggle={onControlsToggle}
+        nearClip={nearClip}
+        farClip={farClip}
+        onClippingChange={onClippingChange}
       />
     );
   };

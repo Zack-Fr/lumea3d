@@ -7,6 +7,12 @@ import { ViewportMovement } from '../../types/projectEditor';
 import { useSceneContext } from '../../contexts/SceneContext';
 import { StagedSceneLoader } from '../../features/scenes/StagedSceneLoader';
 import { SceneRenderer } from '../../features/scenes/SceneRenderer';
+import { SelectionProvider } from '../../features/scenes/SelectionContext';
+import { ClickSelection } from '../../features/scenes/ClickSelection';
+import { TransformGizmos } from '../../features/scenes/TransformGizmos';
+import { SelectionHighlightSystem } from '../../features/scenes/SelectionHighlight';
+import { TransformControlsPanel } from '../../features/scenes/TransformControlsPanel';
+import { TransformKeyboardControls } from '../../features/scenes/TransformKeyboardControls';
 import CameraControlsComponent from './CameraControls';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 
@@ -24,6 +30,9 @@ interface ViewportCanvasProps {
   enablePan?: boolean;
   enableZoom?: boolean;
   enableRotate?: boolean;
+  // Clipping plane props
+  nearClip?: number;
+  farClip?: number;
 }
 
 const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
@@ -39,7 +48,10 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
   moveSpeed = 5,
   enablePan = true,
   enableZoom = true,
-  enableRotate = true
+  enableRotate = true,
+  // Clipping plane props
+  nearClip = 0.1,
+  farClip = 1000
 }) => {
   // Get scene data from context
   const { 
@@ -197,11 +209,12 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
 
   // Render 3D scene
   return (
-    <div 
-      ref={viewportRef}
-      className={styles.viewportCanvas}
-      onClick={onViewportClick}
-      tabIndex={0}
+    <SelectionProvider>
+      <div 
+        ref={viewportRef}
+        className={styles.viewportCanvas}
+        onClick={onViewportClick}
+        tabIndex={0}
       onDragOver={(e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
@@ -233,8 +246,8 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
         camera={{ 
           position: [0, 5, 10], 
           fov: 60,
-          near: 0.1,
-          far: 1000
+          near: nearClip,
+          far: farClip
         }}
         style={{ 
           width: '100%', 
@@ -281,10 +294,22 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
         <pointLight position={[5, 3, 5]} intensity={0.3} distance={15} color="#FFF8DC" />
         <pointLight position={[-5, 3, -5]} intensity={0.3} distance={15} color="#F0E68C" />
 
-        {/* Scene Content */}
-        <Suspense fallback={null}>
-          {sceneId && <SceneRenderer sceneId={sceneId} />}
-        </Suspense>
+      {/* Scene Content */}
+      <Suspense fallback={null}>
+        {sceneId && <SceneRenderer sceneId={sceneId} />}
+      </Suspense>
+      
+      {/* Selection and Transform System */}
+      <ClickSelection enabled={true} />
+      <TransformGizmos enabled={true} />
+      <SelectionHighlightSystem 
+        enabled={true}
+        highlightColor="#f5c842"
+        showOutline={true}
+        showBox={false}
+        intensity={1.0}
+        pulseSpeed={2.0}
+      />
 
         {/* Camera Controls */}
         <CameraControlsComponent
@@ -329,7 +354,14 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
           <p className={styles.wasdLabel}>Movement Controls</p>
         </motion.div>
       )}
+      
+      {/* Transform Controls Panel */}
+      <TransformControlsPanel />
+      
+      {/* Keyboard Controls for Transform */}
+      <TransformKeyboardControls />
     </div>
+    </SelectionProvider>
   );
 });
 

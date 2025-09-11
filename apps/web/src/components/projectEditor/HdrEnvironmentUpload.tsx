@@ -168,7 +168,7 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
 
       await scenesApi.updateScene(sceneId, {
         env: {
-          hdri_url: null
+          hdriUrl: null
         }
       });
 

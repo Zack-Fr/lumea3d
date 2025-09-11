@@ -109,27 +109,31 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
     rotation?: Euler,
     scale?: Vector3
   ) => {
-    if (!selection.selectedObject) return;
+    setSelection(prev => {
+      if (!prev.selectedObject) return prev;
+      
+      const { object } = prev.selectedObject;
 
-    const { object } = selection.selectedObject;
+      if (position) {
+        object.position.copy(position);
+      }
+      if (rotation) {
+        object.rotation.copy(rotation);
+      }
+      if (scale) {
+        object.scale.copy(scale);
+      }
 
-    if (position) {
-      object.position.copy(position);
-    }
-    if (rotation) {
-      object.rotation.copy(rotation);
-    }
-    if (scale) {
-      object.scale.copy(scale);
-    }
-
-    log('debug', '🔄 Object transform updated:', {
-      itemId: selection.selectedObject.itemId,
-      position: object.position.toArray(),
-      rotation: object.rotation.toArray(),
-      scale: object.scale.toArray(),
+      log('debug', '🔄 Object transform updated:', {
+        itemId: prev.selectedObject.itemId,
+        position: object.position.toArray(),
+        rotation: object.rotation.toArray(),
+        scale: object.scale.toArray(),
+      });
+      
+      return prev;
     });
-  }, [selection.selectedObject]);
+  }, []);
 
   return (
     <SelectionContext.Provider

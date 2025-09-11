@@ -44,7 +44,18 @@ export function SafeSceneItem({ item, categoryUrl, categoryKey }: SafeSceneItemP
   if (isLoading) {
     // Show loading wireframe
     return (
-      <mesh position={item.transform?.position || [0, 0, 0]} rotation={item.transform?.rotation_euler || [0, 0, 0]} scale={item.transform?.scale || [1, 1, 1]}>
+      <mesh 
+        position={item.transform?.position || [0, 0, 0]} 
+        rotation={item.transform?.rotation_euler || [0, 0, 0]} 
+        scale={item.transform?.scale || [1, 1, 1]}
+        userData={{
+          itemId: item.id,
+          category: categoryKey,
+          selectable: item.selectable ?? true,
+          locked: item.locked ?? false,
+          meta: item.meta
+        }}
+      >
         <boxGeometry args={[1, 1, 1]} />
         <meshBasicMaterial color="cyan" wireframe />
       </mesh>
@@ -55,7 +66,18 @@ export function SafeSceneItem({ item, categoryUrl, categoryKey }: SafeSceneItemP
     // Show error wireframe
     console.log(`🔴 SafeSceneItem: Rendering fallback for item ${item.id} (${categoryUrl} failed)`);
     return (
-      <mesh position={item.transform?.position || [0, 0, 0]} rotation={item.transform?.rotation_euler || [0, 0, 0]} scale={item.transform?.scale || [1, 1, 1]}>
+      <mesh 
+        position={item.transform?.position || [0, 0, 0]} 
+        rotation={item.transform?.rotation_euler || [0, 0, 0]} 
+        scale={item.transform?.scale || [1, 1, 1]}
+        userData={{
+          itemId: item.id,
+          category: categoryKey,
+          selectable: item.selectable ?? true,
+          locked: item.locked ?? false,
+          meta: item.meta
+        }}
+      >
         <boxGeometry args={[1, 1, 1]} />
         <meshBasicMaterial color="red" wireframe />
       </mesh>
@@ -72,10 +94,21 @@ export function SafeSceneItem({ item, categoryUrl, categoryKey }: SafeSceneItemP
       />
     );
   } catch (error) {
-    console.error(`❌ SafeSceneItem: Runtime error rendering item ${item.id}:`, error);
+    console.error(`❤️ SafeSceneItem: Runtime error rendering item ${item.id}:`, error);
     // Fallback to wireframe on runtime error
     return (
-      <mesh position={item.transform?.position || [0, 0, 0]} rotation={item.transform?.rotation_euler || [0, 0, 0]} scale={item.transform?.scale || [1, 1, 1]}>
+      <mesh 
+        position={item.transform?.position || [0, 0, 0]} 
+        rotation={item.transform?.rotation_euler || [0, 0, 0]} 
+        scale={item.transform?.scale || [1, 1, 1]}
+        userData={{
+          itemId: item.id,
+          category: categoryKey,
+          selectable: item.selectable ?? true,
+          locked: item.locked ?? false,
+          meta: item.meta
+        }}
+      >
         <boxGeometry args={[1, 1, 1]} />
         <meshBasicMaterial color="magenta" wireframe />
       </mesh>

@@ -1,9 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Button } from "../ui/Button";
 import { ScrollArea } from "../ui/ScrollArea";
 import { 
-  Settings,
-  Camera,
   Plus,
   Search
 } from "lucide-react";
@@ -12,8 +10,6 @@ import { useSceneContext } from '../../contexts/SceneContext';
 import AssetCard from './AssetCard';
 import CategoryFilter from './CategoryFilter';
 import AssetList from './AssetList';
-import PropertiesPanel from './PropertiesPanel';
-import CameraControlsTab from './CameraControlsTab';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 
 interface TabbedLeftPanelProps {
@@ -47,13 +43,13 @@ interface TabbedLeftPanelProps {
   onControlsToggle?: (control: string, enabled: boolean) => void;
 }
 
-type TabType = 'assets';
+
 
 const TabbedLeftPanel: React.FC<TabbedLeftPanelProps> = ({
   // Asset props
   assetCategories,
   selectedTool,
-  onToolChange,
+  
   selectedAsset,
   onAssetSelect,
   onAssetAdd,
@@ -62,22 +58,7 @@ const TabbedLeftPanel: React.FC<TabbedLeftPanelProps> = ({
   // Properties props
   selectedItemId,
   onItemSelect,
-  showProperties,
-  onPropertiesClose,
   
-  // Camera props
-  cameraMode,
-  onCameraModeChange,
-  minDistance,
-  maxDistance,
-  moveSpeed,
-  onZoomLimitsChange,
-  onMoveSpeedChange,
-  onCameraPreset,
-  enablePan,
-  enableZoom,
-  enableRotate,
-  onControlsToggle
 }) => {
   const { 
     sceneId, 
@@ -87,23 +68,13 @@ const TabbedLeftPanel: React.FC<TabbedLeftPanelProps> = ({
     manifest
   } = useSceneContext();
 
-  // Tab state - always assets for left panel
-  const [activeTab] = useState<TabType>('assets');
+  // Tab state - always assets for left panel (no state needed)
   
   // Local state for filtering (assets tab)
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   // No tab switching needed for left panel
-
-  const getTabIcon = (categoryId: string) => {
-    switch (categoryId) {
-      case 'models': return 'Box';
-      case 'materials': return 'Palette';
-      case 'textures': return 'Image';
-      default: return 'Box';
-    }
-  };
 
   // Calculate category counts for filtering
   const categoryCounts = React.useMemo(() => {
@@ -248,36 +219,7 @@ const TabbedLeftPanel: React.FC<TabbedLeftPanelProps> = ({
     );
   };
 
-  const renderPropertiesTab = () => {
-    return (
-      <PropertiesPanel
-        show={true}
-        onClose={onPropertiesClose}
-        sceneId={sceneId}
-        selectedItemId={selectedItemId}
-      />
-    );
-  };
-
-  const renderCameraTab = () => {
-    return (
-      <CameraControlsTab
-        show={true}
-        cameraMode={cameraMode}
-        onCameraModeChange={onCameraModeChange}
-        minDistance={minDistance}
-        maxDistance={maxDistance}
-        moveSpeed={moveSpeed}
-        onZoomLimitsChange={onZoomLimitsChange}
-        onMoveSpeedChange={onMoveSpeedChange}
-        onCameraPreset={onCameraPreset}
-        enablePan={enablePan}
-        enableZoom={enableZoom}
-        enableRotate={enableRotate}
-        onControlsToggle={onControlsToggle}
-      />
-    );
-  };
+  // Removed unused render functions for properties and camera tabs
 
   return (
     <aside className={styles.leftSidebar}>
