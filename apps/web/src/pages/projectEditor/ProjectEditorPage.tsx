@@ -11,11 +11,11 @@ import { useProjectEditorSettings } from '../../hooks/projectEditor/useProjectEd
 
 // Atomic Components
 import TopBar from '../../components/projectEditor/TopBar';
-import LeftSidebar from '../../components/projectEditor/LeftSidebar';
+import TabbedLeftPanel from '../../components/projectEditor/TabbedLeftPanel';
+import TabbedRightPanel from '../../components/projectEditor/TabbedRightPanel';
 import ViewportCanvas from '../../components/projectEditor/ViewportCanvas';
 import ViewportTools from '../../components/projectEditor/ViewportTools';
 import ViewportSettings from '../../components/projectEditor/ViewportSettings';
-import PropertiesPanel from '../../components/projectEditor/PropertiesPanel';
 import GamificationOverlay from '../../components/projectEditor/GamificationOverlay';
 import Achievement from '../../components/projectEditor/Achievement';
 
@@ -106,6 +106,14 @@ const ProjectEditorContent: React.FC = () => {
 
   // Selection state for properties panel
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+
+  // Camera controls state
+  const [cameraMinDistance, setCameraMinDistance] = useState(0.1);
+  const [cameraMaxDistance, setCameraMaxDistance] = useState(500);
+  const [cameraMoveSpeed, setCameraMoveSpeed] = useState(5);
+  const [enablePan, setEnablePan] = useState(true);
+  const [enableZoom, setEnableZoom] = useState(true);
+  const [enableRotate, setEnableRotate] = useState(true);
 
   // Custom Hooks
   const {
@@ -303,6 +311,37 @@ const ProjectEditorContent: React.FC = () => {
     }
   }, [handleViewportClick, isWASDActive, triggerAchievement]);
 
+  // Camera controls handlers
+  const handleZoomLimitsChange = useCallback((min: number, max: number) => {
+    setCameraMinDistance(min);
+    setCameraMaxDistance(max);
+  }, []);
+
+  const handleMoveSpeedChange = useCallback((speed: number) => {
+    setCameraMoveSpeed(speed);
+  }, []);
+
+  const handleCameraPreset = useCallback((preset: string) => {
+    // TODO: Implement camera presets using SmoothCameraTransitions
+    console.log('Camera preset activated:', preset);
+    triggerAchievement(`🎥 Camera preset: ${preset}`);
+  }, [triggerAchievement]);
+
+  const handleControlsToggle = useCallback((control: string, enabled: boolean) => {
+    switch (control) {
+      case 'pan':
+        setEnablePan(enabled);
+        break;
+      case 'zoom':
+        setEnableZoom(enabled);
+        break;
+      case 'rotate':
+        setEnableRotate(enabled);
+        break;
+    }
+    triggerAchievement(`🎮 ${control} ${enabled ? 'enabled' : 'disabled'}`);
+  }, [triggerAchievement]);
+
   // Asset drop handler for drag and drop from sidebar
   const handleAssetDrop = useCallback(async (dragData: any, position: { x: number; y: number }) => {
     if (!contextSceneId || !dragData.item) {
@@ -400,8 +439,9 @@ const ProjectEditorContent: React.FC = () => {
 
       {/* Main Layout */}
       <div className={styles.projectEditorLayout}>
-        {/* Left Sidebar */}
-        <LeftSidebar
+        {/* Left Assets Panel */}
+        <TabbedLeftPanel
+          // Asset props
           assetCategories={assetCategories}
           selectedTool={selectedTool}
           onToolChange={setSelectedTool}
@@ -409,8 +449,26 @@ const ProjectEditorContent: React.FC = () => {
           onAssetSelect={handleAssetSelect}
           onAssetAdd={handleAssetAdd}
           onImportAsset={handleImportAsset}
+          
+          // Properties panel props (not used but kept for compatibility)
           selectedItemId={selectedItemId}
           onItemSelect={setSelectedItemId}
+          showProperties={showProperties}
+          onPropertiesClose={() => setShowProperties(false)}
+          
+          // Camera controls props (not used but kept for compatibility)
+          cameraMode={cameraMode}
+          onCameraModeChange={handleCameraModeChange}
+          minDistance={cameraMinDistance}
+          maxDistance={cameraMaxDistance}
+          moveSpeed={cameraMoveSpeed}
+          onZoomLimitsChange={handleZoomLimitsChange}
+          onMoveSpeedChange={handleMoveSpeedChange}
+          onCameraPreset={handleCameraPreset}
+          enablePan={enablePan}
+          enableZoom={enableZoom}
+          enableRotate={enableRotate}
+          onControlsToggle={handleControlsToggle}
         />
 
         {/* Main Viewport Area */}
@@ -423,6 +481,13 @@ const ProjectEditorContent: React.FC = () => {
             onViewportClick={handleViewportClickWithAchievement}
             cameraMode={cameraMode}
             onAssetDrop={handleAssetDrop}
+            // Camera control props
+            minDistance={cameraMinDistance}
+            maxDistance={cameraMaxDistance}
+            moveSpeed={cameraMoveSpeed}
+            enablePan={enablePan}
+            enableZoom={enableZoom}
+            enableRotate={enableRotate}
           />
 
           {/* Viewport Tools */}
@@ -435,13 +500,29 @@ const ProjectEditorContent: React.FC = () => {
           />
         </main>
 
-        {/* Right Properties Panel */}
+        {/* Right Tabbed Panel (Properties + Camera) */}
         {showProperties && (
-          <PropertiesPanel
+          <TabbedRightPanel
             show={showProperties}
             onClose={() => setShowProperties(false)}
+            
+            // Properties panel props
             sceneId={contextSceneId || undefined}
             selectedItemId={selectedItemId || undefined}
+            
+            // Camera controls props
+            cameraMode={cameraMode}
+            onCameraModeChange={handleCameraModeChange}
+            minDistance={cameraMinDistance}
+            maxDistance={cameraMaxDistance}
+            moveSpeed={cameraMoveSpeed}
+            onZoomLimitsChange={handleZoomLimitsChange}
+            onMoveSpeedChange={handleMoveSpeedChange}
+            onCameraPreset={handleCameraPreset}
+            enablePan={enablePan}
+            enableZoom={enableZoom}
+            enableRotate={enableRotate}
+            onControlsToggle={handleControlsToggle}
           />
         )}
       </div>

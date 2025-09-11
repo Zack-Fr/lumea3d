@@ -17,6 +17,13 @@ interface ViewportCanvasProps {
   onViewportClick: () => void;
   cameraMode?: string;
   onAssetDrop?: (assetData: any, position: { x: number; y: number }) => void;
+  // Camera control props
+  minDistance?: number;
+  maxDistance?: number;
+  moveSpeed?: number;
+  enablePan?: boolean;
+  enableZoom?: boolean;
+  enableRotate?: boolean;
 }
 
 const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
@@ -25,7 +32,14 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
   movement,
   onViewportClick,
   cameraMode = 'orbit',
-  onAssetDrop
+  onAssetDrop,
+  // Camera control props
+  minDistance = 0.1,
+  maxDistance = 500,
+  moveSpeed = 5,
+  enablePan = true,
+  enableZoom = true,
+  enableRotate = true
 }) => {
   // Get scene data from context
   const { 
@@ -277,6 +291,12 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
           cameraMode={cameraMode}
           isWASDActive={isWASDActive}
           movement={movement}
+          minDistance={minDistance}
+          maxDistance={maxDistance}
+          moveSpeed={moveSpeed}
+          enablePan={enablePan}
+          enableZoom={enableZoom}
+          enableRotate={enableRotate}
         />
       </Canvas>
 

@@ -8,16 +8,28 @@ interface CameraControlsProps {
   cameraMode: string;
   isWASDActive: boolean;
   movement: ViewportMovement;
+  minDistance?: number;
+  maxDistance?: number;
+  moveSpeed?: number;
+  enablePan?: boolean;
+  enableZoom?: boolean;
+  enableRotate?: boolean;
 }
 
 const CameraControlsComponent: React.FC<CameraControlsProps> = ({ 
   cameraMode, 
   isWASDActive, 
-  movement 
+  movement,
+  minDistance = 0.1,
+  maxDistance = 500,
+  moveSpeed: propMoveSpeed = 5,
+  enablePan = true,
+  enableZoom = true,
+  enableRotate = true
 }) => {
   const { camera, gl } = useThree();
   const orbitControlsRef = useRef<any>();
-  const moveSpeed = 5;
+  const moveSpeed = propMoveSpeed;
   const velocity = useRef(new THREE.Vector3());
   
   // FPS camera controls with WASD
@@ -68,12 +80,12 @@ const CameraControlsComponent: React.FC<CameraControlsProps> = ({
           ref={orbitControlsRef}
           args={[camera, gl.domElement]}
           enabled={!isWASDActive}
-          enablePan={true}
-          enableZoom={true}
-          enableRotate={true}
+          enablePan={enablePan}
+          enableZoom={enableZoom}
+          enableRotate={enableRotate}
           maxPolarAngle={Math.PI * 0.9}
-          minDistance={1}
-          maxDistance={50}
+          minDistance={minDistance}
+          maxDistance={maxDistance}
         />
       </>
     );
@@ -84,12 +96,12 @@ const CameraControlsComponent: React.FC<CameraControlsProps> = ({
     <OrbitControls
       ref={orbitControlsRef}
       args={[camera, gl.domElement]}
-      enablePan={true}
-      enableZoom={true}
-      enableRotate={true}
+      enablePan={enablePan}
+      enableZoom={enableZoom}
+      enableRotate={enableRotate}
       maxPolarAngle={Math.PI * 0.9}
-      minDistance={1}
-      maxDistance={50}
+      minDistance={minDistance}
+      maxDistance={maxDistance}
       autoRotate={false}
       autoRotateSpeed={0.5}
     />

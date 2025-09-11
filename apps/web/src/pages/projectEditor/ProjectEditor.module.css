@@ -503,6 +503,218 @@
   text-transform: uppercase;
 }
 
+/* Camera Controls Tab Styles */
+.cameraControlsTab {
+  width: 100%;
+}
+
+.sectionContainer {
+  margin-bottom: 1.5rem;
+  padding: 0.75rem;
+  background: var(--glass-bg-card);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-radius: 0.5rem;
+  border: 1px solid var(--glass-border-dim);
+}
+
+.sectionTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--glass-yellow);
+}
+
+.sectionIcon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--glass-yellow);
+}
+
+.buttonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modeButton {
+  width: 100%;
+  justify-content: flex-start;
+  color: var(--glass-gray);
+  border: 1px solid var(--glass-border-dim);
+  background: transparent;
+  transition: all 0.2s;
+}
+
+.modeButton:hover {
+  color: var(--glass-yellow);
+  border-color: var(--glass-yellow);
+  background: var(--glass-bg-secondary);
+}
+
+.modeButtonActive {
+  background: var(--glass-yellow) !important;
+  color: var(--glass-black) !important;
+  border-color: var(--glass-yellow) !important;
+}
+
+.controlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sliderContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sliderLabel {
+  font-size: 0.75rem;
+  color: var(--glass-gray);
+  display: block;
+}
+
+.slider {
+  width: 100%;
+}
+
+.toggleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toggleLabel {
+  font-size: 0.75rem;
+  color: var(--glass-gray);
+}
+
+.toggleButton {
+  height: 2rem;
+  padding: 0 0.75rem;
+  color: var(--glass-gray);
+  border: 1px solid var(--glass-border-dim);
+  background: transparent;
+  transition: all 0.2s;
+}
+
+.toggleButton:hover {
+  color: var(--glass-yellow);
+  border-color: var(--glass-yellow);
+  background: var(--glass-bg-secondary);
+}
+
+.toggleButtonActive {
+  background: var(--glass-yellow) !important;
+  color: var(--glass-black) !important;
+  border-color: var(--glass-yellow) !important;
+}
+
+.presetGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.presetButton {
+  font-size: 0.75rem;
+  color: var(--glass-gray);
+  border: 1px solid var(--glass-border-dim);
+  background: transparent;
+  transition: all 0.2s;
+}
+
+.presetButton:hover {
+  color: var(--glass-yellow);
+  border-color: var(--glass-yellow);
+  background: var(--glass-bg-secondary);
+}
+
+.helpSection {
+  margin-top: 1.5rem;
+  padding: 0.75rem;
+  background: var(--glass-bg-secondary);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-radius: 0.5rem;
+  border: 1px solid var(--glass-border-dim);
+}
+
+.helpTitle {
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--glass-white);
+}
+
+.helpList {
+  font-size: 0.75rem;
+  color: var(--glass-gray);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.helpList li {
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
+}
+
+/* Tab Navigation Styles */
+.tabNavigation {
+  border-bottom: 1px solid var(--glass-border-light);
+  padding: 1rem;
+}
+
+.tabTriggerActive {
+  background: var(--glass-yellow) !important;
+  color: var(--glass-black) !important;
+}
+
+.tabLabel {
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
+}
+
+/* Right Panel Styles */
+.rightPanel {
+  width: 20rem;
+  background: var(--glass-bg-primary);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid var(--glass-border-light);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 30;
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  color: var(--glass-gray);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s;
+}
+
+.closeButton:hover {
+  color: var(--glass-yellow);
+  background: var(--glass-bg-secondary);
+}
+
 .rarity-common {
   background: var(--glass-bg-secondary);
   color: var(--glass-gray);
