@@ -7,12 +7,12 @@ import { ViewportMovement } from '../../types/projectEditor';
 import { useSceneContext } from '../../contexts/SceneContext';
 import { StagedSceneLoader } from '../../features/scenes/StagedSceneLoader';
 import { SceneRenderer } from '../../features/scenes/SceneRenderer';
-import { SelectionProvider } from '../../features/scenes/SelectionContext';
 import { ClickSelection } from '../../features/scenes/ClickSelection';
 import { TransformGizmos } from '../../features/scenes/TransformGizmos';
 import { SelectionHighlightSystem } from '../../features/scenes/SelectionHighlight';
 import { TransformControlsPanel } from '../../features/scenes/TransformControlsPanel';
 import { TransformKeyboardControls } from '../../features/scenes/TransformKeyboardControls';
+import { SelectionBridge } from '../../features/scenes/SelectionBridge';
 import { GridSystem } from '../../features/scenes/GridSystem';
 import CameraControlsComponent from './CameraControls';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
@@ -24,6 +24,7 @@ interface ViewportCanvasProps {
   onViewportClick: () => void;
   cameraMode?: string;
   onAssetDrop?: (assetData: any, position: { x: number; y: number }) => void;
+  onSelectionChange?: (itemId: string | null) => void;
   // Camera control props
   minDistance?: number;
   maxDistance?: number;
@@ -43,6 +44,7 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
   onViewportClick,
   cameraMode = 'orbit',
   onAssetDrop,
+  onSelectionChange,
   // Camera control props
   minDistance = 0.1,
   maxDistance = 500,
@@ -213,8 +215,7 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
 
   // Render 3D scene
   return (
-    <SelectionProvider>
-      <div 
+    <div
         ref={viewportRef}
         className={styles.viewportCanvas}
         onClick={onViewportClick}
@@ -436,10 +437,14 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
       {/* Transform Controls Panel */}
       <TransformControlsPanel />
       
+      {/* Selection Bridge */}
+      {onSelectionChange && (
+        <SelectionBridge onSelectionChange={onSelectionChange} />
+      )}
+      
       {/* Keyboard Controls for Transform */}
       <TransformKeyboardControls />
     </div>
-    </SelectionProvider>
   );
 });
 

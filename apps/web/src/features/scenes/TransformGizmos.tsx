@@ -9,7 +9,7 @@ interface TransformGizmosProps {
 }
 
 export function TransformGizmos({ enabled }: TransformGizmosProps) {
-  const { camera, gl } = useThree();
+  const { camera } = useThree();
   const { selection, setIsTransforming, updateObjectTransform } = useSelection();
   const transformRef = useRef<any>(null);
 
@@ -17,24 +17,30 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
 
   // Update gizmo mode and attach event listeners
   useEffect(() => {
-    if (transformRef.current) {
+    if (transformRef.current && selectedObject) {
+      // Set the correct mode
       transformRef.current.setMode(selection.transformMode);
+      log('debug', `🔧 Transform mode set to: ${selection.transformMode}`);
+      
+      // Attach object to transform controls
+      transformRef.current.attach(selectedObject);
       
       // Attach event listeners
       const controls = transformRef.current;
       
-      controls.addEventListener('dragging-changed', (event: any) => {
+      const handleDragChanged = (event: any) => {
         if (event.value) {
           handleDragStart();
         } else {
           handleDragEnd();
         }
-      });
+      };
       
+      controls.addEventListener('dragging-changed', handleDragChanged);
       controls.addEventListener('objectChange', handleObjectChange);
       
       return () => {
-        controls.removeEventListener('dragging-changed', () => {});
+        controls.removeEventListener('dragging-changed', handleDragChanged);
         controls.removeEventListener('objectChange', handleObjectChange);
       };
     }
@@ -44,21 +50,11 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
   const handleDragStart = () => {
     log('debug', '🔧 Transform drag started');
     setIsTransforming(true);
-    
-    // Disable camera controls during transformation
-    if (gl.domElement) {
-      gl.domElement.style.cursor = 'grabbing';
-    }
   };
 
   const handleDragEnd = () => {
     log('debug', '🔧 Transform drag ended');
     setIsTransforming(false);
-    
-    // Re-enable camera controls
-    if (gl.domElement) {
-      gl.domElement.style.cursor = 'default';
-    }
 
     // Update the transform in our state
     if (selectedObject) {

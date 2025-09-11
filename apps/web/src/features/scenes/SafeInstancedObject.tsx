@@ -9,6 +9,7 @@ interface SafeInstancedObjectProps {
     rotation: [number, number, number];
     scale: [number, number, number];
   }>;
+  categoryKey?: string;
   frustumCulling?: boolean;
   maxInstances?: number;
   fallbackColor?: string;
@@ -17,6 +18,7 @@ interface SafeInstancedObjectProps {
 export function SafeInstancedObject({ 
   glbUrl, 
   items, 
+  categoryKey = 'unknown',
   frustumCulling, 
   maxInstances, 
   fallbackColor = 'red' 
@@ -53,7 +55,19 @@ console.log(`🔍 SafeInstancedObject: Testing URL accessibility: ${glbUrl}`);
     return (
       <group>
         {items.map((item) => (
-          <mesh key={item.id} position={item.position} rotation={item.rotation} scale={item.scale}>
+          <mesh 
+            key={item.id} 
+            position={item.position} 
+            rotation={item.rotation} 
+            scale={item.scale}
+            userData={{
+              itemId: item.id,
+              category: categoryKey,
+              selectable: true,
+              locked: false,
+              meta: { isLoading: true }
+            }}
+          >
             <boxGeometry args={[1, 1, 1]} />
             <meshBasicMaterial color="cyan" wireframe />
           </mesh>
@@ -68,7 +82,19 @@ console.log(`🔍 SafeInstancedObject: Testing URL accessibility: ${glbUrl}`);
     return (
       <group>
         {items.map((item) => (
-          <mesh key={item.id} position={item.position} rotation={item.rotation} scale={item.scale}>
+          <mesh 
+            key={item.id} 
+            position={item.position} 
+            rotation={item.rotation} 
+            scale={item.scale}
+            userData={{
+              itemId: item.id,
+              category: categoryKey,
+              selectable: true,
+              locked: false,
+              meta: { hasError: true }
+            }}
+          >
             <boxGeometry args={[1, 1, 1]} />
             <meshBasicMaterial color={fallbackColor} wireframe />
           </mesh>
@@ -93,7 +119,19 @@ console.log(`🔍 SafeInstancedObject: Testing URL accessibility: ${glbUrl}`);
     return (
       <group>
         {items.map((item) => (
-          <mesh key={item.id} position={item.position} rotation={item.rotation} scale={item.scale}>
+          <mesh 
+            key={item.id} 
+            position={item.position} 
+            rotation={item.rotation} 
+            scale={item.scale}
+            userData={{
+              itemId: item.id,
+              category: categoryKey,
+              selectable: true,
+              locked: false,
+              meta: { runtimeError: true }
+            }}
+          >
             <boxGeometry args={[1, 1, 1]} />
             <meshBasicMaterial color="magenta" wireframe />
           </mesh>

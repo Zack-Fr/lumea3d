@@ -26,6 +26,9 @@ import { AssetImportModal } from '../../features/scenes/AssetImportModal';
 // Scene Context
 import { SceneProvider, useSceneContext, useSceneParams } from '../../contexts/SceneContext';
 
+// Selection Context  
+import { SelectionProvider } from '../../features/scenes/SelectionContext';
+
 // Auth Context
 import { useAuth } from '../../providers/AuthProvider';
 
@@ -48,7 +51,9 @@ const ProjectEditorPage: React.FC = () => {
       defaultProjectId={projectId || undefined} 
       defaultSceneId={sceneId || undefined}
     >
-      <ProjectEditorContent />
+      <SelectionProvider>
+        <ProjectEditorContent />
+      </SelectionProvider>
     </SceneProvider>
   );
 };
@@ -105,8 +110,11 @@ const ProjectEditorContent: React.FC = () => {
   // Asset Import Modal State
   const [isAssetImportModalOpen, setIsAssetImportModalOpen] = useState(false);
 
-  // Selection state for properties panel
+  // Selection state for properties panel  
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  
+  // Update selectedItemId when selection changes in the SelectionContext
+  // This will be handled by the SelectionProvider wrapper
 
   // Camera controls state
   const [cameraMinDistance, setCameraMinDistance] = useState(0.1);
@@ -500,6 +508,7 @@ const ProjectEditorContent: React.FC = () => {
                 onViewportClick={handleViewportClickWithAchievement}
                 cameraMode={cameraMode}
                 onAssetDrop={handleAssetDrop}
+                onSelectionChange={setSelectedItemId}
                 // Camera control props
                 minDistance={cameraMinDistance}
                 maxDistance={cameraMaxDistance}

@@ -11,6 +11,16 @@ interface SafeSceneItemProps {
 export function SafeSceneItem({ item, categoryUrl, categoryKey }: SafeSceneItemProps) {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Debug logging for item being processed
+  console.log(`📦 SafeSceneItem: Processing item`, {
+    itemId: item.id,
+    itemName: item.name,
+    categoryKey,
+    categoryUrl,
+    selectable: item.selectable,
+    position: item.transform?.position
+  });
 
   useEffect(() => {
     // Test if the category URL is accessible

@@ -77,7 +77,14 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
     itemCount: categoryItems.length,
     uniqueModels: itemGroups.size,
     instanceGroupsCount: instanceGroups.size,
-    useInstancing: shouldUseInstancing
+    useInstancing: shouldUseInstancing,
+    categoryItems: categoryItems.map(item => ({
+      id: item.id,
+      name: item.name,
+      model: item.model,
+      selectable: item.selectable,
+      position: item.transform?.position
+    }))
   });
   
   if (categoryItems.length === 0) {
@@ -129,6 +136,7 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
                   rotation: item.transform?.rotation_euler || [0, 0, 0],
                   scale: item.transform?.scale || [1, 1, 1]
                 }))}
+                categoryKey={categoryKey}
                 frustumCulling={true}
                 maxInstances={1000}
                 fallbackColor="orange"

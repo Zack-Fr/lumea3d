@@ -45,6 +45,33 @@ export function SceneRenderer({ sceneId }: SceneRendererProps) {
   const items = manifest.items || [];
 
   log('info', `🎨 SceneRenderer: Rendering scene with ${Object.keys(categories).length} categories and ${items.length} items`);
+  
+  // Debug logging for imported mesh detection
+  console.log('🔍 SceneRenderer Debug Data:');
+  console.log('Categories:', Object.keys(categories));
+  console.log('Items:', items.map(item => ({
+    id: item.id,
+    name: item.name,
+    category: typeof item.category === 'string' ? item.category : (item.category as any)?.categoryKey,
+    model: item.model,
+    selectable: item.selectable,
+    hasTransform: !!item.transform,
+    position: item.transform?.position
+  })));
+  
+  // Log each category's details
+  Object.entries(categories).forEach(([categoryKey, category]) => {
+    const categoryItems = items.filter(item => {
+      const itemCategory = typeof item.category === 'string' ? item.category : (item.category as any)?.categoryKey || '';
+      return itemCategory === categoryKey;
+    });
+    
+    console.log(`📂 Category "${categoryKey}":`, {
+      categoryInfo: category,
+      itemCount: categoryItems.length,
+      items: categoryItems.map(item => ({ id: item.id, name: item.name, model: item.model }))
+    });
+  });
 
   return (
     <group name="scene-root">

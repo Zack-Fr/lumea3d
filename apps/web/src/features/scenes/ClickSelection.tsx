@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { useThree } from '@react-three/fiber';
-import { Raycaster, Vector2, Object3D } from 'three';
+import { Raycaster, Vector2, Vector3, Object3D } from 'three';
+import * as THREE from 'three';
 import { useSelection } from './SelectionContext';
 
 interface ClickSelectionProps {
@@ -75,11 +76,32 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
     const canvas = gl.domElement;
     const rect = canvas.getBoundingClientRect();
     
-    mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    const mouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    const mouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    
+    mouseRef.current.x = mouseX;
+    mouseRef.current.y = mouseY;
+    
+    console.log('🎯 Mouse coordinates:', {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      rectLeft: rect.left,
+      rectTop: rect.top,
+      rectWidth: rect.width,
+      rectHeight: rect.height,
+      normalizedX: mouseX,
+      normalizedY: mouseY
+    });
 
     // Perform raycast
     raycasterRef.current.setFromCamera(mouseRef.current, camera);
+    
+    console.log('🎯 Raycast setup:', {
+      cameraPosition: camera.position.toArray(),
+      cameraRotation: camera.rotation.toArray(),
+      rayOrigin: raycasterRef.current.ray.origin.toArray(),
+      rayDirection: raycasterRef.current.ray.direction.toArray()
+    });
     
     // Get all intersectable objects from the scene
     const intersectableObjects: Object3D[] = [];
@@ -108,10 +130,46 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
     
     console.log('🎯 Scene traversal found', allObjects.length, 'total objects:', allObjects);
     console.log('🎯 Found', intersectableObjects.length, 'selectable objects');
+    console.log('🎯 Selectable objects details:', intersectableObjects.map(obj => {
+      // Get bounding box for better debugging
+      const bbox = new THREE.Box3().setFromObject(obj);
+      return {
+        name: obj.name,
+        position: obj.position.toArray(),
+        worldPosition: obj.getWorldPosition(new Vector3()).toArray(),
+        visible: obj.visible,
+        matrixAutoUpdate: obj.matrixAutoUpdate,
+        boundingBox: {
+          min: bbox.min.toArray(),
+          max: bbox.max.toArray(),
+          center: bbox.getCenter(new Vector3()).toArray(),
+          size: bbox.getSize(new Vector3()).toArray()
+        }
+      };
+    }));
 
     const intersects = raycasterRef.current.intersectObjects(intersectableObjects, true);
     
-    console.log('🎯 Raycast results:', intersects.length, 'intersections');
+    // Test raycast against ALL objects in scene (for debugging)
+    const allSceneObjects: Object3D[] = [];
+    scene.traverse(child => {
+      if (child.type === 'Mesh') {
+        allSceneObjects.push(child);
+      }
+    });
+    
+    const allIntersects = raycasterRef.current.intersectObjects(allSceneObjects, true);
+    console.log('🎯 Raycast test against ALL meshes:', allIntersects.length, 'intersections');
+    if (allIntersects.length > 0) {
+      console.log('🎯 All intersections:', allIntersects.map(intersect => ({
+        objectName: intersect.object.name,
+        distance: intersect.distance,
+        hasUserData: !!intersect.object.userData,
+        userData: intersect.object.userData
+      })));
+    }
+    
+    console.log('🎯 Raycast results (selectable only):', intersects.length, 'intersections');
     if (intersects.length > 0) {
       intersects.forEach((intersect, i) => {
         console.log(`🎯 Intersect ${i}:`, {
