@@ -1,6 +1,7 @@
 import React, { Suspense, useCallback } from 'react';
 import { log, once as logOnce } from '../../utils/logger';
 import { Canvas } from '@react-three/fiber';
+import { Environment } from '@react-three/drei';
 import { motion } from "framer-motion";
 import { Box, Loader2 } from "lucide-react";
 import { ViewportMovement } from '../../types/projectEditor';
@@ -14,6 +15,7 @@ import { TransformControlsPanel } from '../../features/scenes/TransformControlsP
 import { TransformKeyboardControls } from '../../features/scenes/TransformKeyboardControls';
 import { SelectionBridge } from '../../features/scenes/SelectionBridge';
 import { GridSystem } from '../../features/scenes/GridSystem';
+import LightsContainer from './LightsContainer';
 import CameraControlsComponent from './CameraControls';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 
@@ -65,7 +67,8 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
     projectId,
     isLoading, 
     loading, 
-    error 
+    error,
+    manifest
   } = useSceneContext();
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURNS
@@ -299,6 +302,13 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
         <pointLight position={[5, 3, 5]} intensity={0.3} distance={15} color="#FFF8DC" />
         <pointLight position={[-5, 3, -5]} intensity={0.3} distance={15} color="#F0E68C" />
         
+        {/* HDR Environment */}
+        {manifest?.scene?.env?.hdri_url ? (
+          <Environment files={manifest.scene.env.hdri_url} />
+        ) : (
+          <Environment preset="city" background={false} />
+        )}
+        
         {/* Grid System for spatial reference */}
         <GridSystem 
           size={100}
@@ -308,6 +318,9 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
           visible={true}
         />
 
+      {/* Dynamic Lights Management */}
+      <LightsContainer />
+      
       {/* Scene Content */}
       <Suspense fallback={null}>
         {sceneId && <SceneRenderer sceneId={sceneId} />}

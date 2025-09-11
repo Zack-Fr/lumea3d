@@ -9,6 +9,7 @@ interface HdrEnvironmentUploadProps {
   sceneId?: string;
   currentHdriUrl?: string;
   onHdriUpdate?: (hdriUrl: string | null) => void;
+  onSceneRefresh?: () => void; // Add scene refresh callback
 }
 
 interface UploadState {
@@ -21,7 +22,8 @@ interface UploadState {
 const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
   sceneId,
   currentHdriUrl,
-  onHdriUpdate
+  onHdriUpdate,
+  onSceneRefresh
 }) => {
   const [uploadState, setUploadState] = useState<UploadState>({
     isUploading: false,
@@ -142,6 +144,11 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
       if (onHdriUpdate) {
         onHdriUpdate(hdriUrl);
       }
+      
+      // Refresh scene to update environment
+      if (onSceneRefresh) {
+        onSceneRefresh();
+      }
 
       // Clear success message after 3 seconds
       setTimeout(() => {
@@ -174,6 +181,11 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
 
       if (onHdriUpdate) {
         onHdriUpdate(null);
+      }
+      
+      // Refresh scene to update environment
+      if (onSceneRefresh) {
+        onSceneRefresh();
       }
 
       setUploadState(prev => ({ 

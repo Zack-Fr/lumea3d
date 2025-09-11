@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import * as THREE from 'three';
 import { Button } from "../ui/Button";
 import { Slider } from "../ui/Slider";
 import { ScrollArea } from "../ui/ScrollArea";
@@ -13,6 +14,7 @@ import {
 import ScaleUnitSystem, { ScaleUnit } from './ScaleUnitSystem';
 import ObjectsCounter from './ObjectsCounter';
 import HdrEnvironmentUpload from './HdrEnvironmentUpload';
+import LightCreation from './LightCreation';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 import { scenesApi, SceneItemUpdateRequest, SceneUpdateRequest } from '../../services/scenesApi';
 import { useSceneContext } from '../../contexts/SceneContext';
@@ -81,6 +83,9 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   
   // HDR environment state
   const [currentHdriUrl, setCurrentHdriUrl] = useState<string | null>(null);
+  
+  // Created lights state
+  const [createdLights, setCreatedLights] = useState<THREE.Light[]>([]);
   
   // Load current HDR URL from scene manifest
   useEffect(() => {
@@ -244,6 +249,16 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   const handleToggleAllVisibility = useCallback((show: boolean) => {
     console.log('Toggle all objects visibility:', show);
     // TODO: Implement global object visibility toggle
+  }, []);
+  
+  // Light creation handler
+  const handleLightCreated = useCallback((light: THREE.Light) => {
+    console.log('💡 Light created in PropertiesPanel:', light.name);
+    setCreatedLights(prev => [...prev, light]);
+    
+    // TODO: Add the light to the 3D scene
+    // This would typically involve calling a scene context method
+    // or emitting an event that the ViewportCanvas can listen to
   }, []);
   
   // Update item material properties
@@ -660,12 +675,41 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                 currentHdriUrl={currentHdriUrl ?? undefined}
                 onHdriUpdate={(hdriUrl) => {
                   setCurrentHdriUrl(hdriUrl);
-                  // Optionally refresh the scene to apply new HDR
-                  if (refreshScene) {
-                    refreshScene();
-                  }
                 }}
+                onSceneRefresh={refreshScene}
               />
+            </div>
+          </div>
+          
+          {/* Light Creation */}
+          <div className={styles.propertySection}>
+            <h3 className={styles.propertySectionTitle}>
+              <Lightbulb className="w-4 h-4 mr-2" />
+              Add Lights
+            </h3>
+            <div className={styles.propertySectionContent}>
+              <LightCreation onLightCreated={handleLightCreated} />
+              
+              {createdLights.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-gray-300 mb-2">
+                    Created Lights ({createdLights.length})
+                  </h4>
+                  <div className="space-y-1">
+                    {createdLights.map((light, index) => (
+                      <div key={light.name || index} className="text-xs text-gray-400 bg-gray-800 p-2 rounded flex items-center justify-between">
+                        <div>
+                          <span className="font-medium">{light.userData?.meta?.name || light.name}</span>
+                          <span className="ml-2 opacity-60">({light.userData?.meta?.lightType})</span>
+                        </div>
+                        <div className="text-xs opacity-60">
+                          I: {light.intensity.toFixed(1)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
