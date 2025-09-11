@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import * as THREE from 'three';
 import { Button } from "../ui/Button";
 import { Slider } from "../ui/Slider";
@@ -7,12 +7,10 @@ import {
   Move,
   Palette,
   Lightbulb,
-  Layers,
   Eye,
   Ruler
 } from "lucide-react";
 import ScaleUnitSystem, { ScaleUnit } from './ScaleUnitSystem';
-import ObjectsCounter from './ObjectsCounter';
 import HdrEnvironmentUpload from './HdrEnvironmentUpload';
 import LightCreation from './LightCreation';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
@@ -226,30 +224,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     console.log('Scene scale changed to:', sceneScale);
   }, []);
   
-  // Calculate object information from scene manifest
-  const objectInfo = useMemo(() => {
-    const items = manifest?.items || [];
-    
-    // Count by category
-    const byCategory: Record<string, number> = {};
-    items.forEach(item => {
-      const category = typeof item.category === 'string' ? item.category : (item.category as any)?.categoryKey || 'unknown';
-      byCategory[category] = (byCategory[category] || 0) + 1;
-    });
-    
-    return {
-      total: items.length,
-      visible: items.length, // TODO: Track actual visibility state
-      selected: selectedItemId ? 1 : 0, // TODO: Support multi-selection
-      byCategory
-    };
-  }, [manifest?.items, selectedItemId]);
-  
-  // Objects visibility handler
-  const handleToggleAllVisibility = useCallback((show: boolean) => {
-    console.log('Toggle all objects visibility:', show);
-    // TODO: Implement global object visibility toggle
-  }, []);
   
   // Light creation handler
   const handleLightCreated = useCallback((light: THREE.Light) => {
@@ -669,6 +643,24 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                 </div>
               )}
               
+              {/* Current HDR Display */}
+              {currentHdriUrl && (
+                <div className={styles.propertyGroup}>
+                  <label className={styles.propertyLabel}>Current HDR Environment</label>
+                  <div className="text-xs bg-gray-800 p-2 rounded border border-gray-600">
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-400">✓</span>
+                      <span className="text-gray-300 font-medium">
+                        {currentHdriUrl.split('/').pop()?.split('?')[0] || 'HDR File'}
+                      </span>
+                    </div>
+                    <div className="text-gray-500 mt-1 break-all">
+                      {currentHdriUrl.substring(0, 60)}...
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* HDR Environment Upload */}
               <HdrEnvironmentUpload
                 sceneId={sceneId}
@@ -730,20 +722,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
             </div>
           </div>
 
-          {/* Layer Controls / Objects */}
-          <div className={styles.propertySection}>
-            <h3 className={styles.propertySectionTitle}>
-              <Layers className="w-4 h-4 mr-2" />
-              Layers
-            </h3>
-            <div className={styles.propertySectionContent}>
-              <ObjectsCounter
-                objectInfo={objectInfo}
-                onToggleVisibility={handleToggleAllVisibility}
-                className=""
-              />
-            </div>
-          </div>
           
           {/* Shell Settings */}
           <div className={styles.propertySection}>

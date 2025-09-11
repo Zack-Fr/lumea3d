@@ -30,25 +30,25 @@ const LightCreation: React.FC<LightCreationProps> = ({ onLightCreated }) => {
   const lightConfigs: Record<LightType, Omit<LightConfig, 'type'>> = {
     directional: {
       color: '#ffffff',
-      intensity: 1.0,
+      intensity: 2.0, // Increased for better visibility
       position: [5, 10, 5],
       target: [0, 0, 0]
     },
     point: {
-      color: '#ffffff',
-      intensity: 1.0,
+      color: '#ffddaa', // Warm white color
+      intensity: 3.0, // Increased intensity
       position: [0, 5, 0],
-      distance: 20,
-      decay: 2
+      distance: 50, // Increased range
+      decay: 1 // Reduced decay for longer range
     },
     spot: {
       color: '#ffffff',
-      intensity: 1.0,
+      intensity: 2.5, // Increased intensity
       position: [0, 10, 0],
       target: [0, 0, 0],
-      angle: Math.PI / 4,
-      distance: 20,
-      decay: 2
+      angle: Math.PI / 3, // Wider cone
+      distance: 40, // Increased range
+      decay: 1 // Reduced decay
     }
   };
 
@@ -64,7 +64,20 @@ const LightCreation: React.FC<LightCreationProps> = ({ onLightCreated }) => {
           light = new THREE.DirectionalLight(config.color, config.intensity);
           light.position.set(...config.position);
           if (config.target) {
-            light.target.position.set(...config.target);
+            (light as THREE.DirectionalLight).target.position.set(...config.target);
+          }
+          // Configure shadows for directional light
+          light.castShadow = true;
+          if (light.shadow) {
+            light.shadow.mapSize.width = 2048;
+            light.shadow.mapSize.height = 2048;
+            const shadowCamera = light.shadow.camera as THREE.OrthographicCamera;
+            shadowCamera.near = 0.5;
+            shadowCamera.far = 50;
+            shadowCamera.left = -20;
+            shadowCamera.right = 20;
+            shadowCamera.top = 20;
+            shadowCamera.bottom = -20;
           }
           break;
           
@@ -89,14 +102,25 @@ const LightCreation: React.FC<LightCreationProps> = ({ onLightCreated }) => {
           );
           light.position.set(...config.position);
           if (config.target) {
-            light.target.position.set(...config.target);
+            (light as THREE.SpotLight).target.position.set(...config.target);
           }
           break;
       }
 
       // Set common properties
       light.name = `${lightType}-light-${Date.now()}`;
-      light.castShadow = true;
+      
+      // Enable shadows for point and spot lights (directional already configured above)
+      if (lightType === 'point' || lightType === 'spot') {
+        light.castShadow = true;
+        if (light.shadow) {
+          light.shadow.mapSize.width = 1024;
+          light.shadow.mapSize.height = 1024;
+          const shadowCamera = light.shadow.camera as THREE.PerspectiveCamera;
+          shadowCamera.near = 0.1;
+          shadowCamera.far = lightType === 'point' ? 50 : 40;
+        }
+      }
       
       // Add userData for selection system
       light.userData = {

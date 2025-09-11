@@ -123,6 +123,7 @@ export function SceneRenderer({ sceneId }: SceneRendererProps) {
           id: asset.id,
           name: asset.name,
           category: asset.category,
+          model: asset.name || 'default', // Required by SceneItem interface
           selectable: true,
           locked: false,
           meta: {
@@ -131,9 +132,9 @@ export function SceneRenderer({ sceneId }: SceneRendererProps) {
             importedAt: asset.createdAt
           },
           transform: {
-            position: [(Math.random() - 0.5) * 10, 0, (Math.random() - 0.5) * 10],
-            rotation_euler: [0, 0, 0],
-            scale: [1, 1, 1]
+            position: [(Math.random() - 0.5) * 10, 0, (Math.random() - 0.5) * 10] as [number, number, number],
+            rotation_euler: [0, 0, 0] as [number, number, number],
+            scale: [1, 1, 1] as [number, number, number]
           }
         };
         
@@ -143,7 +144,7 @@ export function SceneRenderer({ sceneId }: SceneRendererProps) {
             fallback={
               <mesh 
                 name={`local-fallback-${asset.id}`}
-                position={localItem.transform.position}
+                position={localItem.transform.position as [number, number, number]}
                 userData={{
                   itemId: asset.id,
                   category: asset.category,

@@ -37,41 +37,86 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
 
   // Handle file selection
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('🌄 HDR Upload: File selection started');
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log('⚠️ HDR Upload: No file selected');
+      return;
+    }
 
-    // Validate file type
-    if (!file.type.includes('image/') || !file.name.toLowerCase().endsWith('.hdr')) {
+    console.log('🌄 HDR Upload: File selected:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: new Date(file.lastModified).toISOString()
+    });
+
+    // Validate file type - HDR files often don't have MIME types, so check extension
+    const isValidHdr = file.name.toLowerCase().endsWith('.hdr') || 
+                      file.name.toLowerCase().endsWith('.exr') ||
+                      file.type.includes('image/vnd.radiance') ||
+                      file.type.includes('image/x-exr');
+    
+    if (!isValidHdr) {
+      console.error('❌ HDR Upload: Invalid file type:', {
+        fileName: file.name,
+        fileType: file.type,
+        fileExtension: file.name.toLowerCase().split('.').pop()
+      });
       setUploadState(prev => ({
         ...prev,
-        error: 'Please select an HDR image file (.hdr format)',
+        error: 'Please select an HDR image file (.hdr or .exr format)',
         success: false
       }));
       return;
     }
+    
+    console.log('✅ HDR Upload: File type validation passed for HDR file:', {
+      fileName: file.name,
+      detectedExtension: file.name.toLowerCase().split('.').pop(),
+      mimeType: file.type || 'none'
+    });
 
-    // Validate file size (max 50MB for HDR files)
-    const maxSize = 50 * 1024 * 1024;
+    // Validate file size (max 100MB for HDR files - they tend to be large)
+    const maxSize = 100 * 1024 * 1024;
     if (file.size > maxSize) {
+      console.error('❌ HDR Upload: File too large:', file.size, 'bytes (max:', maxSize, ')');
       setUploadState(prev => ({
         ...prev,
-        error: 'HDR file is too large. Maximum size is 50MB.',
+        error: 'HDR file is too large. Maximum size is 100MB.',
         success: false
       }));
       return;
     }
+    
+    console.log('✅ HDR Upload: File size validation passed:', {
+      fileSize: file.size,
+      fileSizeMB: Math.round(file.size / 1024 / 1024 * 100) / 100,
+      maxSizeMB: 100
+    });
+
+    console.log('✅ HDR Upload: File validation passed');
 
     // Create preview
     const previewUrl = URL.createObjectURL(file);
     setPreviewUrl(previewUrl);
+    console.log('🌄 HDR Upload: Preview URL created:', previewUrl);
 
     // Start upload
+    console.log('🌄 HDR Upload: Starting upload process...');
     uploadHdrFile(file);
   }, []);
 
   // Upload HDR file
   const uploadHdrFile = useCallback(async (file: File) => {
+    console.log('🌄 HDR Upload: uploadHdrFile called with:', {
+      fileName: file.name,
+      fileSize: file.size,
+      sceneId: sceneId
+    });
+    
     if (!sceneId) {
+      console.error('❌ HDR Upload: No sceneId available');
       setUploadState(prev => ({
         ...prev,
         error: 'No scene selected for HDR upload',
@@ -79,6 +124,8 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
       }));
       return;
     }
+    
+    console.log('✅ HDR Upload: sceneId validation passed:', sceneId);
 
     setUploadState({
       isUploading: true,
@@ -86,52 +133,92 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
       error: null,
       success: false
     });
+    console.log('🌄 HDR Upload: Upload state set to uploading');
 
     try {
       // Step 1: Get upload URL
-      const uploadUrlResponse = await assetsApi.getUploadUrl({
+      // HDR files often don't have a proper MIME type, so provide a fallback
+      const contentType = file.type || 
+        (file.name.toLowerCase().endsWith('.hdr') ? 'image/vnd.radiance' : 
+         file.name.toLowerCase().endsWith('.exr') ? 'image/x-exr' : 'application/octet-stream');
+      
+      console.log('🌄 HDR Upload: Step 1 - Getting upload URL with:', {
         filename: file.name,
-        contentType: file.type,
+        originalContentType: file.type,
+        finalContentType: contentType,
         fileSize: file.size,
         category: 'environment'
       });
+      
+      const uploadUrlResponse = await assetsApi.getUploadUrl({
+        filename: file.name,
+        contentType: contentType,
+        fileSize: file.size,
+        category: 'environment'
+      });
+      
+      console.log('✅ HDR Upload: Got upload URL response:', uploadUrlResponse);
 
       setUploadState(prev => ({ ...prev, uploadProgress: 25 }));
+      console.log('🌄 HDR Upload: Progress updated to 25%');
 
       // Step 2: Upload file to storage
+      console.log('🌄 HDR Upload: Step 2 - Uploading file to storage URL:', uploadUrlResponse.uploadUrl);
       const uploadResponse = await fetch(uploadUrlResponse.uploadUrl, {
         method: 'PUT',
         body: file,
         headers: {
-          'Content-Type': file.type,
+          'Content-Type': contentType,
         },
       });
+      
+      console.log('🌄 HDR Upload: Storage upload response status:', uploadResponse.status, uploadResponse.statusText);
 
       if (!uploadResponse.ok) {
+        console.error('❌ HDR Upload: Storage upload failed:', uploadResponse.status, uploadResponse.statusText);
         throw new Error(`Upload failed: ${uploadResponse.status}`);
       }
+      
+      console.log('✅ HDR Upload: File uploaded to storage successfully');
 
       setUploadState(prev => ({ ...prev, uploadProgress: 50 }));
+      console.log('🌄 HDR Upload: Progress updated to 50%');
 
       // Step 3: Notify upload completion
+      console.log('🌄 HDR Upload: Step 3 - Notifying upload completion for assetId:', uploadUrlResponse.assetId);
       await assetsApi.notifyUploadComplete(uploadUrlResponse.assetId);
+      console.log('✅ HDR Upload: Upload completion notified');
 
       setUploadState(prev => ({ ...prev, uploadProgress: 75 }));
+      console.log('🌄 HDR Upload: Progress updated to 75%');
 
       // Step 4: Get the asset to get the final URL
+      console.log('🌄 HDR Upload: Step 4 - Getting asset details for assetId:', uploadUrlResponse.assetId);
       const asset = await assetsApi.getAsset(uploadUrlResponse.assetId);
+      console.log('✅ HDR Upload: Got asset details:', asset);
+      
       const hdriUrl = asset.originalUrl || asset.meshoptUrl || asset.dracoUrl;
+      console.log('🌄 HDR Upload: Extracted HDR URL:', hdriUrl);
 
       if (!hdriUrl) {
+        console.error('❌ HDR Upload: No URL available from asset:', asset);
         throw new Error('Asset uploaded but no URL available');
       }
 
-      // Step 5: Update scene with new HDR URL
-      await scenesApi.updateScene(sceneId, {
+      // Step 5: Update scene with new HDR URL (need to get current version first)
+      console.log('🌄 HDR Upload: Getting scene version for update');
+      const sceneVersion = await scenesApi.getVersion(sceneId);
+      console.log('🌄 HDR Upload: Current scene version:', sceneVersion);
+      
+      const updatePayload = {
         env: {
           hdri_url: hdriUrl
         }
-      });
+      };
+      console.log('🌄 HDR Upload: Sending update payload:', updatePayload);
+      
+      const updateResult = await scenesApi.updateScene(sceneId, updatePayload, sceneVersion.version);
+      console.log('🌄 HDR Upload: Update result:', updateResult);
 
       setUploadState({
         isUploading: false,
@@ -156,13 +243,21 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
       }, 3000);
 
     } catch (error) {
-      console.error('HDR upload failed:', error);
+      console.error('❌ HDR Upload: Upload process failed with error:', error);
+      console.error('❌ HDR Upload: Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      
       setUploadState({
         isUploading: false,
         uploadProgress: 0,
         error: error instanceof Error ? error.message : 'Upload failed',
         success: false
       });
+      
+      console.log('🌄 HDR Upload: Upload state set to failed');
     }
   }, [sceneId, onHdriUpdate]);
 
@@ -173,11 +268,12 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
     try {
       setUploadState(prev => ({ ...prev, isUploading: true, error: null }));
 
+      const sceneVersion = await scenesApi.getVersion(sceneId);
       await scenesApi.updateScene(sceneId, {
         env: {
-          hdriUrl: null
+          hdri_url: ''
         }
-      });
+      }, sceneVersion.version);
 
       if (onHdriUpdate) {
         onHdriUpdate(null);
@@ -212,7 +308,28 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
 
   // Trigger file input
   const handleUploadClick = useCallback(() => {
-    fileInputRef.current?.click();
+    console.log('🌄 HDR Upload: Upload button clicked');
+    console.log('🌄 HDR Upload: File input ref:', fileInputRef.current);
+    console.log('🌄 HDR Upload: File input element properties:', {
+      tagName: fileInputRef.current?.tagName,
+      type: fileInputRef.current?.type,
+      accept: fileInputRef.current?.accept,
+      disabled: fileInputRef.current?.disabled,
+      style: fileInputRef.current?.style?.cssText
+    });
+    
+    if (fileInputRef.current) {
+      try {
+        // Force focus first (sometimes helps with click events)
+        fileInputRef.current.focus();
+        fileInputRef.current.click();
+        console.log('🌄 HDR Upload: File input click completed successfully');
+      } catch (error) {
+        console.error('❌ HDR Upload: Error clicking file input:', error);
+      }
+    } else {
+      console.error('❌ HDR Upload: File input ref is null');
+    }
   }, []);
 
   return (
@@ -276,9 +393,15 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
         <input
           ref={fileInputRef}
           type="file"
-          accept=".hdr,image/vnd.radiance"
+          accept=".hdr,.exr,image/vnd.radiance,image/x-exr,*/*"
           onChange={handleFileSelect}
-          style={{ display: 'none' }}
+          style={{ 
+            position: 'absolute',
+            left: '-9999px',
+            width: '1px',
+            height: '1px',
+            opacity: 0
+          }}
         />
       </div>
 
@@ -299,8 +422,8 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
       {/* Help Text */}
       <div className={styles.hdrHelp}>
         <p className={styles.hdrHelpText}>
-          Upload an HDR image (.hdr format) to set the scene's environment lighting. 
-          HDR images provide realistic lighting and reflections.
+          Upload an HDR image (.hdr or .exr format) to set the scene's environment lighting. 
+          HDR images provide realistic lighting and reflections. Maximum file size: 100MB.
         </p>
       </div>
     </div>

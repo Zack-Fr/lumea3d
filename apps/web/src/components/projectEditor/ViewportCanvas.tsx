@@ -251,6 +251,7 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
     >
       {/* 3D Canvas */}
       <Canvas
+        shadows
         camera={{ 
           position: [0, 8, 12], 
           fov: 50,
@@ -264,6 +265,8 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
         }}
         onCreated={({ gl }) => {
           gl.setClearColor('#0f0f0f', 0);
+          gl.shadowMap.enabled = true;
+          gl.shadowMap.type = 2; // THREE.PCFSoftShadowMap
         }}
       >
         {/* Enhanced Lighting Setup */}
@@ -304,10 +307,36 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
         
         {/* HDR Environment */}
         {manifest?.scene?.env?.hdri_url ? (
-          <Environment files={manifest.scene.env.hdri_url} />
+          <>
+            {console.log('🌄 HDR Environment: Loading HDR from URL:', manifest.scene.env.hdri_url)}
+            <Environment 
+              files={manifest.scene.env.hdri_url} 
+              background={true}
+              blur={0.1}
+            />
+          </>
         ) : (
-          <Environment preset="city" background={false} />
+          <>
+            {console.log('🌄 HDR Environment: Using default city preset')}
+            <Environment preset="city" background={false} />
+          </>
         )}
+        
+        {/* Ground plane for shadows */}
+        <mesh 
+          rotation={[-Math.PI / 2, 0, 0]} 
+          position={[0, -0.01, 0]}
+          receiveShadow
+        >
+          <planeGeometry args={[100, 100]} />
+          <meshStandardMaterial 
+            color="#202020" 
+            roughness={0.8}
+            metalness={0.2}
+            transparent
+            opacity={0.3}
+          />
+        </mesh>
         
         {/* Grid System for spatial reference */}
         <GridSystem 
@@ -331,6 +360,8 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
         <mesh 
           name="debug-cube-center"
           position={[0, 1, 0]}
+          castShadow
+          receiveShadow
           userData={{
             itemId: 'debug-cube-center',
             category: 'debug',
@@ -346,6 +377,8 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
         <mesh 
           name="debug-cube-left"
           position={[-4, 0.5, 0]}
+          castShadow
+          receiveShadow
           userData={{
             itemId: 'debug-cube-left',
             category: 'debug',
@@ -361,6 +394,8 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
         <mesh 
           name="debug-cube-right"
           position={[4, 0.5, 0]}
+          castShadow
+          receiveShadow
           userData={{
             itemId: 'debug-cube-right',
             category: 'debug',
@@ -377,6 +412,8 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
         <mesh 
           name="debug-sphere"
           position={[0, 0.5, 4]}
+          castShadow
+          receiveShadow
           userData={{
             itemId: 'debug-sphere',
             category: 'debug',

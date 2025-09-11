@@ -81,10 +81,13 @@ export function SceneItem({ item, categoryUrl, categoryKey }: SceneItemProps) {
       child.userData = { ...userData };
       if (child.type === 'Mesh') {
         meshCount++;
-        console.log('🔍 DEBUG: Applied userData to mesh:', child.name || 'unnamed', child.userData);
+        // Enable shadows for imported meshes
+        child.castShadow = true;
+        child.receiveShadow = true;
+        console.log('🔍 DEBUG: Applied userData and shadows to mesh:', child.name || 'unnamed', child.userData);
       }
     });
-    console.log('🔍 DEBUG: Applied userData to', meshCount, 'mesh children');
+    console.log('🔍 DEBUG: Applied userData and shadows to', meshCount, 'mesh children');
     
     console.log(`🎯 Item "${item.id}" positioned at:`, {
       position: cloned.position.toArray(),

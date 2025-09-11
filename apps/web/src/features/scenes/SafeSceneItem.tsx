@@ -61,6 +61,8 @@ export function SafeSceneItem({ item, categoryUrl, categoryKey }: SafeSceneItemP
         position={item.transform?.position || [0, 0, 0]} 
         rotation={item.transform?.rotation_euler || [0, 0, 0]} 
         scale={item.transform?.scale || [1, 1, 1]}
+        castShadow
+        receiveShadow
         userData={{
           itemId: item.id,
           category: categoryKey,
@@ -84,6 +86,8 @@ export function SafeSceneItem({ item, categoryUrl, categoryKey }: SafeSceneItemP
         position={item.transform?.position || [0, 0, 0]} 
         rotation={item.transform?.rotation_euler || [0, 0, 0]} 
         scale={item.transform?.scale || [1, 1, 1]}
+        castShadow
+        receiveShadow
         userData={{
           itemId: item.id,
           category: categoryKey,
@@ -116,6 +120,8 @@ export function SafeSceneItem({ item, categoryUrl, categoryKey }: SafeSceneItemP
         position={item.transform?.position || [0, 0, 0]} 
         rotation={item.transform?.rotation_euler || [0, 0, 0]} 
         scale={item.transform?.scale || [1, 1, 1]}
+        castShadow
+        receiveShadow
         userData={{
           itemId: item.id,
           category: categoryKey,

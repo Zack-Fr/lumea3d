@@ -10,6 +10,7 @@ import { useSceneContext } from '../../contexts/SceneContext';
 import AssetCard from './AssetCard';
 import CategoryFilter from './CategoryFilter';
 import AssetList from './AssetList';
+import LayersPanel from './LayersPanel';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 
 interface TabbedLeftPanelProps {
@@ -223,37 +224,43 @@ const TabbedLeftPanel: React.FC<TabbedLeftPanelProps> = ({
 
   return (
     <aside className={styles.leftSidebar}>
-      <div className={styles.sidebarHeader}>
-        <div className={styles.sidebarTitleRow}>
-          <h2 className={styles.sidebarTitle}>Scene Assets</h2>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className={styles.addButton}
-            onClick={onImportAsset}
-            title="Import new 3D asset"
-          >
-            <Plus className="w-4 h-4" />
-          </Button>
-        </div>
-        
-        {/* Search for assets */}
-        {!sceneId && (
-          <div className={styles.searchContainer}>
-            <Search className={styles.searchIcon} />
-            <input
-              type="text"
-              placeholder="Search assets..."
-              className={styles.searchInput}
-            />
+      {/* Scene Assets Section */}
+      <div className={styles.sidebarSection}>
+        <div className={styles.sidebarHeader}>
+          <div className={styles.sidebarTitleRow}>
+            <h2 className={styles.sidebarTitle}>Scene Assets</h2>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className={styles.addButton}
+              onClick={onImportAsset}
+              title="Import new 3D asset"
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
           </div>
-        )}
+          
+          {/* Search for assets */}
+          {!sceneId && (
+            <div className={styles.searchContainer}>
+              <Search className={styles.searchIcon} />
+              <input
+                type="text"
+                placeholder="Search assets..."
+                className={styles.searchInput}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Assets Content */}
+        <div className={styles.sidebarContent}>
+          {renderTabContent()}
+        </div>
       </div>
 
-      {/* No tab navigation needed for assets-only panel */}
-
-      {/* Tab Content */}
-      {renderTabContent()}
+      {/* Layers Section */}
+      <LayersPanel className={styles.sidebarSection} />
     </aside>
   );
 };

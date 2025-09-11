@@ -2,6 +2,21 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { useThree } from '@react-three/fiber';
 
+// Helper function to create visual helpers for lights
+function createLightHelper(light: THREE.Light): THREE.Object3D | null {
+  if (light instanceof THREE.DirectionalLight) {
+    const helper = new THREE.DirectionalLightHelper(light, 2, 0xffff00);
+    return helper;
+  } else if (light instanceof THREE.PointLight) {
+    const helper = new THREE.PointLightHelper(light, 1, 0xffff00);
+    return helper;
+  } else if (light instanceof THREE.SpotLight) {
+    const helper = new THREE.SpotLightHelper(light, 0xffff00);
+    return helper;
+  }
+  return null;
+}
+
 interface LightsContainerProps {
   onLightAdded?: (light: THREE.Light) => void;
 }
@@ -28,6 +43,11 @@ export class LightsManager {
   removeLight(lightName: string): void {
     const index = this.lights.findIndex(light => light.name === lightName);
     if (index !== -1) {
+      const light = this.lights[index];
+      // Clean up helper if it exists
+      if (light.userData.helper) {
+        light.userData.helper.dispose?.();
+      }
       this.lights.splice(index, 1);
       console.log('💡 LightsManager: Light removed:', lightName);
       this.notifyCallbacks();
@@ -72,7 +92,25 @@ const LightsContainer: React.FC<LightsContainerProps> = ({ onLightAdded }) => {
             scene.add(light.target);
           }
           
-          console.log('💡 LightsContainer: Added light to scene:', light.name);
+          // Add visual helper for the light
+          const helper = createLightHelper(light);
+          if (helper) {
+            helper.name = `${light.name}-helper`;
+            
+            // Make helper selectable by copying userData from light
+            helper.userData = {
+              ...light.userData,
+              isHelper: true,
+              originalLight: light.name
+            };
+            
+            scene.add(helper);
+            
+            // Store helper reference for cleanup
+            light.userData.helper = helper;
+          }
+          
+          console.log('💡 LightsContainer: Added light and helper to scene:', light.name);
           
           // Notify parent component
           if (onLightAdded) {
@@ -92,6 +130,10 @@ const LightsContainer: React.FC<LightsContainerProps> = ({ onLightAdded }) => {
         scene.remove(light);
         if (light instanceof THREE.DirectionalLight || light instanceof THREE.SpotLight) {
           scene.remove(light.target);
+        }
+        // Remove helper if it exists
+        if (light.userData.helper) {
+          scene.remove(light.userData.helper);
         }
       });
     };

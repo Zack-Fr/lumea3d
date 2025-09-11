@@ -422,6 +422,23 @@
   height: 1rem;
 }
 
+.sidebarSection {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--glass-border-dim);
+}
+
+.sidebarSection:last-child {
+  border-bottom: none;
+  flex: 1;
+}
+
+.sidebarContent {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .assetsScrollArea {
   flex: 1;
   min-height: 0;
@@ -1493,7 +1510,7 @@
 
 .gamificationButton.primary {
   background: var(--accent-primary);
-  color: white;
+  color: rgb(255, 0, 0);
 }
 
 .gamificationButton.primary:hover {
