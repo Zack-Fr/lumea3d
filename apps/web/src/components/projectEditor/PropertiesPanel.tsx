@@ -395,7 +395,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     
     // No selection found
     setSelectedItem(null);
-  }, [selectedItemId, manifest, selection.selectedObject]);
+  }, [selectedItemId, manifest, selection.selectedObject, selection.selectedObject?.transformUpdateCount]);
 
   if (!show) return null;
 

@@ -17,16 +17,36 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
 
   // Update gizmo mode and attach event listeners
   useEffect(() => {
-    if (transformRef.current && selectedObject) {
+    const controls = transformRef.current;
+    if (!controls) return;
+
+    // Always detach first to prevent "not part of scene graph" errors
+    try {
+      controls.detach();
+      log('debug', '🔧 Transform controls detached');
+    } catch (error) {
+      // Ignore detach errors - object might already be detached
+    }
+
+    if (selectedObject) {
       // Set the correct mode
-      transformRef.current.setMode(selection.transformMode);
+      controls.setMode(selection.transformMode);
       log('debug', `🔧 Transform mode set to: ${selection.transformMode}`);
       
-      // Attach object to transform controls
-      transformRef.current.attach(selectedObject);
-      
-      // Attach event listeners
-      const controls = transformRef.current;
+      try {
+        // Verify object is still part of scene graph before attaching
+        if (!selectedObject.parent) {
+          log('warn', '⚠️ Cannot attach transform controls: object not in scene graph');
+          return;
+        }
+        
+        // Attach object to transform controls
+        controls.attach(selectedObject);
+        log('debug', '🔧 Transform controls attached to:', selectedObject.name || selectedObject.uuid);
+      } catch (error) {
+        log('error', '❌ Failed to attach transform controls:', error);
+        return;
+      }
       
       const handleDragChanged = (event: any) => {
         if (event.value) {
@@ -42,6 +62,13 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
       return () => {
         controls.removeEventListener('dragging-changed', handleDragChanged);
         controls.removeEventListener('objectChange', handleObjectChange);
+        // Detach on cleanup
+        try {
+          controls.detach();
+          log('debug', '🔧 Transform controls detached on cleanup');
+        } catch (error) {
+          // Ignore detach errors during cleanup
+        }
       };
     }
   }, [selection.transformMode, selectedObject]);

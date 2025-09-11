@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useCallback, ReactNode } from 'rea
 import { Object3D, Vector3, Euler } from 'three';
 import * as THREE from 'three';
 import { log } from '../../utils/logger';
+import { scenesApi } from '../../services/scenesApi';
+import { useSceneContext } from '../../contexts/SceneContext';
 
 export interface SelectedObject {
   id: string;
@@ -11,6 +13,7 @@ export interface SelectedObject {
   originalPosition: Vector3;
   originalRotation: Euler;
   originalScale: Vector3;
+  transformUpdateCount?: number; // Force React updates when transforms change
 }
 
 export interface SelectionState {
@@ -44,6 +47,7 @@ interface SelectionProviderProps {
 }
 
 export function SelectionProvider({ children }: SelectionProviderProps) {
+  const { sceneId, manifest, refreshScene } = useSceneContext();
   const [selection, setSelection] = useState<SelectionState>({
     selectedObject: null,
     transformMode: 'translate',
@@ -73,6 +77,7 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
       originalPosition: object.position.clone(),
       originalRotation: object.rotation.clone(),
       originalScale: object.scale.clone(),
+      transformUpdateCount: 0,
     };
 
     setSelection(prev => ({
@@ -133,45 +138,78 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
         scale: object.scale.toArray(),
       });
       
-      return prev;
+      // Increment transform counter to trigger React updates
+      const updatedSelection = {
+        ...prev.selectedObject,
+        transformUpdateCount: (prev.selectedObject.transformUpdateCount || 0) + 1
+      };
+      
+      return {
+        ...prev,
+        selectedObject: updatedSelection
+      };
     });
   }, []);
 
-  const deleteObject = useCallback(() => {
+  const deleteObject = useCallback(async () => {
     if (!selection.selectedObject) return;
 
     const { object, itemId } = selection.selectedObject;
     
     log('info', '🗑️ Deleting object:', itemId);
 
-    // Remove object from scene
-    if (object.parent) {
-      object.parent.remove(object);
-    }
-
-    // Clean up geometry and materials
-    if (object instanceof THREE.Mesh) {
-      if (object.geometry) {
-        object.geometry.dispose();
-      }
-      if (object.material) {
-        if (Array.isArray(object.material)) {
-          object.material.forEach(material => material.dispose());
-        } else {
-          object.material.dispose();
-        }
-      }
-    }
-
-    // Deselect the object
+    // STEP 1: First clear the selection to detach transform controls
     setSelection(prev => ({
       ...prev,
       selectedObject: null,
       isTransforming: false,
     }));
 
-    log('info', '✅ Object deleted successfully:', itemId);
-  }, [selection.selectedObject]);
+    // STEP 2: Small delay to allow transform controls to detach
+    setTimeout(async () => {
+      try {
+        // STEP 3: Try to delete from backend if it's a scene item (not debug object)
+        const isDebugObject = object.userData?.meta?.isDebug;
+        if (sceneId && !isDebugObject) {
+          try {
+            await scenesApi.removeItem(sceneId, itemId, manifest?.scene?.version?.toString());
+            log('info', '✅ Object deleted from backend:', itemId);
+            
+            // Refresh scene to update manifest and object counts
+            refreshScene();
+          } catch (apiError) {
+            log('error', '❌ Failed to delete object from backend:', apiError);
+            // Continue with local deletion even if API fails
+          }
+        }
+        
+        // STEP 4: Remove object from scene graph
+        if (object.parent) {
+          object.parent.remove(object);
+          log('debug', '🗑️ Object removed from scene graph');
+        }
+
+        // STEP 5: Clean up geometry and materials
+        if (object instanceof THREE.Mesh) {
+          if (object.geometry) {
+            object.geometry.dispose();
+          }
+          if (object.material) {
+            if (Array.isArray(object.material)) {
+              object.material.forEach(material => material.dispose());
+            } else {
+              object.material.dispose();
+            }
+          }
+          log('debug', '🗑️ Object geometry and materials disposed');
+        }
+
+        log('info', '✅ Object deleted successfully:', itemId);
+      } catch (error) {
+        log('error', '❌ Error during object deletion:', error);
+      }
+    }, 10); // Small delay to ensure transform controls detach first
+  }, [selection.selectedObject, sceneId, manifest?.scene?.version, refreshScene]);
 
   return (
     <SelectionContext.Provider
