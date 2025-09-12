@@ -18,6 +18,7 @@ import { scenesApi, SceneItemUpdateRequest, SceneUpdateRequest } from '../../ser
 import { useSceneContext } from '../../contexts/SceneContext';
 import { useSelection } from '../../features/scenes/SelectionContext';
 import { useLightingControls } from '../../hooks/useLightingControls';
+import { applyMaterialOverride, PBRMaterialOverride } from '../../utils/textureSystem';
 
 interface PropertiesPanelProps {
   show: boolean;
@@ -427,27 +428,77 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     
     setIsUpdatingItem(true);
     try {
-      // Build material overrides
-      const materialOverrides: any = {};
-      if (material.roughness !== undefined) materialOverrides.roughness = material.roughness / 100;
-      if (material.metallic !== undefined) materialOverrides.metallic = material.metallic / 100;
-      if (material.emission !== undefined) materialOverrides.emissive = material.emission / 100;
-      if (material.color) materialOverrides.baseColor = material.color;
+      // Build material overrides in the correct format
+      const materialOverrides: PBRMaterialOverride = {
+        pbr: {}
+      };
+      
+      if (material.roughness !== undefined) materialOverrides.pbr!.roughnessFactor = material.roughness / 100;
+      if (material.metallic !== undefined) materialOverrides.pbr!.metallicFactor = material.metallic / 100;
+      if (material.emission !== undefined) {
+        const emissiveFactor = material.emission / 100;
+        materialOverrides.pbr!.emissiveFactor = [emissiveFactor, emissiveFactor, emissiveFactor];
+      }
+      if (material.color) {
+        // Convert hex color to RGB array
+        const hex = material.color.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16) / 255;
+        const g = parseInt(hex.substr(2, 2), 16) / 255;
+        const b = parseInt(hex.substr(4, 2), 16) / 255;
+        materialOverrides.pbr!.baseColorFactor = [r, g, b, 1];
+      }
+      
+      // STEP 1: Apply changes immediately to the 3D object for instant feedback
+      if (selection.selectedObject?.object) {
+        console.log('🎨 Applying immediate material update to 3D object:', selectedItemId);
+        
+        // Apply material changes directly to all materials in the selected object
+        try {
+          const ktx2Loader = (window as any).__lumea_ktx2_loader;
+          let materialCount = 0;
+          
+          selection.selectedObject.object.traverse((child) => {
+            if (child instanceof THREE.Mesh && child.material) {
+              const materials = Array.isArray(child.material) ? child.material : [child.material];
+              materials.forEach(async (mat) => {
+                if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhysicalMaterial) {
+                  try {
+                    await applyMaterialOverride(mat, materialOverrides, ktx2Loader);
+                    materialCount++;
+                  } catch (matError) {
+                    console.warn('⚠️ Failed to apply override to material:', mat.name, matError);
+                  }
+                }
+              });
+            }
+          });
+          
+          console.log(`✅ Immediate material updates applied to ${materialCount} materials`);
+        } catch (error) {
+          console.warn('⚠️ Failed to apply immediate material update:', error);
+        }
+      }
+      
+      // STEP 2: Build API request format (legacy format for backend)
+      const apiMaterialOverrides: any = {};
+      if (material.roughness !== undefined) apiMaterialOverrides.roughness = material.roughness / 100;
+      if (material.metallic !== undefined) apiMaterialOverrides.metallic = material.metallic / 100;
+      if (material.emission !== undefined) apiMaterialOverrides.emissive = material.emission / 100;
+      if (material.color) apiMaterialOverrides.baseColor = material.color;
       
       const updateRequest: SceneItemUpdateRequest = {
-        materialOverrides
+        materialOverrides: apiMaterialOverrides
       } as any;
       
-      // Call the backend API
+      // STEP 3: Call the backend API to persist changes
       await scenesApi.updateItem(sceneId, selectedItemId, updateRequest, manifest?.scene?.version?.toString());
       
-      console.log(`Successfully updated item ${selectedItemId} material`);
+      console.log(`Successfully updated item ${selectedItemId} material in backend`);
       
-      // Update local state
+      // STEP 4: Update local state
       setSelectedItem(prev => prev ? { ...prev, material: { ...prev.material, ...material } } : null);
       
-      // Refresh scene to reflect changes
-      refreshScene();
+      // Note: We don't call refreshScene() anymore since we applied changes immediately
       
     } catch (error) {
       console.error('Failed to update item material:', error);
@@ -457,7 +508,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     } finally {
       setIsUpdatingItem(false);
     }
-  }, [selectedItemId, sceneId, manifest?.scene?.version, refreshScene]);
+  }, [selectedItemId, sceneId, manifest?.scene?.version, selection.selectedObject]);
   
   // Update environment lighting
   const updateEnvironmentLighting = useCallback(async (settings: Partial<EnvironmentSettings>) => {

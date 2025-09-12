@@ -7,6 +7,7 @@ import { Box, Loader2 } from "lucide-react";
 import { ViewportMovement } from '../../types/projectEditor';
 import { useSceneContext } from '../../contexts/SceneContext';
 import { useLightingControls } from '../../hooks/useLightingControls';
+import { initKTX2Loader } from '../../utils/textureSystem';
 import { StagedSceneLoader } from '../../features/scenes/StagedSceneLoader';
 import { SceneRenderer } from '../../features/scenes/SceneRenderer';
 import { ClickSelection } from '../../features/scenes/ClickSelection';
@@ -272,10 +273,22 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
           gl.setClearColor('#0f0f0f', 0);
           gl.shadowMap.enabled = true;
           gl.shadowMap.type = 2; // THREE.PCFSoftShadowMap
+          
+          // Initialize KTX2 loader for optimized textures
+          try {
+            const ktx2Loader = initKTX2Loader(gl);
+            // Store reference globally for use in material system
+            (window as any).__lumea_ktx2_loader = ktx2Loader;
+            console.log('🌨️ KTX2Loader initialized and stored globally');
+          } catch (error) {
+            console.warn('⚠️ Failed to initialize KTX2Loader:', error);
+          }
+          
           console.log('🌄 ViewportCanvas: Renderer configured', {
             shadowMapEnabled: gl.shadowMap.enabled,
             shadowMapType: gl.shadowMap.type,
-            outputColorSpace: gl.outputColorSpace
+            outputColorSpace: gl.outputColorSpace,
+            ktx2Support: !!(window as any).__lumea_ktx2_loader
           });
           
           // Log scene lights periodically
