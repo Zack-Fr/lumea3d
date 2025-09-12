@@ -22,7 +22,7 @@ interface LayersPanelProps {
 
 const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
   const { manifest } = useSceneContext();
-  const { selection } = useSelection();
+  const { selection, selectObject } = useSelection();
   const [lights, setLights] = useState<THREE.Light[]>([]);
 
   // Subscribe to lights changes
@@ -30,6 +30,32 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
     const lightsManager = LightsManager.getInstance();
     const unsubscribe = lightsManager.subscribe(setLights);
     return unsubscribe;
+  }, []);
+  
+  // Light selection handler
+  const handleSelectLight = useCallback((light: THREE.Light) => {
+    console.log('💡 LayersPanel: Selecting light:', light.name);
+    // Try to select the light helper first (it's usually more selectable)
+    if (light.userData.helper) {
+      selectObject(light.userData.helper);
+    } else {
+      selectObject(light);
+    }
+  }, [selectObject]);
+  
+  // Light visibility toggle handler
+  const handleToggleLightVisibility = useCallback((light: THREE.Light, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent selection when clicking eye
+    light.visible = !light.visible;
+    console.log(`💡 LayersPanel: Light ${light.name} visibility:`, light.visible);
+    
+    // Also toggle helper visibility if it exists
+    if (light.userData.helper) {
+      light.userData.helper.visible = light.visible;
+    }
+    
+    // Force re-render by updating the state
+    setLights(prev => [...prev]);
   }, []);
 
   // Calculate object information from scene manifest
@@ -198,23 +224,45 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
                           ? 'border-blue-500 bg-blue-500/10' 
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
+                      onClick={() => handleSelectLight(light)}
+                      title={`Click to select ${light.userData?.meta?.name || light.name}`}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <LightIcon className="w-3 h-3 text-yellow-500" />
-                          <span className="text-xs font-medium">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <LightIcon className="w-3 h-3 text-yellow-500 flex-shrink-0" />
+                          <span className="text-xs font-medium truncate">
                             {light.userData?.meta?.name || light.name}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-shrink-0">
                           <span className="text-xs text-gray-500">
                             I: {light.intensity.toFixed(1)}
                           </span>
-                          <Eye className="w-3 h-3 text-gray-400" />
+                          {/* Visibility Toggle */}
+                          <button
+                            onClick={(e) => handleToggleLightVisibility(light, e)}
+                            className="hover:bg-gray-100 p-1 rounded transition-colors"
+                            title={light.visible ? 'Hide light' : 'Show light'}
+                          >
+                            {light.visible ? (
+                              <Eye className="w-3 h-3 text-green-500" />
+                            ) : (
+                              <EyeOff className="w-3 h-3 text-gray-400" />
+                            )}
+                          </button>
                         </div>
                       </div>
-                      <div className="text-xs text-gray-500 mt-1 capitalize">
-                        {light.userData?.meta?.lightType || 'Unknown'} Light
+                      <div className="flex items-center justify-between mt-1">
+                        <div className="text-xs text-gray-500 capitalize">
+                          {light.userData?.meta?.lightType || 'Unknown'} Light
+                        </div>
+                        {/* Shadow indicator */}
+                        {light.castShadow && (
+                          <div className="text-xs text-gray-400 flex items-center gap-1">
+                            <div className="w-2 h-2 bg-gray-400 rounded-full" />
+                            <span>Shadow</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

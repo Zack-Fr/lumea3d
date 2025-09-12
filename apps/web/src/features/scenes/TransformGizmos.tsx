@@ -75,11 +75,13 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
 
   // Handle transform start/end events
   const handleDragStart = () => {
+    console.log('🔧 Transform drag started for object:', selectedObject?.name || selectedObject?.uuid);
     log('debug', '🔧 Transform drag started');
     setIsTransforming(true);
   };
 
   const handleDragEnd = () => {
+    console.log('🔧 Transform drag ended for object:', selectedObject?.name || selectedObject?.uuid);
     log('debug', '🔧 Transform drag ended');
     setIsTransforming(false);
 

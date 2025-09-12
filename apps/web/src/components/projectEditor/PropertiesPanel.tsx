@@ -17,6 +17,7 @@ import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 import { scenesApi, SceneItemUpdateRequest, SceneUpdateRequest } from '../../services/scenesApi';
 import { useSceneContext } from '../../contexts/SceneContext';
 import { useSelection } from '../../features/scenes/SelectionContext';
+import { useLightingControls } from '../../hooks/useLightingControls';
 
 interface PropertiesPanelProps {
   show: boolean;
@@ -63,7 +64,8 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   selectedItemId
 }) => {
   const { manifest, refreshScene, sceneId: contextSceneId } = useSceneContext();
-  const { selection } = useSelection();
+  const { selection, deselectObject } = useSelection();
+  const { defaultLightEnabled, setDefaultLightEnabled } = useLightingControls();
   
   // Use contextSceneId as fallback if prop sceneId is not available
   const activeSceneId = sceneId || contextSceneId;
@@ -94,6 +96,28 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   
   // Created lights state
   const [createdLights, setCreatedLights] = useState<THREE.Light[]>([]);
+  
+  // Use a simple timer to periodically update light positions while transforming
+  useEffect(() => {
+    let intervalId: number;
+    
+    if (selection.isTransforming) {
+      console.log('💡 PropertiesPanel: Starting live position updates (transforming)'); 
+      // Update positions every 50ms while transforming for live feedback
+      intervalId = window.setInterval(() => {
+        console.log('💡 PropertiesPanel: Live position update tick');
+        setCreatedLights(prev => [...prev]); // This will cause a re-render with current positions
+      }, 50);
+    } else {
+      console.log('💡 PropertiesPanel: Stopping live position updates (not transforming)');
+    }
+    
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [selection.isTransforming]);
   
   // Load current HDR URL from scene manifest (check both possible locations)
   useEffect(() => {
@@ -296,11 +320,17 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
           light.castShadow = value;
           if (light.shadow) {
             light.shadow.needsUpdate = true;
+            // Force shadow map update
+            if (light.shadow.map) {
+              light.shadow.map.dispose();
+              light.shadow.map = null;
+            }
           }
+          console.log(`💡 Light ${light.name} castShadow set to:`, value);
           break;
       }
       
-      // Force re-render by updating the state
+      // Force re-render by creating a new array reference
       setCreatedLights(prev => [...prev]);
       
     } catch (error) {
@@ -327,30 +357,66 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     console.log(`💡 Removing light:`, light.name);
     
     try {
-      // Remove light from scene
-      if (light.parent) {
-        light.parent.remove(light);
+      // STEP 1: Check if this light or its helper is currently selected and deselect it first
+      if (selection.selectedObject) {
+        const isLightSelected = 
+          selection.selectedObject.object === light ||
+          selection.selectedObject.object === light.userData.helper ||
+          selection.selectedObject.itemId === light.name;
+        
+        if (isLightSelected) {
+          console.log(`💡 Deselecting light before removal:`, light.name);
+          // Deselect to detach transform controls
+          if (typeof deselectObject === 'function') {
+            deselectObject();
+          }
+        }
       }
       
-      // Remove helper if it exists
-      if (light.userData.helper && light.userData.helper.parent) {
-        light.userData.helper.parent.remove(light.userData.helper);
-      }
-      
-      // Remove target for directional/spot lights
-      if ((light instanceof THREE.DirectionalLight || light instanceof THREE.SpotLight) && light.target.parent) {
-        light.target.parent.remove(light.target);
-      }
-      
-      // Remove from state
-      setCreatedLights(prev => prev.filter(l => l.name !== light.name));
-      
-      console.log(`✓ Light ${light.name} removed successfully`);
+      // STEP 2: Wait a frame for transform controls to detach
+      setTimeout(async () => {
+        try {
+          // Remove helper first (it's usually selected)
+          if (light.userData.helper && light.userData.helper.parent) {
+            light.userData.helper.parent.remove(light.userData.helper);
+            console.log(`💡 Helper removed for light:`, light.name);
+          }
+          
+          // Remove target for directional/spot lights
+          if ((light instanceof THREE.DirectionalLight || light instanceof THREE.SpotLight) && light.target.parent) {
+            light.target.parent.remove(light.target);
+            console.log(`💡 Target removed for light:`, light.name);
+          }
+          
+          // Remove light from scene
+          if (light.parent) {
+            light.parent.remove(light);
+            console.log(`💡 Light removed from scene:`, light.name);
+          }
+          
+          // STEP 3: Remove from LightsManager (this will clean up layers panel)
+          try {
+            const { removeLightFromScene } = await import('./LightsContainer');
+            removeLightFromScene(light.name);
+            console.log(`💡 Light removed from LightsManager:`, light.name);
+          } catch (error) {
+            console.warn('Could not import removeLightFromScene:', error);
+          }
+          
+          // STEP 4: Remove from state
+          setCreatedLights(prev => prev.filter(l => l.name !== light.name));
+          
+          console.log(`✓ Light ${light.name} removed successfully`);
+          
+        } catch (error) {
+          console.error(`Failed to remove light ${light.name} in timeout:`, error);
+        }
+      }, 100); // 100ms delay to ensure transform controls are detached
       
     } catch (error) {
       console.error(`Failed to remove light ${light.name}:`, error);
     }
-  }, []);
+  }, [selection, deselectObject]);
   
   // Update item material properties
   const updateItemMaterial = useCallback(async (material: Partial<SelectedItemState['material']>) => {
@@ -720,6 +786,28 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
               Lighting (Environment)
             </h3>
             <div className={styles.propertySectionContent}>
+              {/* Default Ambient Light Toggle */}
+              <div className={styles.propertyGroup}>
+                <div className="flex items-center justify-between">
+                  <label className={styles.propertyLabel}>Default Ambient Light</label>
+                  <button
+                    onClick={() => {
+                      setDefaultLightEnabled(!defaultLightEnabled);
+                    }}
+                    className={`px-3 py-1 rounded text-xs transition-colors ${
+                      defaultLightEnabled 
+                        ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                        : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                    }`}
+                  >
+                    {defaultLightEnabled ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+                <div className="text-xs text-gray-400 mt-1">
+                  Provides minimal base lighting to prevent complete darkness
+                </div>
+              </div>
+              
               <div className={styles.propertyGroup}>
                 <label className={styles.propertyLabel}>Intensity</label>
                 <Slider 

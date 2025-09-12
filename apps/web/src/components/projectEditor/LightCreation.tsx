@@ -119,11 +119,14 @@ const LightCreation: React.FC<LightCreationProps> = ({ onLightCreated }) => {
       if (lightType === 'point' || lightType === 'spot') {
         light.castShadow = true;
         if (light.shadow) {
-          light.shadow.mapSize.width = 1024;
-          light.shadow.mapSize.height = 1024;
+          light.shadow.mapSize.width = 2048; // Higher resolution shadows
+          light.shadow.mapSize.height = 2048;
           const shadowCamera = light.shadow.camera as THREE.PerspectiveCamera;
           shadowCamera.near = 0.1;
-          shadowCamera.far = lightType === 'point' ? 50 : 40;
+          shadowCamera.far = lightType === 'point' ? (config.distance || 50) : (config.distance || 40);
+          light.shadow.bias = -0.0001; // Reduce shadow acne
+          light.shadow.normalBias = 0.02;
+          light.shadow.radius = 4; // Soft shadows
         }
       }
       

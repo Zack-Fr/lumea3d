@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Box, Loader2 } from "lucide-react";
 import { ViewportMovement } from '../../types/projectEditor';
 import { useSceneContext } from '../../contexts/SceneContext';
+import { useLightingControls } from '../../hooks/useLightingControls';
 import { StagedSceneLoader } from '../../features/scenes/StagedSceneLoader';
 import { SceneRenderer } from '../../features/scenes/SceneRenderer';
 import { ClickSelection } from '../../features/scenes/ClickSelection';
@@ -70,6 +71,9 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
     error,
     manifest
   } = useSceneContext();
+  
+  // Get lighting controls
+  const { defaultLightEnabled } = useLightingControls();
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURNS
   const handleManifestLoaded = useCallback((loadedManifest: any) => {
@@ -292,41 +296,8 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
           }, 5000); // Check every 5 seconds
         }}
       >
-        {/* Enhanced Lighting Setup */}
-        <ambientLight intensity={0.6} />
-        
-        {/* Main directional light (key light) */}
-        <directionalLight 
-          position={[10, 10, 5]} 
-          intensity={1.2} 
-          castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
-          shadow-camera-far={50}
-          shadow-camera-left={-20}
-          shadow-camera-right={20}
-          shadow-camera-top={20}
-          shadow-camera-bottom={-20}
-        />
-        
-        {/* Fill light */}
-        <directionalLight 
-          position={[-10, 5, 5]} 
-          intensity={0.4} 
-          color="#87CEEB"
-        />
-        
-        {/* Rim light */}
-        <directionalLight 
-          position={[0, -10, -5]} 
-          intensity={0.3} 
-          color="#FFE4B5"
-        />
-        
-        {/* Point lights for additional illumination */}
-        <pointLight position={[0, 5, 0]} intensity={0.5} distance={20} />
-        <pointLight position={[5, 3, 5]} intensity={0.3} distance={15} color="#FFF8DC" />
-        <pointLight position={[-5, 3, -5]} intensity={0.3} distance={15} color="#F0E68C" />
+        {/* Controllable default ambient light */}
+        <ambientLight intensity={defaultLightEnabled ? 0.1 : 0.0} />
         
         {/* HDR Environment */}
         {(() => {
@@ -342,25 +313,28 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
                 blur={0.1}
               />
             );
-          } else {
-            console.log('🌄 HDR Environment: Using default city preset');
+          } else if (defaultLightEnabled) {
+            console.log('🌄 HDR Environment: Using default city preset (default light enabled)');
             return <Environment preset="city" background={false} />;
+          } else {
+            console.log('🌄 HDR Environment: No environment (default light disabled)');
+            return null;
           }
         })()}
         
         {/* Ground plane for shadows */}
         <mesh 
           rotation={[-Math.PI / 2, 0, 0]} 
-          position={[0, -0.01, 0]}
+          position={[0, 0, 0]}
           receiveShadow
+          name="ground-plane"
         >
-          <planeGeometry args={[100, 100]} />
+          <planeGeometry args={[50, 50]} />
           <meshStandardMaterial 
-            color="#202020" 
+            color="#404040" 
             roughness={0.8}
             metalness={0.2}
-            transparent
-            opacity={0.3}
+            transparent={false}
           />
         </mesh>
         

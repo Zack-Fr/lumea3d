@@ -6,12 +6,18 @@ import { useThree } from '@react-three/fiber';
 function createLightHelper(light: THREE.Light): THREE.Object3D | null {
   if (light instanceof THREE.DirectionalLight) {
     const helper = new THREE.DirectionalLightHelper(light, 2, 0xffff00);
+    // Ensure helper updates when light moves
+    helper.userData.needsUpdate = true;
     return helper;
   } else if (light instanceof THREE.PointLight) {
     const helper = new THREE.PointLightHelper(light, 1, 0xffff00);
+    // Point light helpers automatically follow the light, but we can force updates
+    helper.userData.needsUpdate = true;
     return helper;
   } else if (light instanceof THREE.SpotLight) {
     const helper = new THREE.SpotLightHelper(light, 0xffff00);
+    // Spot light helpers need manual updates
+    helper.userData.needsUpdate = true;
     return helper;
   }
   return null;
@@ -104,6 +110,24 @@ const LightsContainer: React.FC<LightsContainerProps> = ({ onLightAdded }) => {
               originalLight: light.name,
               actualLightObject: light // Reference to the actual light for transforms
             };
+            
+            // Helper should follow the light position automatically
+            const updateHelper = () => {
+              if (helper && light) {
+                console.log('💡 Helper updateHelper called - syncing positions');
+                
+                // Since point light helpers should automatically follow their light,
+                // we just need to ensure the helper updates its visual representation
+                if ('update' in helper && typeof helper.update === 'function') {
+                  helper.update();
+                  console.log('💡 Helper update() called successfully');
+                }
+              }
+            };
+            
+            // Update helper initially and whenever light moves
+            updateHelper();
+            light.userData.updateHelper = updateHelper;
             
             scene.add(helper);
             
