@@ -67,17 +67,31 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
       return;
     }
 
-    log('info', '🎯 Object selected:', userData.itemId);
+    // For light helpers, we'll transform the helper but sync with the actual light
+    let targetObject = object;
+    let actualLight = null;
+    
+    if (userData.isHelper && userData.actualLightObject) {
+      actualLight = userData.actualLightObject;
+      // Use the helper for transform controls (it's in the scene graph)
+      // But we'll sync changes to the actual light
+      targetObject = object;
+      log('info', '💡 Light helper selected, will sync transforms with actual light:', userData.originalLight);
+    } else {
+      log('info', '🎯 Object selected:', userData.itemId);
+    }
 
     const selectedObject: SelectedObject = {
       id: object.uuid,
-      object,
+      object: targetObject, // Use helper for transform controls
       itemId: userData.itemId,
       category: userData.category,
-      originalPosition: object.position.clone(),
-      originalRotation: object.rotation.clone(),
-      originalScale: object.scale.clone(),
+      originalPosition: targetObject.position.clone(),
+      originalRotation: targetObject.rotation.clone(),
+      originalScale: targetObject.scale.clone(),
       transformUpdateCount: 0,
+      // Store reference to actual light for syncing
+      ...(actualLight && { actualLight })
     };
 
     setSelection(prev => ({
@@ -120,15 +134,27 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
       if (!prev.selectedObject) return prev;
       
       const { object } = prev.selectedObject;
+      const actualLight = (prev.selectedObject as any).actualLight;
 
       if (position) {
         object.position.copy(position);
+        // Sync position to actual light if this is a light helper
+        if (actualLight) {
+          actualLight.position.copy(position);
+          log('debug', '💡 Synced light position:', position.toArray());
+        }
       }
       if (rotation) {
         object.rotation.copy(rotation);
+        // Sync rotation to actual light if this is a light helper
+        if (actualLight) {
+          actualLight.rotation.copy(rotation);
+          log('debug', '💡 Synced light rotation:', rotation.toArray());
+        }
       }
       if (scale) {
         object.scale.copy(scale);
+        // Note: lights don't typically need scale syncing
       }
 
       log('debug', '🔄 Object transform updated:', {
@@ -136,6 +162,7 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
         position: object.position.toArray(),
         rotation: object.rotation.toArray(),
         scale: object.scale.toArray(),
+        isLight: !!actualLight
       });
       
       // Increment transform counter to trigger React updates

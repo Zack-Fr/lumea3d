@@ -97,11 +97,12 @@ const LightsContainer: React.FC<LightsContainerProps> = ({ onLightAdded }) => {
           if (helper) {
             helper.name = `${light.name}-helper`;
             
-            // Make helper selectable by copying userData from light
+            // Make helper selectable and link to the actual light for transforms
             helper.userData = {
               ...light.userData,
               isHelper: true,
-              originalLight: light.name
+              originalLight: light.name,
+              actualLightObject: light // Reference to the actual light for transforms
             };
             
             scene.add(helper);

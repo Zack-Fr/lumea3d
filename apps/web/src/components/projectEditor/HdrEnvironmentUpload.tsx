@@ -335,10 +335,9 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
       setUploadState(prev => ({ ...prev, isUploading: true, error: null }));
 
       const sceneVersion = await scenesApi.getVersion(sceneId);
-      // For removal, we might need to send undefined or omit the field entirely
-      // since @IsUrl() validation might reject null/empty string
+      // For removal, send null to explicitly clear the HDR URL
       await scenesApi.updateScene(sceneId, {
-        envHdriUrl: undefined // Omit the field to remove HDR
+        envHdriUrl: null // Explicitly set to null to remove HDR
       }, sceneVersion.version);
 
       if (onHdriUpdate) {

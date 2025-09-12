@@ -101,7 +101,7 @@ services:
       /bin/sh -c "
       mc alias set minio http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin123};
       mc mb minio/lumea-assets --ignore-existing;
-      mc policy set public minio/lumea-assets;
+      mc anonymous set public minio/lumea-assets;
       echo 'MinIO bucket lumea-assets created and configured';
       exit 0;
       "
