@@ -62,8 +62,18 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   sceneId,
   selectedItemId
 }) => {
-  const { manifest, refreshScene } = useSceneContext();
+  const { manifest, refreshScene, sceneId: contextSceneId } = useSceneContext();
   const { selection } = useSelection();
+  
+  // Use contextSceneId as fallback if prop sceneId is not available
+  const activeSceneId = sceneId || contextSceneId;
+  
+  console.log('🏠 PropertiesPanel: Scene ID debug', {
+    propSceneId: sceneId,
+    contextSceneId: contextSceneId,
+    activeSceneId: activeSceneId,
+    hasManifest: !!manifest
+  });
   
   // Shell shadow state
   const [shellSettings, setShellSettings] = useState<ShellSettings>({
@@ -110,9 +120,9 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
 
   // Update shell properties via API
   const updateShellProperty = useCallback(async (property: keyof ShellSettings, value: boolean) => {
-    if (!sceneId) {
-      console.warn('No sceneId provided - shell updates will be local only');
-      // For now, just update local state when no sceneId is available
+    if (!activeSceneId) {
+      console.warn('No activeSceneId provided - shell updates will be local only');
+      // For now, just update local state when no activeSceneId is available
       setShellSettings(prev => ({ ...prev, [property]: value }));
       return;
     }
@@ -138,9 +148,9 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       }
       
       // Call the backend API to update shell properties
-      await scenesApi.updateScene(sceneId, updateBody, manifest?.scene?.version?.toString());
+      await scenesApi.updateScene(activeSceneId, updateBody, manifest?.scene?.version?.toString());
       
-      console.log(`Successfully updated shell ${property} to ${value} for scene ${sceneId}`);
+      console.log(`Successfully updated shell ${property} to ${value} for scene ${activeSceneId}`);
       
       // Refresh scene to reflect changes
       refreshScene();
@@ -159,12 +169,12 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     } finally {
       setIsUpdatingShell(false);
     }
-  }, [sceneId, manifest?.scene?.version, refreshScene]);
+  }, [activeSceneId, manifest?.scene?.version, refreshScene]);
 
   // Update selected item transform properties
   const updateItemTransform = useCallback(async (transform: { position?: any; rotation?: any; scale?: any }) => {
-    if (!selectedItemId || !sceneId || !selectedItem) {
-      console.warn('Cannot update item - missing selectedItemId, sceneId, or selectedItem');
+    if (!selectedItemId || !activeSceneId || !selectedItem) {
+      console.warn('Cannot update item - missing selectedItemId, activeSceneId, or selectedItem');
       return;
     }
     
@@ -192,7 +202,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       }
       
       // Call the backend API to update item
-      await scenesApi.updateItem(sceneId, selectedItemId, updateRequest, manifest?.scene?.version?.toString());
+      await scenesApi.updateItem(activeSceneId, selectedItemId, updateRequest, manifest?.scene?.version?.toString());
       
       console.log(`Successfully updated item ${selectedItemId} transform`);
       
@@ -664,7 +674,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
               
               {/* HDR Environment Upload */}
               <HdrEnvironmentUpload
-                sceneId={sceneId}
+                sceneId={activeSceneId || undefined}
                 currentHdriUrl={currentHdriUrl ?? undefined}
                 onHdriUpdate={(hdriUrl) => {
                   console.log('🌄 PropertiesPanel: HDR URL updated:', hdriUrl);

@@ -24,6 +24,11 @@ interface LightConfig {
 
 const LightCreation: React.FC<LightCreationProps> = ({ onLightCreated }) => {
   const { sceneId } = useSceneContext();
+  
+  console.log('💡 LightCreation: Scene ID from context:', {
+    sceneId,
+    hasSceneId: !!sceneId
+  });
   const [selectedLightType, setSelectedLightType] = useState<LightType>('directional');
   const [isCreatingLight, setIsCreatingLight] = useState(false);
 
