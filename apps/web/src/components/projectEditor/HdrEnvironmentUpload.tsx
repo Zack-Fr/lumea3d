@@ -25,6 +25,12 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
   onHdriUpdate,
   onSceneRefresh
 }) => {
+  console.log('🌄 HDR Upload Component: Rendered with props:', {
+    sceneId,
+    currentHdriUrl,
+    hasOnHdriUpdate: !!onHdriUpdate,
+    hasOnSceneRefresh: !!onSceneRefresh
+  });
   const [uploadState, setUploadState] = useState<UploadState>({
     isUploading: false,
     uploadProgress: 0,
@@ -150,12 +156,64 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
         category: 'environment'
       });
       
-      const uploadUrlResponse = await assetsApi.getUploadUrl({
+      // Try multiple payload approaches to debug backend validation
+      const uploadPayload = {
         filename: file.name,
         contentType: contentType,
         fileSize: file.size,
-        category: 'environment'
-      });
+        category: 'lighting'
+        // Remove metadata temporarily to see if that's causing the issue
+      };
+      
+      // Fallback 1: Try with the exact same structure as AssetImportModal
+      const fallbackPayload = {
+        filename: file.name,
+        contentType: contentType || 'model/gltf-binary',
+        fileSize: file.size,
+        category: 'furniture', // Try a known working category
+        metadata: {}
+      };
+      
+      // Fallback 2: Minimal payload with only required fields
+      const minimalPayload = {
+        filename: file.name,
+        contentType: 'model/gltf-binary', // Use exactly what works for GLB
+        fileSize: file.size,
+        category: 'furniture'
+      };
+      
+      console.log('🌄 HDR Upload: Trying primary payload:', JSON.stringify(uploadPayload, null, 2));
+      
+      let uploadUrlResponse;
+      try {
+        // Try approach 1: HDR-specific payload
+        uploadUrlResponse = await assetsApi.getUploadUrl(uploadPayload);
+        console.log('✅ HDR Upload: Primary payload succeeded!');
+      } catch (primaryError) {
+        console.warn('⚠️ HDR Upload: Primary payload failed, trying fallback 1:', JSON.stringify(fallbackPayload, null, 2));
+        console.error('🌄 HDR Upload: Primary error was:', primaryError);
+        
+        try {
+          // Try approach 2: AssetImportModal structure
+          uploadUrlResponse = await assetsApi.getUploadUrl(fallbackPayload);
+          console.log('✅ HDR Upload: Fallback payload 1 succeeded!');
+        } catch (fallbackError) {
+          console.warn('⚠️ HDR Upload: Fallback 1 failed, trying minimal payload:', JSON.stringify(minimalPayload, null, 2));
+          console.error('🌄 HDR Upload: Fallback 1 error was:', fallbackError);
+          
+          try {
+            // Try approach 3: Minimal required fields only
+            uploadUrlResponse = await assetsApi.getUploadUrl(minimalPayload);
+            console.log('✅ HDR Upload: Minimal payload succeeded!');
+          } catch (minimalError) {
+            console.error('❌ HDR Upload: All three payloads failed!');
+            console.error('🌄 HDR Upload: Primary error:', primaryError);
+            console.error('🌄 HDR Upload: Fallback 1 error:', fallbackError);
+            console.error('🌄 HDR Upload: Minimal error:', minimalError);
+            throw primaryError; // Throw the original error
+          }
+        }
+      }
       
       console.log('✅ HDR Upload: Got upload URL response:', uploadUrlResponse);
 
@@ -199,6 +257,15 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
       
       const hdriUrl = asset.originalUrl || asset.meshoptUrl || asset.dracoUrl;
       console.log('🌄 HDR Upload: Extracted HDR URL:', hdriUrl);
+      
+      // Try to construct full URL if we have a relative path
+      let fullHdriUrl = hdriUrl;
+      if (hdriUrl && !hdriUrl.startsWith('http')) {
+        // Construct full URL - use the storage base URL from upload response
+        const storageBaseUrl = uploadUrlResponse.uploadUrl.split('/lumea-assets/')[0] + '/lumea-assets/';
+        fullHdriUrl = storageBaseUrl + hdriUrl;
+        console.log('🌄 HDR Upload: Constructed full HDR URL:', fullHdriUrl);
+      }
 
       if (!hdriUrl) {
         console.error('❌ HDR Upload: No URL available from asset:', asset);
@@ -211,11 +278,10 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
       console.log('🌄 HDR Upload: Current scene version:', sceneVersion);
       
       const updatePayload = {
-        env: {
-          hdri_url: hdriUrl
-        }
+        envHdriUrl: fullHdriUrl // Backend expects 'envHdriUrl' field name
       };
       console.log('🌄 HDR Upload: Sending update payload:', updatePayload);
+      console.log('🌄 HDR Upload: Using HDR URL:', fullHdriUrl);
       
       const updateResult = await scenesApi.updateScene(sceneId, updatePayload, sceneVersion.version);
       console.log('🌄 HDR Upload: Update result:', updateResult);
@@ -229,7 +295,7 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
 
       // Notify parent component
       if (onHdriUpdate) {
-        onHdriUpdate(hdriUrl);
+        onHdriUpdate(fullHdriUrl || null);
       }
       
       // Refresh scene to update environment
@@ -269,10 +335,10 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
       setUploadState(prev => ({ ...prev, isUploading: true, error: null }));
 
       const sceneVersion = await scenesApi.getVersion(sceneId);
+      // For removal, we might need to send undefined or omit the field entirely
+      // since @IsUrl() validation might reject null/empty string
       await scenesApi.updateScene(sceneId, {
-        env: {
-          hdri_url: ''
-        }
+        envHdriUrl: undefined // Omit the field to remove HDR
       }, sceneVersion.version);
 
       if (onHdriUpdate) {

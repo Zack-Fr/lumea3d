@@ -108,8 +108,8 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
     const allObjects: any[] = [];
     
     scene.traverse((child) => {
-      // Log all objects for debugging
-      if (child.type === 'Mesh' || child.userData?.itemId) {
+      // Log all objects for debugging (including light helpers)
+      if (child.type === 'Mesh' || child.userData?.itemId || child.userData?.isHelper) {
         allObjects.push({
           name: child.name,
           type: child.type,
@@ -122,8 +122,8 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
         });
       }
       
-      // Only include mesh objects with selectable userData
-      if (child.type === 'Mesh' && child.userData && child.userData.selectable && child.userData.itemId) {
+      // Include mesh objects and light helpers with selectable userData
+      if ((child.type === 'Mesh' || child.userData?.isHelper) && child.userData && child.userData.selectable && child.userData.itemId) {
         intersectableObjects.push(child);
       }
     });
@@ -153,7 +153,7 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
     // Test raycast against ALL objects in scene (for debugging)
     const allSceneObjects: Object3D[] = [];
     scene.traverse(child => {
-      if (child.type === 'Mesh') {
+      if (child.type === 'Mesh' || child.userData?.isHelper) {
         allSceneObjects.push(child);
       }
     });

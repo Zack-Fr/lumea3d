@@ -110,7 +110,15 @@ const LightsContainer: React.FC<LightsContainerProps> = ({ onLightAdded }) => {
             light.userData.helper = helper;
           }
           
-          console.log('💡 LightsContainer: Added light and helper to scene:', light.name);
+          console.log('💡 LightsContainer: Added light and helper to scene:', {
+            lightName: light.name,
+            lightType: light.type,
+            position: light.position.toArray(),
+            intensity: light.intensity,
+            hasHelper: !!helper,
+            helperName: helper?.name,
+            sceneChildrenCount: scene.children.length
+          });
           
           // Notify parent component
           if (onLightAdded) {

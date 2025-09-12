@@ -28,6 +28,54 @@ export class AssetProcessingProcessor {
     private prisma: PrismaService,
   ) {}
 
+  /**
+   * Determine if an asset should skip GLB processing based on type and category
+   */
+  private shouldSkipProcessing(mimeType?: string, category?: string, fileName?: string): boolean {
+    // Skip processing for HDR/environment files
+    if (category === 'lighting' || category === 'environment') {
+      return true;
+    }
+    
+    // Skip processing for HDR files by MIME type
+    if (mimeType && (
+      mimeType.includes('radiance') || 
+      mimeType.includes('x-exr') ||
+      mimeType === 'image/vnd.radiance' ||
+      mimeType === 'image/x-exr'
+    )) {
+      return true;
+    }
+    
+    // Skip processing for HDR files by extension
+    if (fileName && (
+      fileName.toLowerCase().endsWith('.hdr') ||
+      fileName.toLowerCase().endsWith('.exr')
+    )) {
+      return true;
+    }
+    
+    // Skip processing for image files that shouldn't be GLB processed
+    if (mimeType && mimeType.startsWith('image/') && !mimeType.includes('gltf')) {
+      return true;
+    }
+    
+    // Only process GLB/GLTF files
+    const isGlbFile = mimeType && (
+      mimeType === 'model/gltf-binary' ||
+      mimeType === 'model/gltf+json' ||
+      mimeType === 'application/octet-stream'
+    );
+    
+    const isGlbByExtension = fileName && (
+      fileName.toLowerCase().endsWith('.glb') ||
+      fileName.toLowerCase().endsWith('.gltf')
+    );
+    
+    // Skip if it's not a GLB/GLTF file
+    return !(isGlbFile || isGlbByExtension);
+  }
+
   @Process('process-asset')
   async processAsset(job: Job<AssetProcessingJob>): Promise<void> {
     const { assetId, userId, category, originalObjectKey, options } = job.data;
@@ -40,6 +88,33 @@ export class AssetProcessingProcessor {
         where: { id: assetId },
         data: { status: AssetStatus.PROCESSING },
       });
+
+      // Check if this asset needs GLB processing
+      const asset = await this.prisma.asset.findUnique({ where: { id: assetId } });
+      const skipProcessing = this.shouldSkipProcessing(asset?.mimeType, category, asset?.originalName);
+      
+      if (skipProcessing) {
+        this.logger.log(`Skipping GLB processing for asset ${assetId} (${asset?.mimeType}, category: ${category})`);
+        
+        // Mark as ready without processing
+        await this.prisma.asset.update({
+          where: { id: assetId },
+          data: {
+            status: AssetStatus.READY,
+            processedAt: new Date(),
+            reportJson: {
+              skipped: true,
+              reason: 'Non-GLB asset type',
+              mimeType: asset?.mimeType,
+              category,
+              processedAt: new Date().toISOString(),
+            },
+          },
+        });
+        
+        this.logger.log(`Asset ${assetId} marked as ready without GLB processing`);
+        return;
+      }
 
       // Process the asset
       const result = await this.processingService.processAsset(

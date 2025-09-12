@@ -263,10 +263,33 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
           height: '100%',
           background: 'transparent'
         }}
-        onCreated={({ gl }) => {
+        onCreated={({ gl, scene }) => {
+          console.log('🌄 ViewportCanvas: Canvas created, configuring renderer...');
           gl.setClearColor('#0f0f0f', 0);
           gl.shadowMap.enabled = true;
           gl.shadowMap.type = 2; // THREE.PCFSoftShadowMap
+          console.log('🌄 ViewportCanvas: Renderer configured', {
+            shadowMapEnabled: gl.shadowMap.enabled,
+            shadowMapType: gl.shadowMap.type,
+            outputColorSpace: gl.outputColorSpace
+          });
+          
+          // Log scene lights periodically
+          setInterval(() => {
+            const lights: any[] = [];
+            scene.traverse(child => {
+              if (child.type.includes('Light')) {
+                lights.push({
+                  name: child.name,
+                  type: child.type,
+                  position: child.position.toArray(),
+                  intensity: (child as any).intensity,
+                  visible: child.visible
+                });
+              }
+            });
+            console.log('💡 Scene lights check:', lights.length, 'lights found:', lights);
+          }, 5000); // Check every 5 seconds
         }}
       >
         {/* Enhanced Lighting Setup */}
@@ -306,21 +329,24 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
         <pointLight position={[-5, 3, -5]} intensity={0.3} distance={15} color="#F0E68C" />
         
         {/* HDR Environment */}
-        {manifest?.scene?.env?.hdri_url ? (
-          <>
-            {console.log('🌄 HDR Environment: Loading HDR from URL:', manifest.scene.env.hdri_url)}
-            <Environment 
-              files={manifest.scene.env.hdri_url} 
-              background={true}
-              blur={0.1}
-            />
-          </>
-        ) : (
-          <>
-            {console.log('🌄 HDR Environment: Using default city preset')}
-            <Environment preset="city" background={false} />
-          </>
-        )}
+        {(() => {
+          // Check both possible HDR URL locations in manifest
+          const hdriUrl = manifest?.scene?.envHdriUrl || manifest?.scene?.env?.hdri_url || manifest?.env?.hdri_url;
+          
+          if (hdriUrl) {
+            console.log('🌄 HDR Environment: Loading HDR from URL:', hdriUrl);
+            return (
+              <Environment 
+                files={hdriUrl} 
+                background={true}
+                blur={0.1}
+              />
+            );
+          } else {
+            console.log('🌄 HDR Environment: Using default city preset');
+            return <Environment preset="city" background={false} />;
+          }
+        })()}
         
         {/* Ground plane for shadows */}
         <mesh 

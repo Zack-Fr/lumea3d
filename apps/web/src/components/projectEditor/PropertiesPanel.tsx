@@ -85,14 +85,15 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   // Created lights state
   const [createdLights, setCreatedLights] = useState<THREE.Light[]>([]);
   
-  // Load current HDR URL from scene manifest
+  // Load current HDR URL from scene manifest (check both possible locations)
   useEffect(() => {
-    if (manifest?.scene?.env?.hdri_url) {
-      setCurrentHdriUrl(manifest.scene.env.hdri_url);
+    const hdriUrl = manifest?.scene?.envHdriUrl || manifest?.scene?.env?.hdri_url || manifest?.env?.hdri_url;
+    if (hdriUrl) {
+      setCurrentHdriUrl(hdriUrl);
     } else {
       setCurrentHdriUrl(null);
     }
-  }, [manifest?.scene?.env?.hdri_url]);
+  }, [manifest?.scene?.envHdriUrl, manifest?.scene?.env?.hdri_url, manifest?.env?.hdri_url]);
   
   // Scene scale settings state
   const [scaleSettings, setScaleSettings] = useState<ScaleSettings>({
@@ -666,9 +667,13 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                 sceneId={sceneId}
                 currentHdriUrl={currentHdriUrl ?? undefined}
                 onHdriUpdate={(hdriUrl) => {
+                  console.log('🌄 PropertiesPanel: HDR URL updated:', hdriUrl);
                   setCurrentHdriUrl(hdriUrl);
                 }}
-                onSceneRefresh={refreshScene}
+                onSceneRefresh={() => {
+                  console.log('🌄 PropertiesPanel: Scene refresh requested');
+                  refreshScene();
+                }}
               />
             </div>
           </div>
