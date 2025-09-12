@@ -305,7 +305,7 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
                 });
               }
             });
-            console.log('💡 Scene lights check:', lights.length, 'lights found:', lights);
+            // console.log('💡 Scene lights check:', lights.length, 'lights found:', lights);
           }, 5000); // Check every 5 seconds
         }}
       >

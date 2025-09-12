@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { Button } from "../ui/Button";
 import { Slider } from "../ui/Slider";
@@ -98,6 +98,35 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   // Created lights state
   const [createdLights, setCreatedLights] = useState<THREE.Light[]>([]);
   
+  // Scene scale settings state
+  const [scaleSettings, setScaleSettings] = useState<ScaleSettings>({
+    unit: 'cm',
+    sceneScale: 1.0
+  });
+  
+  // Selected item state
+  const [selectedItem, setSelectedItem] = useState<SelectedItemState | null>(null);
+  const [isUpdatingItem, setIsUpdatingItem] = useState(false);
+  const [isUpdatingShell, setIsUpdatingShell] = useState(false);
+  const [isUpdatingEnvironment, setIsUpdatingEnvironment] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
+  
+  // Local material slider states (to avoid camera resets from controlled components)
+  const [localRoughness, setLocalRoughness] = useState<number>(50);
+  const [localMetallic, setLocalMetallic] = useState<number>(0);
+  const [localEmission, setLocalEmission] = useState<number>(0);
+  const [localColor, setLocalColor] = useState<string>('#ffffff');
+  
+  // Sync local material states with selected item (without causing re-renders)
+  useEffect(() => {
+    if (selectedItem?.material) {
+      setLocalRoughness(selectedItem.material.roughness);
+      setLocalMetallic(selectedItem.material.metallic);
+      setLocalEmission(selectedItem.material.emission);
+      setLocalColor(selectedItem.material.color);
+    }
+  }, [selectedItem?.id]); // Only sync when item changes, not on every material change
+  
   // Use a simple timer to periodically update light positions while transforming
   useEffect(() => {
     let intervalId: number;
@@ -153,18 +182,41 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     }
   }, [manifest?.scene?.envIntensity, manifest?.scene?.exposure]);
   
-  // Scene scale settings state
-  const [scaleSettings, setScaleSettings] = useState<ScaleSettings>({
-    unit: 'cm',
-    sceneScale: 1.0
-  });
-  
-  // Selected item state
-  const [selectedItem, setSelectedItem] = useState<SelectedItemState | null>(null);
-  const [isUpdatingItem, setIsUpdatingItem] = useState(false);
-  const [isUpdatingShell, setIsUpdatingShell] = useState(false);
-  const [isUpdatingEnvironment, setIsUpdatingEnvironment] = useState(false);
-  const [lastError, setLastError] = useState<string | null>(null);
+  // Helper function to extract material properties from a Three.js object
+  const extractMaterialProperties = useCallback((object: THREE.Object3D) => {
+    let extractedMaterial = {
+      roughness: 50, // Default values
+      metallic: 0,
+      emission: 0,
+      color: '#ffffff'
+    };
+    
+    // Find the first PBR material in the object hierarchy
+    object.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.material && !('_extracted' in extractedMaterial)) {
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        
+        for (const material of materials) {
+          if (material instanceof THREE.MeshStandardMaterial || material instanceof THREE.MeshPhysicalMaterial) {
+            const stdMat = material as THREE.MeshStandardMaterial;
+            
+            extractedMaterial = {
+              roughness: Math.round(stdMat.roughness * 100),
+              metallic: Math.round(stdMat.metalness * 100), 
+              emission: Math.round(stdMat.emissive.r * 100), // Use R channel as scalar
+              color: `#${stdMat.color.getHexString()}`
+            };
+            
+            console.log('🎨 Extracted material properties from:', material.name || 'unnamed', extractedMaterial);
+            (extractedMaterial as any)._extracted = true; // Mark as extracted to break loops
+            break;
+          }
+        }
+      }
+    });
+    
+    return extractedMaterial;
+  }, []);
 
   // Update shell properties via API
   const updateShellProperty = useCallback(async (property: keyof ShellSettings, value: boolean) => {
@@ -419,10 +471,24 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     }
   }, [selection, deselectObject]);
   
+  
   // Update item material properties
   const updateItemMaterial = useCallback(async (material: Partial<SelectedItemState['material']>) => {
+    console.log('🔍 Material update debug info:', {
+      selectedItemId,
+      sceneId,
+      activeSceneId,
+      selectedObject: selection.selectedObject?.itemId,
+      manifestVersion: manifest?.scene?.version,
+      materialChanges: material
+    });
+    
     if (!selectedItemId || !sceneId) {
-      console.warn('Cannot update material - missing selectedItemId or sceneId');
+      console.warn('Cannot update material - missing selectedItemId or sceneId', {
+        selectedItemId,
+        sceneId,
+        hasSelectedObject: !!selection.selectedObject
+      });
       return;
     }
     
@@ -455,25 +521,27 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
         // Apply material changes directly to all materials in the selected object
         try {
           const ktx2Loader = (window as any).__lumea_ktx2_loader;
-          let materialCount = 0;
+          const materialPromises: Promise<void>[] = [];
           
           selection.selectedObject.object.traverse((child) => {
             if (child instanceof THREE.Mesh && child.material) {
               const materials = Array.isArray(child.material) ? child.material : [child.material];
-              materials.forEach(async (mat) => {
+              
+              materials.forEach((mat) => {
                 if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhysicalMaterial) {
-                  try {
-                    await applyMaterialOverride(mat, materialOverrides, ktx2Loader);
-                    materialCount++;
-                  } catch (matError) {
-                    console.warn('⚠️ Failed to apply override to material:', mat.name, matError);
-                  }
+                  const promise = applyMaterialOverride(mat, materialOverrides, ktx2Loader)
+                    .catch((matError) => {
+                      console.warn('⚠️ Failed to apply override to material:', mat.name, matError);
+                    });
+                  materialPromises.push(promise);
                 }
               });
             }
           });
           
-          console.log(`✅ Immediate material updates applied to ${materialCount} materials`);
+          // Wait for all material applications to complete
+          await Promise.all(materialPromises);
+          console.log(`✅ Immediate material updates applied to ${materialPromises.length} materials`);
         } catch (error) {
           console.warn('⚠️ Failed to apply immediate material update:', error);
         }
@@ -490,13 +558,44 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
         materialOverrides: apiMaterialOverrides
       } as any;
       
-      // STEP 3: Call the backend API to persist changes
-      await scenesApi.updateItem(sceneId, selectedItemId, updateRequest, manifest?.scene?.version?.toString());
+      console.log('🚀 API Request debug:', {
+        sceneId,
+        selectedItemId,
+        updateRequest,
+        version: manifest?.scene?.version?.toString(),
+        apiMaterialOverrides
+      });
       
-      console.log(`Successfully updated item ${selectedItemId} material in backend`);
+      // STEP 3: Call the backend API to persist changes (TEMPORARILY DISABLED FOR DEBUGGING)
+      console.log('⏸️ SKIPPING backend API call for debugging - would call:', {
+        endpoint: 'scenesApi.updateItem',
+        sceneId,
+        selectedItemId,
+        updateRequest,
+        version: manifest?.scene?.version?.toString()
+      });
       
-      // STEP 4: Update local state
-      setSelectedItem(prev => prev ? { ...prev, material: { ...prev.material, ...material } } : null);
+      // TODO: Re-enable this once we fix the selection/itemId issue
+      // await scenesApi.updateItem(sceneId, selectedItemId, updateRequest, manifest?.scene?.version?.toString());
+      
+      console.log(`Material update applied locally (backend call skipped for debugging)`);
+      
+      // STEP 4: Update local state and sync UI with actual 3D object properties
+      setSelectedItem(prev => {
+        if (!prev) return null;
+        
+        // If we have a selected 3D object, extract its updated material properties
+        let updatedMaterial = { ...prev.material, ...material };
+        
+        if (selection.selectedObject?.object) {
+          // Extract the actual material properties after our changes
+          const actualMaterial = extractMaterialProperties(selection.selectedObject.object);
+          updatedMaterial = { ...actualMaterial };
+          console.log('🔄 Synchronized UI with actual 3D material properties:', updatedMaterial);
+        }
+        
+        return { ...prev, material: updatedMaterial };
+      });
       
       // Note: We don't call refreshScene() anymore since we applied changes immediately
       
@@ -508,7 +607,66 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     } finally {
       setIsUpdatingItem(false);
     }
-  }, [selectedItemId, sceneId, manifest?.scene?.version, selection.selectedObject]);
+  }, [selectedItemId, sceneId, manifest?.scene?.version, selection.selectedObject, extractMaterialProperties]);
+  
+  // Debounced material update for smooth slider interaction
+  const materialUpdateTimeoutRef = useRef<number | null>(null);
+  const pendingMaterialUpdatesRef = useRef<Partial<SelectedItemState['material']>>({});
+  
+  const debouncedMaterialUpdate = useCallback((material: Partial<SelectedItemState['material']>) => {
+    // DON'T update React state here to avoid camera resets
+    // The sliders will use controlled components with their own local state
+    
+    // Apply immediate 3D object changes without React state updates
+    if (selection.selectedObject?.object) {
+      // Build material overrides for immediate application
+      const materialOverrides: PBRMaterialOverride = { pbr: {} };
+      
+      if (material.roughness !== undefined) materialOverrides.pbr!.roughnessFactor = material.roughness / 100;
+      if (material.metallic !== undefined) materialOverrides.pbr!.metallicFactor = material.metallic / 100;
+      if (material.emission !== undefined) {
+        const emissiveFactor = material.emission / 100;
+        materialOverrides.pbr!.emissiveFactor = [emissiveFactor, emissiveFactor, emissiveFactor];
+      }
+      if (material.color) {
+        const hex = material.color.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16) / 255;
+        const g = parseInt(hex.substr(2, 2), 16) / 255;
+        const b = parseInt(hex.substr(4, 2), 16) / 255;
+        materialOverrides.pbr!.baseColorFactor = [r, g, b, 1];
+      }
+      
+      // Apply to 3D object immediately
+      const ktx2Loader = (window as any).__lumea_ktx2_loader;
+      selection.selectedObject.object.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.material) {
+          const materials = Array.isArray(child.material) ? child.material : [child.material];
+          materials.forEach((mat) => {
+            if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhysicalMaterial) {
+              applyMaterialOverride(mat, materialOverrides, ktx2Loader).catch(console.warn);
+            }
+          });
+        }
+      });
+    }
+    
+    // Accumulate pending updates for backend
+    pendingMaterialUpdatesRef.current = { ...pendingMaterialUpdatesRef.current, ...material };
+    
+    // Debounce backend API calls
+    if (materialUpdateTimeoutRef.current) {
+      clearTimeout(materialUpdateTimeoutRef.current);
+    }
+    
+    materialUpdateTimeoutRef.current = window.setTimeout(() => {
+      const pendingUpdates = pendingMaterialUpdatesRef.current;
+      pendingMaterialUpdatesRef.current = {};
+      materialUpdateTimeoutRef.current = null;
+      
+      // Call the full update function with accumulated changes
+      updateItemMaterial(pendingUpdates);
+    }, 300); // 300ms debounce
+  }, [selection.selectedObject, updateItemMaterial]);
   
   // Update environment lighting
   const updateEnvironmentLighting = useCallback(async (settings: Partial<EnvironmentSettings>) => {
@@ -573,12 +731,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
           y: parseFloat(obj.scale.y.toFixed(3)),
           z: parseFloat(obj.scale.z.toFixed(3))
         },
-        material: {
-          roughness: 50, // Default for debug objects
-          metallic: 0,
-          emission: 0,
-          color: '#ffffff'
-        }
+        material: extractMaterialProperties(obj)
       });
       return;
     }
@@ -618,7 +771,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     
     // No selection found
     setSelectedItem(null);
-  }, [selectedItemId, manifest, selection.selectedObject, selection.selectedObject?.transformUpdateCount]);
+  }, [selectedItemId, manifest, selection.selectedObject, selection.selectedObject?.transformUpdateCount, extractMaterialProperties]);
 
   if (!show) return null;
 
@@ -769,30 +922,46 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                   <div className={styles.materialSwatches}>
                     <div 
                       className={`${styles.materialSwatch} ${styles.materialSwatchRed}`}
-                      onClick={() => updateItemMaterial({ color: '#ff0000' })}
+                      onClick={() => {
+                        setLocalColor('#ff0000');
+                        debouncedMaterialUpdate({ color: '#ff0000' });
+                      }}
                       style={{ cursor: isUpdatingItem ? 'wait' : 'pointer' }}
                     ></div>
                     <div 
                       className={`${styles.materialSwatch} ${styles.materialSwatchBlue}`}
-                      onClick={() => updateItemMaterial({ color: '#0066ff' })}
+                      onClick={() => {
+                        setLocalColor('#0066ff');
+                        debouncedMaterialUpdate({ color: '#0066ff' });
+                      }}
                       style={{ cursor: isUpdatingItem ? 'wait' : 'pointer' }}
                     ></div>
                     <div 
                       className={`${styles.materialSwatch} ${styles.materialSwatchGreen}`}
-                      onClick={() => updateItemMaterial({ color: '#00ff66' })}
+                      onClick={() => {
+                        setLocalColor('#00ff66');
+                        debouncedMaterialUpdate({ color: '#00ff66' });
+                      }}
                       style={{ cursor: isUpdatingItem ? 'wait' : 'pointer' }}
                     ></div>
                     <div 
                       className={`${styles.materialSwatch} ${styles.materialSwatchYellow}`}
-                      onClick={() => updateItemMaterial({ color: '#ffff00' })}
+                      onClick={() => {
+                        setLocalColor('#ffff00');
+                        debouncedMaterialUpdate({ color: '#ffff00' });
+                      }}
                       style={{ cursor: isUpdatingItem ? 'wait' : 'pointer' }}
                     ></div>
                   </div>
                   <div className={styles.propertyGroup}>
                     <label className={styles.propertyLabel}>Roughness</label>
                     <Slider 
-                      value={selectedItem.material.roughness} 
-                      onChange={(e) => updateItemMaterial({ roughness: parseFloat(e.target.value) })}
+                      value={localRoughness} 
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        setLocalRoughness(value);
+                        debouncedMaterialUpdate({ roughness: value });
+                      }}
                       max={100} 
                       step={1} 
                       className={styles.sliderContainer}
@@ -802,8 +971,12 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                   <div className={styles.propertyGroup}>
                     <label className={styles.propertyLabel}>Metallic</label>
                     <Slider 
-                      value={selectedItem.material.metallic} 
-                      onChange={(e) => updateItemMaterial({ metallic: parseFloat(e.target.value) })}
+                      value={localMetallic} 
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        setLocalMetallic(value);
+                        debouncedMaterialUpdate({ metallic: value });
+                      }}
                       max={100} 
                       step={1} 
                       className={styles.sliderContainer}
@@ -813,14 +986,63 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                   <div className={styles.propertyGroup}>
                     <label className={styles.propertyLabel}>Emission</label>
                     <Slider 
-                      value={selectedItem.material.emission} 
-                      onChange={(e) => updateItemMaterial({ emission: parseFloat(e.target.value) })}
+                      value={localEmission} 
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        setLocalEmission(value);
+                        debouncedMaterialUpdate({ emission: value });
+                      }}
                       max={100} 
                       step={1} 
                       className={styles.sliderContainer}
                       disabled={isUpdatingItem}
                     />
                   </div>
+                  
+                  {/* Material Update Feedback */}
+                  {isUpdatingItem && (
+                    <div className="mt-3 px-3 py-2 bg-blue-900/30 border border-blue-600 rounded text-xs text-blue-200 flex items-center gap-2">
+                      <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                      Applying material changes...
+                    </div>
+                  )}
+                  
+                  {/* Current Material Values Display */}
+                  <div className="mt-3 p-2 bg-gray-800/50 rounded border border-gray-600">
+                    <div className="text-xs text-gray-400 mb-1">Current Values:</div>
+                    <div className="text-xs space-y-1">
+                      <div className="flex justify-between">
+                        <span>Roughness:</span>
+                        <span className="font-mono">{localRoughness}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Metallic:</span>
+                        <span className="font-mono">{localMetallic}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Emission:</span>
+                        <span className="font-mono">{localEmission}%</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span>Color:</span>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-4 h-4 rounded border border-gray-500"
+                            style={{ backgroundColor: localColor }}
+                          ></div>
+                          <span className="font-mono text-xs">{localColor}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Error Display */}
+                  {lastError && (
+                    <div className="mt-3 px-3 py-2 bg-red-900/30 border border-red-600 rounded text-xs text-red-200">
+                      <div className="font-medium">⚠️ Error:</div>
+                      <div>{lastError}</div>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className={styles.propertyGroup}>
