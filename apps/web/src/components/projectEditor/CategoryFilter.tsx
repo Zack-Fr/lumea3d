@@ -180,7 +180,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-blue-500" />
           <span className="font-medium text-sm">Filter Assets</span>
-          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+          <span className="text-xs text-gray-500 bg-gray-500 px-2 py-0.5 rounded-full">
             {filteredCategories.length}/{availableCategories.length}
           </span>
         </div>
@@ -214,7 +214,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
           placeholder="Search categories..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md bg-gray text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         {searchTerm && (
           <Button
@@ -230,18 +230,18 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
 
       {/* Main category filter */}
       <div className="space-y-2">
-        <label className="text-xs font-medium text-gray-600">Main Category</label>
+        <label className="text-xs font-medium  text-gray-600">Main Category</label>
         <Select
           value={selectedMainCategory}
           onChange={(e) => setSelectedMainCategory(e.target.value as CategoryKey | 'all')}
           className="w-full"
         >
-          <SelectItem value="all">All Categories</SelectItem>
+          <SelectItem value="all ">All Categories</SelectItem>
           {Object.entries(MESH_CATEGORIES).map(([key, config]) => {
             const count = categorizedAssets[key as CategoryKey]?.length || 0;
             return (
               <SelectItem key={key} value={key}>
-                {config.name} ({count})
+                {config.name} ({count}) 
               </SelectItem>
             );
           })}
@@ -329,7 +329,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </div>
               
               <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-xs bg-white/60 px-1.5 py-0.5 rounded-full">
+                <span className="text-xs bg-[var(--glass-maroon)] px-1.5 py-0.5 rounded-full">
                   {count}
                 </span>
                 {isEnabled ? (

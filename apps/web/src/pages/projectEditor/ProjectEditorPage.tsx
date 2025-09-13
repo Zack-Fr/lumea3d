@@ -371,65 +371,297 @@ const ProjectEditorContent: React.FC = () => {
 
   // Asset drop handler for drag and drop from sidebar
   const handleAssetDrop = useCallback(async (dragData: any, position: { x: number; y: number }) => {
-    if (!contextSceneId || !dragData.item) {
-      console.warn('ProjectEditor: Cannot drop asset - missing scene or item data');
+    console.log('🎯 ProjectEditor: handleAssetDrop called with:', { dragData, position });
+    
+    if (!dragData || !dragData.item) {
+      console.warn('ProjectEditor: Cannot drop asset - missing item data', { dragData });
+      triggerAchievement(`❌ Invalid asset data`);
       return;
     }
 
     try {
-      log('info', 'ProjectEditor: Dropping asset into scene', { dragData, position, sceneId: contextSceneId });
+      log('info', 'ProjectEditor: Processing asset drop', { 
+        dragData, 
+        position, 
+        sceneId: contextSceneId,
+        hasSceneContext: !!contextSceneId 
+      });
       
-      // Normalize the category key to match backend validation requirements
-      const rawCategory = dragData.categoryName || dragData.item.category || 'misc';
-      const normalizedCategoryKey = typeof rawCategory === 'string' 
-        ? rawCategory.toLowerCase().replace(/[^a-z0-9_]/g, '_').substring(0, 50) 
-        : 'misc';
+      // First, try to add the asset locally to avoid API dependency
+      const assetItem = dragData.item;
+      const categoryName = dragData.categoryName || assetItem.category || 'imported';
       
-      log('debug', 'ProjectEditor: Normalized category key', { rawCategory, normalizedCategoryKey });
+      // Create a unique ID for the new local asset
+      const localAssetId = `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      // Ensure project category exists before adding scene item (this is required for existing items)
-      // Note: For existing items from manifest, the category should already exist
-      // But we'll check anyway to provide better error handling
-      if (!contextProjectId) {
-        throw new Error('No project context available for drag and drop');
+      // Convert screen position to 3D world position (simplified)
+      const worldPosition = {
+        x: (Math.random() - 0.5) * 10, // Random position for now
+        y: 0.5, // Slightly above ground
+        z: (Math.random() - 0.5) * 10
+      };
+      
+      // Extract the proper GLB URL from the asset or manifest
+      let assetUrl = null;
+      
+      // First try to get URL directly from asset
+      if (assetItem.url) {
+        assetUrl = assetItem.url;
+      } else if (assetItem.originalUrl) {
+        assetUrl = assetItem.originalUrl;
+      } else if (assetItem.dracoUrl) {
+        assetUrl = assetItem.dracoUrl;
+      } else if (assetItem.meshoptUrl) {
+        assetUrl = assetItem.meshoptUrl;
+      } else {
+        // Try to find URL from the manifest categories
+        try {
+          if (manifest?.categories && categoryName) {
+            const category = manifest.categories[categoryName];
+            if (category?.url) {
+              assetUrl = category.url;
+              console.log('🔍 ProjectEditor: Using category URL:', assetUrl);
+            } else if (category?.asset?.meshoptUrl) {
+              assetUrl = `http://localhost:3001/public/storage/serve/lumea-assets/${category.asset.meshoptUrl}`;
+              console.log('🔍 ProjectEditor: Constructed meshopt URL:', assetUrl);
+            } else if (category?.asset?.originalUrl) {
+              assetUrl = `http://localhost:3001/public/storage/serve/lumea-assets/${category.asset.originalUrl}`;
+              console.log('🔍 ProjectEditor: Constructed original URL:', assetUrl);
+            }
+          }
+        } catch (urlError) {
+          console.warn('⚠️ ProjectEditor: Failed to extract URL from manifest:', urlError);
+        }
       }
       
-      // Create a duplicate of the item with a new position
-      const droppedItem: SceneItemCreateRequest = {
-        categoryKey: normalizedCategoryKey,
-        positionX: (Math.random() - 0.5) * 10, // Random position near drop point
-        positionY: 0,
-        positionZ: (Math.random() - 0.5) * 10,
-        rotationX: 0,
-        rotationY: (Math.random() - 0.5) * 360, // Random rotation between -180 and 180
-        rotationZ: 0,
-        scaleX: 1,
-        scaleY: 1,
-        scaleZ: 1,
-        selectable: true,
-        locked: false,
+      if (!assetUrl) {
+        console.warn('⚠️ ProjectEditor: No valid URL found for asset:', {
+          assetItem,
+          category: manifest?.categories?.[categoryName],
+          availableFields: Object.keys(assetItem)
+        });
+        // Use a placeholder or fall back to a known working URL
+        assetUrl = 'placeholder-model';
+      }
+      
+      console.log('🔍 ProjectEditor: Final asset URL:', assetUrl);
+      
+      // Create local asset entry
+      const localAsset = {
+        id: localAssetId,
+        name: assetItem.name || assetItem.meta?.assetName || 'Dropped Asset',
+        url: assetUrl,
+        category: categoryName,
+        position: [worldPosition.x, worldPosition.y, worldPosition.z],
+        rotation: [0, Math.random() * Math.PI * 2, 0], // Random Y rotation
+        scale: [1, 1, 1],
+        transform: {
+          position: worldPosition,
+          rotation_euler: [0, Math.random() * Math.PI * 2, 0],
+          scale: [1, 1, 1]
+        },
         meta: {
-          ...dragData.item.meta,
+          ...assetItem.meta,
           droppedAt: new Date().toISOString(),
-          dropPosition: position
+          dropPosition: position,
+          isLocalDrop: true,
+          originalAssetData: assetItem // Store original for debugging
         }
       };
-
-      // Add the dropped item to the scene
-      const currentVersion = manifest?.scene?.version?.toString();
-      await scenesApi.addItem(contextSceneId, droppedItem, currentVersion);
-
-      log('info', 'ProjectEditor: Asset successfully dropped into scene');
-      triggerAchievement(`✨ +10 XP - Asset placed in scene!`);
-
-      // Refresh the scene to show the new item
-      refreshScene();
+      
+      console.log('🎯 ProjectEditor: Created local asset:', localAsset);
+      
+      // Store in localStorage for immediate rendering
+      try {
+        const existingAssets = JSON.parse(localStorage.getItem('lumea-local-assets') || '[]');
+        existingAssets.push(localAsset);
+        localStorage.setItem('lumea-local-assets', JSON.stringify(existingAssets));
+        
+        console.log('💾 ProjectEditor: Stored asset locally, total assets:', existingAssets.length);
+        
+        // Trigger achievement and refresh
+        log('info', 'ProjectEditor: Asset successfully added locally');
+        triggerAchievement(`✨ +10 XP - Asset placed in scene!`);
+        
+        // Force scene refresh to pick up the new local asset
+        refreshScene();
+        
+        // Try to also add to backend if scene context is available
+        if (contextSceneId) {
+          try {
+            // Normalize the category key to match backend validation requirements
+            const normalizedCategoryKey = typeof categoryName === 'string' 
+              ? categoryName.toLowerCase().replace(/[^a-z0-9_]/g, '_').substring(0, 50) 
+              : 'imported';
+            
+            const droppedItem: SceneItemCreateRequest = {
+              categoryKey: normalizedCategoryKey,
+              positionX: worldPosition.x,
+              positionY: worldPosition.y,
+              positionZ: worldPosition.z,
+              rotationX: 0,
+              rotationY: Math.random() * 360 - 180, // Random Y rotation in degrees
+              rotationZ: 0,
+              scaleX: 1,
+              scaleY: 1,
+              scaleZ: 1,
+              selectable: true,
+              locked: false,
+              meta: {
+                ...localAsset.meta,
+                localAssetId: localAssetId
+              }
+            };
+            
+            const currentVersion = manifest?.scene?.version?.toString();
+            const backendResponse = await scenesApi.addItem(contextSceneId, droppedItem, currentVersion);
+            
+            console.log('✅ ProjectEditor: Successfully added to backend:', backendResponse);
+            
+            // If backend add succeeds, schedule localStorage cleanup
+            // We delay this to allow the manifest to update with the new item
+            setTimeout(() => {
+              try {
+                const currentLocalAssets = JSON.parse(localStorage.getItem('lumea-local-assets') || '[]');
+                const filteredAssets = currentLocalAssets.filter((asset: any) => asset.id !== localAssetId);
+                localStorage.setItem('lumea-local-assets', JSON.stringify(filteredAssets));
+                
+                console.log('🧹 ProjectEditor: Cleaned up local asset after backend sync:', {
+                  removedId: localAssetId,
+                  remainingCount: filteredAssets.length
+                });
+                
+                // Trigger a refresh to reflect the cleanup
+                refreshScene();
+              } catch (cleanupError) {
+                console.warn('⚠️ ProjectEditor: Failed to cleanup local asset:', cleanupError);
+              }
+            }, 2000); // 2 second delay to allow manifest refresh
+            
+          } catch (backendError) {
+            console.warn('⚠️ ProjectEditor: Failed to add to backend, keeping local version:', backendError);
+            // Don't throw - local version is working
+            // Mark the local asset as "backend-failed" to prevent future cleanup
+            try {
+              const currentLocalAssets = JSON.parse(localStorage.getItem('lumea-local-assets') || '[]');
+              const errorMessage = backendError instanceof Error ? backendError.message : String(backendError);
+              const updatedAssets = currentLocalAssets.map((asset: any) => 
+                asset.id === localAssetId 
+                  ? { ...asset, meta: { ...asset.meta, backendFailed: true, backendError: errorMessage } }
+                  : asset
+              );
+              localStorage.setItem('lumea-local-assets', JSON.stringify(updatedAssets));
+              console.log('📝 ProjectEditor: Marked local asset as backend-failed:', localAssetId);
+            } catch (markError) {
+              console.warn('⚠️ ProjectEditor: Failed to mark asset as backend-failed:', markError);
+            }
+          }
+        } else {
+          console.log('ℹ️ ProjectEditor: No scene context, asset added locally only');
+        }
+        
+      } catch (storageError) {
+        console.error('❌ ProjectEditor: Failed to store asset locally:', storageError);
+        throw storageError;
+      }
 
     } catch (error) {
-      log('error', 'ProjectEditor: Failed to drop asset into scene', error);
-      triggerAchievement(`❌ Failed to place asset`);
+      console.error('❌ ProjectEditor: Failed to drop asset into scene:', error);
+      log('error', 'ProjectEditor: Asset drop failed completely', error);
+      triggerAchievement(`❌ Failed to place asset: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Ensure we don't leave the UI in a broken state
+      try {
+        refreshScene();
+      } catch (refreshError) {
+        console.error('❌ ProjectEditor: Failed to refresh scene after error:', refreshError);
+      }
     }
-  }, [contextSceneId, manifest, scenesApi, refreshScene, triggerAchievement]);
+  }, [contextSceneId, contextProjectId, manifest, scenesApi, refreshScene, triggerAchievement]);
+  
+  // Periodic cleanup of localStorage assets that have been successfully synced to backend
+  useEffect(() => {
+    if (!manifest || !contextSceneId) return;
+    
+    const cleanupInterval = setInterval(() => {
+      try {
+        const localAssets = JSON.parse(localStorage.getItem('lumea-local-assets') || '[]');
+        if (localAssets.length === 0) return;
+        
+        // Get all item IDs from the current manifest
+        const manifestItemIds = new Set();
+        
+        // Check manifest items
+        if (Array.isArray(manifest.items)) {
+          manifest.items.forEach((item: any) => {
+            manifestItemIds.add(item.id);
+            if (item.meta?.localAssetId) {
+              manifestItemIds.add(item.meta.localAssetId);
+            }
+          });
+        }
+        
+        // Check category items
+        if (manifest.categories) {
+          Object.values(manifest.categories).forEach((categoryData: any) => {
+            if (categoryData.items && Array.isArray(categoryData.items)) {
+              categoryData.items.forEach((item: any) => {
+                manifestItemIds.add(item.id);
+                if (item.meta?.localAssetId) {
+                  manifestItemIds.add(item.meta.localAssetId);
+                }
+              });
+            }
+          });
+        }
+        
+        // Filter out local assets that now exist in the manifest (successfully synced)
+        const assetsToKeep = localAssets.filter((asset: any) => {
+          // Keep asset if it's not in manifest yet
+          const isInManifest = manifestItemIds.has(asset.id) || manifestItemIds.has(asset.meta?.localAssetId);
+          
+          // Also keep if it's marked as backend-failed
+          const isBackendFailed = asset.meta?.backendFailed;
+          
+          // Keep asset if it was created recently (within 10 seconds) to avoid race conditions
+          const isRecent = asset.meta?.droppedAt && 
+            (new Date().getTime() - new Date(asset.meta.droppedAt).getTime()) < 10000;
+          
+          const shouldKeep = !isInManifest || isBackendFailed || isRecent;
+          
+          if (!shouldKeep) {
+            console.log('🧹 Cleanup: Removing synced local asset:', {
+              id: asset.id,
+              name: asset.name,
+              droppedAt: asset.meta?.droppedAt,
+              isInManifest,
+              isBackendFailed,
+              isRecent
+            });
+          }
+          
+          return shouldKeep;
+        });
+        
+        // Update localStorage if any assets were removed
+        if (assetsToKeep.length !== localAssets.length) {
+          localStorage.setItem('lumea-local-assets', JSON.stringify(assetsToKeep));
+          console.log('🧹 Periodic cleanup completed:', {
+            removed: localAssets.length - assetsToKeep.length,
+            remaining: assetsToKeep.length
+          });
+          
+          // Refresh scene to reflect changes
+          refreshScene();
+        }
+        
+      } catch (error) {
+        console.warn('⚠️ Failed to run periodic localStorage cleanup:', error);
+      }
+    }, 5000); // Run every 5 seconds
+    
+    return () => clearInterval(cleanupInterval);
+  }, [manifest, contextSceneId, refreshScene]);
 
   return (
     <div className={styles.projectEditorRoot}>
@@ -516,6 +748,7 @@ const ProjectEditorContent: React.FC = () => {
                 cameraMode={cameraMode}
                 onAssetDrop={handleAssetDrop}
                 onSelectionChange={setSelectedItemId}
+                onSceneRefresh={refreshScene}
                 // Camera control props
                 minDistance={cameraMinDistance}
                 maxDistance={cameraMaxDistance}

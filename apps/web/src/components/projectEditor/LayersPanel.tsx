@@ -120,7 +120,7 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
               <div className="flex items-center gap-2">
                 <Hash className="w-4 h-4 text-blue-500" />
                 <span className="text-sm font-medium">Objects</span>
-                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                <span className="text-xs text-gray-10 bg-[var(--glass-maroon)] px-2 py-0.5 rounded-full">
                   {objectInfo.visible}/{objectInfo.total}
                 </span>
               </div>
@@ -144,8 +144,8 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
             
             {/* Objects Stats */}
             <div className="grid grid-cols-2 gap-2">
-              <div className="bg-gray-50 p-2 rounded text-center">
-                <div className="text-lg font-semibold text-gray-900">{objectInfo.total}</div>
+              <div className="bg-[var(--glass-maroon)] p-2 rounded text-center">
+                <div className="text-lg font-semibold text-yellow-500">{objectInfo.total}</div>
                 <div className="text-xs text-gray-600">Total</div>
               </div>
               <div className="bg-blue-50 p-2 rounded text-center">
@@ -173,11 +173,11 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
                       <div key={category} className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-1">
                           <Box className="w-3 h-3 text-gray-400" />
-                          <span className="text-gray-700 capitalize">
+                          <span className="text-gray-10 capitalize">
                             {category.replace(/([A-Z])/g, ' $1').trim()}
                           </span>
                         </div>
-                        <span className="text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                        <span className="text-gray-10 bg-[var(--glass-maroon)] px-1.5 py-0.5 rounded">
                           {count}
                         </span>
                       </div>
@@ -203,7 +203,7 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
               <div className="flex items-center gap-2">
                 <Lightbulb className="w-4 h-4 text-yellow-500" />
                 <span className="text-sm font-medium">Lights</span>
-                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                <span className="text-xs text-gray-500 bg-[var(--glass-maroon)] px-2 py-0.5 rounded-full">
                   {lights.length}
                 </span>
               </div>

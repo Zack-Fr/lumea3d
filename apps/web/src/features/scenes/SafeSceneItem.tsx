@@ -21,19 +21,40 @@ export function SafeSceneItem({ item, categoryUrl, categoryKey }: SafeSceneItemP
     selectable: item.selectable,
     position: item.transform?.position,
     isLocal: (item as any).meta?.isLocal,
-    isBlobUrl: categoryUrl.startsWith('blob:')
+    isBlobUrl: categoryUrl ? categoryUrl.startsWith('blob:') : false
   });
 
   useEffect(() => {
     // Test if the category URL is accessible
-    if (!categoryUrl || categoryUrl.trim() === '') {
-      console.warn(`⚠️ SafeSceneItem: Empty category URL for item ${item.id}`);
+    if (!categoryUrl || typeof categoryUrl !== 'string' || categoryUrl.trim() === '') {
+      console.warn(`⚠️ SafeSceneItem: Invalid or empty category URL for item ${item.id}:`, {
+        categoryUrl,
+        type: typeof categoryUrl,
+        isEmpty: !categoryUrl,
+        isEmptyString: categoryUrl === ''
+      });
       setHasError(true);
       setIsLoading(false);
       return;
     }
 
     console.log(`🔍 SafeSceneItem: Testing category URL: ${categoryUrl}`);
+    
+    // Handle blob URLs differently - they can't be tested with fetch HEAD
+    if (categoryUrl.startsWith('blob:')) {
+      console.log(`💾 SafeSceneItem: Blob URL detected, skipping fetch test for ${categoryUrl}`);
+      setHasError(false);
+      setIsLoading(false);
+      return;
+    }
+    
+    // Handle data URLs - they also can't be tested with fetch
+    if (categoryUrl.startsWith('data:')) {
+      console.log(`💾 SafeSceneItem: Data URL detected, skipping fetch test for ${categoryUrl}`);
+      setHasError(false);
+      setIsLoading(false);
+      return;
+    }
     
     fetch(categoryUrl, { method: 'HEAD' })
       .then(response => {
@@ -79,7 +100,7 @@ export function SafeSceneItem({ item, categoryUrl, categoryKey }: SafeSceneItemP
 
   if (hasError) {
     // Show error wireframe
-    console.log(`🔴 SafeSceneItem: Rendering fallback for item ${item.id} (${categoryUrl} failed)`);
+    console.log(`🔴 SafeSceneItem: Rendering fallback for item ${item.id} (${categoryUrl || 'undefined categoryUrl'} failed)`);
     return (
       <mesh 
         name={`error-${item.id}`}

@@ -149,11 +149,17 @@ export function SelectionBox({
 
     const selectedObj = selection.selectedObject.object;
     
-    // Create bounding box helper
+    // Create bounding box helper with proper world matrix update
     const boxHelper = new THREE.BoxHelper(selectedObj, new THREE.Color(color));
     boxHelper.material.linewidth = lineWidth;
     boxHelper.material.transparent = true;
     boxHelper.material.opacity = 0.5;
+    
+    // Ensure the object's world matrix is up to date before creating the box
+    selectedObj.updateWorldMatrix(true, false);
+    
+    // Update the box helper to reflect current transforms
+    boxHelper.update();
     
     scene.add(boxHelper);
     boxHelperRef.current = boxHelper;

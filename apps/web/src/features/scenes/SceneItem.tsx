@@ -1,6 +1,7 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { Group } from 'three';
+import { applyMaterialOverridesToObject } from '../../utils/textureSystem';
 import type { SceneItem } from '../../services/scenesApi';
 
 interface SceneItemProps {
@@ -97,6 +98,32 @@ export function SceneItem({ item, categoryUrl, categoryKey }: SceneItemProps) {
     
     return cloned;
   }, [modelNode, item, categoryKey]);
+  
+  // Apply material overrides after the model is cloned and ready
+  useEffect(() => {
+    if (!clonedModel) return;
+    
+    const materialOverrides = item.materialOverrides || item.material;
+    if (!materialOverrides || Object.keys(materialOverrides).length === 0) {
+      console.log(`📦 No material overrides for item: ${item.id}`);
+      return;
+    }
+    
+    console.log(`🎨 Applying material overrides for item: ${item.id}`, materialOverrides);
+    
+    // Get KTX2 loader from global reference
+    const ktx2Loader = (window as any).__lumea_ktx2_loader;
+    
+    // Apply material overrides asynchronously
+    applyMaterialOverridesToObject(clonedModel, materialOverrides, ktx2Loader)
+      .then(() => {
+        console.log(`✅ Material overrides applied successfully to item: ${item.id}`);
+      })
+      .catch((error) => {
+        console.error(`❌ Failed to apply material overrides to item: ${item.id}`, error);
+      });
+      
+  }, [clonedModel, item.materialOverrides, item.material, item.id]);
   
   if (!clonedModel) {
     return null;

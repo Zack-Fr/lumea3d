@@ -7,6 +7,8 @@ import { Box, Loader2 } from "lucide-react";
 import { ViewportMovement } from '../../types/projectEditor';
 import { useSceneContext } from '../../contexts/SceneContext';
 import { useLightingControls } from '../../hooks/useLightingControls';
+import { initKTX2Loader } from '../../utils/textureSystem';
+import { gpuMemoryMonitor } from '../../utils/gpuMemoryMonitor';
 import { StagedSceneLoader } from '../../features/scenes/StagedSceneLoader';
 import { SceneRenderer } from '../../features/scenes/SceneRenderer';
 import { ClickSelection } from '../../features/scenes/ClickSelection';
@@ -16,6 +18,7 @@ import { TransformControlsPanel } from '../../features/scenes/TransformControlsP
 import { TransformKeyboardControls } from '../../features/scenes/TransformKeyboardControls';
 import { SelectionBridge } from '../../features/scenes/SelectionBridge';
 import { GridSystem } from '../../features/scenes/GridSystem';
+import { PerformanceStatsOverlay } from './PerformanceStatsOverlay';
 import LightsContainer from './LightsContainer';
 import CameraControlsComponent from './CameraControls';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
@@ -28,6 +31,7 @@ interface ViewportCanvasProps {
   cameraMode?: string;
   onAssetDrop?: (assetData: any, position: { x: number; y: number }) => void;
   onSelectionChange?: (itemId: string | null) => void;
+  onSceneRefresh?: () => void;
   // Camera control props
   minDistance?: number;
   maxDistance?: number;
@@ -48,6 +52,7 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
   cameraMode = 'orbit',
   onAssetDrop,
   onSelectionChange,
+  onSceneRefresh,
   // Camera control props
   minDistance = 0.1,
   maxDistance = 500,
@@ -234,22 +239,55 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
       onDrop={(e) => {
         e.preventDefault();
         
+        console.log('🎯 ViewportCanvas: Drop event received:', {
+          dataTransfer: e.dataTransfer,
+          types: Array.from(e.dataTransfer.types),
+          position: { x: e.clientX, y: e.clientY }
+        });
+        
         try {
           const dragDataString = e.dataTransfer.getData('application/json');
-          if (!dragDataString) return;
+          console.log('🎯 ViewportCanvas: Drag data string:', dragDataString);
+          
+          if (!dragDataString) {
+            console.warn('⚠️ ViewportCanvas: No drag data found');
+            return;
+          }
           
           const dragData = JSON.parse(dragDataString);
+          console.log('🎯 ViewportCanvas: Parsed drag data:', dragData);
+          
           if (dragData.type === 'asset' && onAssetDrop) {
             const dropPosition = {
               x: e.clientX,
               y: e.clientY
             };
             
-            console.log('🎯 ViewportCanvas: Asset dropped:', { dragData, dropPosition });
-            onAssetDrop(dragData, dropPosition);
+            console.log('🎯 ViewportCanvas: Calling onAssetDrop with:', { dragData, dropPosition });
+            
+            // Add a timeout to prevent UI freezing
+            setTimeout(() => {
+              try {
+                onAssetDrop(dragData, dropPosition);
+              } catch (dropError) {
+                console.error('❌ ViewportCanvas: Error in onAssetDrop handler:', dropError);
+              }
+            }, 0);
+            
+          } else {
+            console.warn('⚠️ ViewportCanvas: Invalid drop data or missing handler:', {
+              hasAssetType: dragData.type === 'asset',
+              hasHandler: !!onAssetDrop,
+              dragDataType: dragData.type
+            });
           }
         } catch (error) {
           console.error('❌ ViewportCanvas: Error handling drop:', error);
+          
+          // Ensure UI doesn't freeze on error
+          setTimeout(() => {
+            console.log('🔄 ViewportCanvas: Attempting error recovery');
+          }, 100);
         }
       }}
     >
@@ -272,10 +310,85 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
           gl.setClearColor('#0f0f0f', 0);
           gl.shadowMap.enabled = true;
           gl.shadowMap.type = 2; // THREE.PCFSoftShadowMap
+          
+          // Initialize GPU memory monitoring
+          try {
+            // Get the underlying WebGL context from the Three.js renderer
+            const webglContext = gl.getContext() as WebGLRenderingContext | WebGL2RenderingContext;
+            gpuMemoryMonitor.initialize(webglContext);
+            
+            // Set up enhanced context loss listeners through the memory monitor
+            const canvas = gl.domElement;
+            gpuMemoryMonitor.setupContextLossListeners(canvas);
+            
+            console.log('✅ GPU Memory Monitor initialized with context loss detection');
+          } catch (error) {
+            console.warn('⚠️ Failed to initialize GPU memory monitor:', error);
+            
+            // Fallback context loss handling if memory monitor fails
+            const canvas = gl.domElement;
+            
+            const handleContextLost = (event: Event) => {
+              console.warn('⚠️ WebGL context lost - preventing default behavior (fallback)');
+              event.preventDefault();
+            };
+            
+            const handleContextRestored = (_event: Event) => {
+              console.log('✅ WebGL context restored - reinitializing resources (fallback)');
+              gl.setClearColor('#0f0f0f', 0);
+              gl.shadowMap.enabled = true;
+              gl.shadowMap.type = 2;
+              
+              if (onSceneRefresh) {
+                setTimeout(() => {
+                  try {
+                    onSceneRefresh();
+                  } catch (refreshError) {
+                    console.warn('⚠️ Failed to refresh scene after context restore:', refreshError);
+                  }
+                }, 100);
+              }
+            };
+            
+            canvas.addEventListener('webglcontextlost', handleContextLost, false);
+            canvas.addEventListener('webglcontextrestored', handleContextRestored, false);
+          }
+          
+          // Listen for custom WebGL context loss events from the memory monitor
+          const handleCustomContextLoss = (_event: Event) => {
+            console.error('🚨 Custom WebGL context loss detected!');
+            console.log('🔄 Triggering emergency scene refresh to reload meshes');
+            
+            // Immediate scene refresh when context loss is detected
+            if (onSceneRefresh) {
+              setTimeout(() => {
+                try {
+                  onSceneRefresh();
+                  console.log('✅ Emergency scene refresh completed');
+                } catch (refreshError) {
+                  console.error('❌ Emergency scene refresh failed:', refreshError);
+                }
+              }, 50);
+            }
+          };
+          
+          window.addEventListener('webgl-context-lost', handleCustomContextLoss as EventListener);
+          
+          // Initialize KTX2 loader for optimized textures
+          try {
+            const ktx2Loader = initKTX2Loader(gl);
+            // Store reference globally for use in material system
+            (window as any).__lumea_ktx2_loader = ktx2Loader;
+            console.log('🌨️ KTX2Loader initialized and stored globally');
+          } catch (error) {
+            console.warn('⚠️ Failed to initialize KTX2Loader:', error);
+          }
+          
           console.log('🌄 ViewportCanvas: Renderer configured', {
             shadowMapEnabled: gl.shadowMap.enabled,
             shadowMapType: gl.shadowMap.type,
-            outputColorSpace: gl.outputColorSpace
+            outputColorSpace: gl.outputColorSpace,
+            ktx2Support: !!(window as any).__lumea_ktx2_loader
           });
           
           // Log scene lights periodically
@@ -292,8 +405,35 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
                 });
               }
             });
-            console.log('💡 Scene lights check:', lights.length, 'lights found:', lights);
+            // console.log('💡 Scene lights check:', lights.length, 'lights found:', lights);
           }, 5000); // Check every 5 seconds
+          
+          // DISABLED: Mesh validation system (was causing infinite recovery loops)
+          // TODO: Fix mesh validation system to prevent infinite refresh cycles
+          console.log('🔍 Mesh validation system disabled to prevent infinite loops');
+          
+          // Monitor GPU memory and performance periodically
+          setInterval(() => {
+            try {
+              gpuMemoryMonitor.logMemoryWarningIfNeeded();
+              
+              const fpsStats = gpuMemoryMonitor.getFPSStats();
+              const memoryStatus = gpuMemoryMonitor.getMemoryStatus();
+              
+              // Log periodic performance summary
+              if (memoryStatus) {
+                console.log('📊 GPU Performance Summary:', {
+                  fps: `${fpsStats.current.toFixed(1)} (avg: ${fpsStats.average.toFixed(1)}, min: ${fpsStats.min.toFixed(1)})`,
+                  memory: `${(memoryStatus.usedJSHeapSize / 1024 / 1024).toFixed(1)}MB / ${(memoryStatus.jsHeapSizeLimit / 1024 / 1024).toFixed(1)}MB`,
+                  performance: memoryStatus.performanceLevel,
+                  pressure: memoryStatus.memoryPressureLevel,
+                  gpu: memoryStatus.webglRenderer
+                });
+              }
+            } catch (error) {
+              console.warn('⚠️ Failed to check GPU performance:', error);
+            }
+          }, 10000); // Check every 10 seconds
         }}
       >
         {/* Controllable default ambient light */}
@@ -483,6 +623,9 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
           <p className={styles.wasdLabel}>Movement Controls</p>
         </motion.div>
       )}
+      
+      {/* Performance Stats Overlay */}
+      <PerformanceStatsOverlay visible={true} position="top-right" />
       
       {/* Transform Controls Panel */}
       <TransformControlsPanel />

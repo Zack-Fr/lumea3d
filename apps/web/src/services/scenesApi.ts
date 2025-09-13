@@ -34,6 +34,7 @@ export interface SceneItem {
     scale: [number, number, number];
   };
   material?: Record<string, any>;
+  materialOverrides?: Record<string, any>;
   selectable?: boolean;
   locked?: boolean;
   meta?: Record<string, any>;

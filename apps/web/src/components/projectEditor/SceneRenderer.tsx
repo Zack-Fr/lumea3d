@@ -1,4 +1,4 @@
-import React, { useMemo, Suspense, useCallback } from 'react';
+import React, { useMemo, Suspense } from 'react';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSceneContext } from '../../contexts/SceneContext';
@@ -10,109 +10,59 @@ interface MeshItemProps {
   isEnabled: boolean;
 }
 
-// Enhanced mesh component with progressive loading and format fallbacks
+// Simplified mesh component that focuses on rendering assets
 const MeshItem: React.FC<MeshItemProps> = React.memo(({ item, categoryKey, isEnabled }) => {
-  const [loadingState, setLoadingState] = React.useState<'loading' | 'loaded' | 'error' | 'fallback'>('loading');
-  const [currentUrlIndex, setCurrentUrlIndex] = React.useState(0);
+  console.log('🔍 MeshItem: Rendering item:', {
+    id: item.id,
+    name: item.name,
+    url: item.url,
+    categoryKey,
+    isEnabled,
+    isLocal: item.isLocal
+  });
   
-  // Get all available URLs with fallbacks
-  const availableUrls = useMemo(() => {
-    if (!item) return [];
-    
-    const urls: Array<{ url: string; type: 'draco' | 'meshopt' | 'original' | 'local' | 'unknown' }> = [];
-    
-    // Priority order: draco -> meshopt -> original -> local
-    if (item.dracoUrl && typeof item.dracoUrl === 'string') {
-      urls.push({ url: item.dracoUrl, type: 'draco' });
-    }
-    if (item.meshoptUrl && typeof item.meshoptUrl === 'string') {
-      urls.push({ url: item.meshoptUrl, type: 'meshopt' });
-    }
-    if (item.originalUrl && typeof item.originalUrl === 'string') {
-      urls.push({ url: item.originalUrl, type: 'original' });
-    }
-    if (item.url && typeof item.url === 'string') {
-      urls.push({ url: item.url, type: 'unknown' });
+  // Get the best available URL
+  const bestUrl = useMemo(() => {
+    if (!item) {
+      console.warn('🔍 MeshItem: No item provided');
+      return null;
     }
     
-    // Check localStorage for local assets
-    try {
-      const localAssets = JSON.parse(localStorage.getItem('lumea-local-assets') || '[]');
-      const localAsset = localAssets.find((asset: any) => asset.id === item.id || asset.id === item.assetId);
-      if (localAsset?.url) {
-        urls.push({ url: localAsset.url, type: 'local' });
-      }
-    } catch (error) {
-      console.warn('Failed to read local assets:', error);
-    }
+    // Priority order: draco -> meshopt -> original -> url
+    const possibleUrls = [
+      item.dracoUrl,
+      item.meshoptUrl, 
+      item.originalUrl,
+      item.url
+    ].filter(url => url && typeof url === 'string' && url.length > 0);
     
-    return urls;
-  }, [item]);
-
-  const currentUrl = availableUrls[currentUrlIndex];
-  
-  // Progressive loading with fallbacks
-  const loadWithFallback = useCallback(async (urlIndex: number) => {
-    if (!availableUrls[urlIndex]) {
-      setLoadingState('error');
-      log('error', `MeshItem: No more URLs to try for ${item.name || item.id}`);
-      return;
-    }
-    
-    const urlData = availableUrls[urlIndex];
-    log('debug', `MeshItem: Attempting to load ${urlData.type} format`, { 
-      url: urlData.url, 
-      attempt: urlIndex + 1, 
-      total: availableUrls.length 
+    const selectedUrl = possibleUrls[0];
+    console.log('🔍 MeshItem: URL selection:', {
+      itemId: item.id,
+      possibleUrls,
+      selectedUrl
     });
     
-    try {
-      setLoadingState('loading');
-      
-      // Test if the URL is accessible
-      const response = await fetch(urlData.url, { method: 'HEAD' });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      setLoadingState('loaded');
-      log('info', `MeshItem: Successfully loaded ${urlData.type} format for ${item.name || item.id}`);
-      
-    } catch (error) {
-      log('warn', `MeshItem: Failed to load ${urlData.type} format, trying fallback`, error);
-      
-      // Try next URL
-      const nextIndex = urlIndex + 1;
-      if (nextIndex < availableUrls.length) {
-        setCurrentUrlIndex(nextIndex);
-        setTimeout(() => loadWithFallback(nextIndex), 100); // Small delay between attempts
-      } else {
-        setLoadingState('error');
-        log('error', `MeshItem: All URLs failed for ${item.name || item.id}`);
-      }
-    }
-  }, [availableUrls, item]);
-  
-  // Start loading when component mounts or URLs change
-  React.useEffect(() => {
-    if (availableUrls.length > 0 && isEnabled) {
-      setCurrentUrlIndex(0);
-      loadWithFallback(0);
-    }
-  }, [availableUrls, isEnabled, loadWithFallback]);
+    return selectedUrl || null;
+  }, [item]);
 
-  // Load the GLTF model with error handling
+  // Load the GLTF model directly
   let gltf: any = null;
+  let loadError = false;
+  
   try {
-    if (currentUrl && loadingState === 'loaded') {
-      gltf = useGLTF(currentUrl.url, true);
+    if (bestUrl && isEnabled) {
+      console.log('🔍 MeshItem: Loading GLTF:', bestUrl);
+      gltf = useGLTF(bestUrl, true);
+      console.log('🔍 MeshItem: GLTF loaded successfully:', gltf ? 'yes' : 'no');
     }
   } catch (error) {
-    log('error', 'useGLTF failed:', error);
-    setLoadingState('error');
+    console.error('🔍 MeshItem: useGLTF failed:', error);
+    loadError = true;
   }
 
   if (!isEnabled) {
+    console.log('🔍 MeshItem: Item disabled, not rendering:', item.id);
     return null;
   }
   
@@ -121,6 +71,9 @@ const MeshItem: React.FC<MeshItemProps> = React.memo(({ item, categoryKey, isEna
     if (item.position && Array.isArray(item.position) && item.position.length >= 3) {
       return [item.position[0], item.position[1], item.position[2]] as [number, number, number];
     }
+    if (item.transform?.position && Array.isArray(item.transform.position) && item.transform.position.length >= 3) {
+      return [item.transform.position[0], item.transform.position[1], item.transform.position[2]] as [number, number, number];
+    }
     if (item.transform?.position) {
       const pos = item.transform.position;
       return [pos.x || 0, pos.y || 0, pos.z || 0] as [number, number, number];
@@ -128,7 +81,7 @@ const MeshItem: React.FC<MeshItemProps> = React.memo(({ item, categoryKey, isEna
     // Random positioning for demo purposes
     return [
       (Math.random() - 0.5) * 10,
-      0,
+      0.5,
       (Math.random() - 0.5) * 10
     ] as [number, number, number];
   }, [item]);
@@ -137,6 +90,14 @@ const MeshItem: React.FC<MeshItemProps> = React.memo(({ item, categoryKey, isEna
   const rotation = useMemo(() => {
     if (item.rotation && Array.isArray(item.rotation) && item.rotation.length >= 3) {
       return [item.rotation[0], item.rotation[1], item.rotation[2]] as [number, number, number];
+    }
+    if (item.transform?.rotation_euler && Array.isArray(item.transform.rotation_euler) && item.transform.rotation_euler.length >= 3) {
+      // Convert degrees to radians
+      return [
+        (item.transform.rotation_euler[0] * Math.PI) / 180,
+        (item.transform.rotation_euler[1] * Math.PI) / 180,
+        (item.transform.rotation_euler[2] * Math.PI) / 180
+      ] as [number, number, number];
     }
     if (item.transform?.rotation) {
       const rot = item.transform.rotation;
@@ -149,6 +110,9 @@ const MeshItem: React.FC<MeshItemProps> = React.memo(({ item, categoryKey, isEna
   const scale = useMemo(() => {
     if (item.scale && Array.isArray(item.scale) && item.scale.length >= 3) {
       return [item.scale[0], item.scale[1], item.scale[2]] as [number, number, number];
+    }
+    if (item.transform?.scale && Array.isArray(item.transform.scale) && item.transform.scale.length >= 3) {
+      return [item.transform.scale[0], item.transform.scale[1], item.transform.scale[2]] as [number, number, number];
     }
     if (item.transform?.scale) {
       const scl = item.transform.scale;
@@ -169,27 +133,39 @@ const MeshItem: React.FC<MeshItemProps> = React.memo(({ item, categoryKey, isEna
     name: item.name || `Item ${item.id}`,
     originalData: item
   }), [item, categoryKey]);
+  
+  console.log('🔍 MeshItem: Transform values:', {
+    itemId: item.id,
+    position,
+    rotation,
+    scale,
+    hasUrl: !!bestUrl,
+    hasGltf: !!gltf,
+    loadError
+  });
 
-  // Handle different loading states
-  if (loadingState === 'loading') {
+  // Show loading placeholder if we don't have a URL yet
+  if (!bestUrl) {
+    console.log('🔍 MeshItem: No URL available, showing placeholder:', item.id);
     return (
       <group 
         position={position} 
         rotation={rotation} 
         scale={scale}
         userData={userData}
-        name={`loading-item-${userData.itemId}`}
+        name={`no-url-item-${userData.itemId}`}
       >
-        {/* Loading placeholder */}
+        {/* No URL placeholder */}
         <mesh>
-          <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial color="#3b82f6" wireframe />
+          <boxGeometry args={[1, 0.1, 1]} />
+          <meshStandardMaterial color="#fbbf24" />
         </mesh>
       </group>
     );
   }
   
-  if (loadingState === 'error' || !currentUrl || !gltf) {
+  // Show error placeholder if loading failed
+  if (loadError || !gltf) {
     return (
       <group 
         position={position} 
@@ -240,19 +216,34 @@ const MeshItem: React.FC<MeshItemProps> = React.memo(({ item, categoryKey, isEna
     return cloned;
   }, [gltf?.scene, userData, item.name]);
 
-  log('debug', `Rendering mesh item: ${item.name || item.id}`, {
+  console.log('✅ MeshItem: Successfully rendering GLTF item:', {
+    itemId: item.id,
+    name: item.name,
     categoryKey,
     position,
     rotation,
     scale,
-    url: currentUrl?.url,
-    format: currentUrl?.type,
-    state: loadingState,
+    url: bestUrl,
     hasClonedScene: !!clonedScene
   });
 
   if (!clonedScene) {
-    return null;
+    console.warn('🔍 MeshItem: No cloned scene available for:', item.id);
+    return (
+      <group 
+        position={position} 
+        rotation={rotation} 
+        scale={scale}
+        userData={userData}
+        name={`loading-item-${userData.itemId}`}
+      >
+        {/* Loading placeholder */}
+        <mesh>
+          <boxGeometry args={[1, 1, 1]} />
+          <meshStandardMaterial color="#3b82f6" wireframe />
+        </mesh>
+      </group>
+    );
   }
 
   return (
@@ -346,9 +337,44 @@ const SceneRenderer: React.FC = React.memo(() => {
   const allRenderableItems = useMemo(() => {
     const items = [...renderableItems];
     
+    // Get existing item IDs to prevent duplicates
+    const existingItemIds = new Set(
+      items.map(item => 
+        item.item.id || 
+        item.item.assetId || 
+        item.item.meta?.localAssetId
+      )
+    );
+    
     try {
       const localAssets = JSON.parse(localStorage.getItem('lumea-local-assets') || '[]');
-      localAssets.forEach((asset: any) => {
+      
+      // Filter out local assets that already exist in manifest
+      const uniqueLocalAssets = localAssets.filter((asset: any) => {
+        // Check multiple possible ID matches to prevent duplicates
+        const assetIds = [
+          asset.id,
+          asset.meta?.localAssetId,
+          asset.meta?.backendId,
+          asset.assetId
+        ].filter(Boolean);
+        
+        const isDuplicate = assetIds.some(id => existingItemIds.has(id));
+        
+        if (isDuplicate) {
+          console.log('🔍 SceneRenderer: Skipping duplicate local asset:', {
+            assetId: asset.id,
+            name: asset.name,
+            possibleIds: assetIds,
+            existingIds: Array.from(existingItemIds)
+          });
+        }
+        
+        return !isDuplicate;
+      });
+      
+      // Add unique local assets to items
+      uniqueLocalAssets.forEach((asset: any) => {
         const isEnabled = enabledCategories.length === 0 || enabledCategories.includes(asset.category);
         items.push({
           item: {
@@ -356,12 +382,24 @@ const SceneRenderer: React.FC = React.memo(() => {
             name: asset.name,
             url: asset.url,
             category: asset.category,
+            position: asset.position,
+            rotation: asset.rotation,
+            scale: asset.scale,
+            transform: asset.transform,
+            meta: asset.meta,
             isLocal: true
           },
           categoryKey: asset.category,
           isEnabled
         });
       });
+      
+      console.log('🔍 SceneRenderer: Local assets processed:', {
+        total: localAssets.length,
+        unique: uniqueLocalAssets.length,
+        skipped: localAssets.length - uniqueLocalAssets.length
+      });
+      
     } catch (error) {
       console.warn('Failed to load local assets:', error);
     }
