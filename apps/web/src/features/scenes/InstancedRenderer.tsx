@@ -36,30 +36,32 @@ export function InstancedObject({
   const [loadedInstances, setLoadedInstances] = useState(0);
   const [isProgressiveLoading, setIsProgressiveLoading] = useState(false);
 
-  // Extract geometry and material from the loaded model
-  const { geometry, material } = useMemo(() => {
-    let geo: THREE.BufferGeometry | null = null;
-    let mat: THREE.Material | null = null;
+  // Extract geometry and material from the loaded model - CLONE to prevent shared resource disposal
+  const { geometries, materials } = useMemo(() => {
+    const geos: THREE.BufferGeometry[] = [];
+    const mats: THREE.Material[] = [];
 
     scene.traverse((child) => {
       if (child instanceof THREE.Mesh && child.geometry && child.material) {
-        geo = child.geometry;
-        mat = child.material;
-        return; // Use first mesh found
+        // CRITICAL: Clone geometry and material to prevent shared resource disposal
+        const clonedGeometry = child.geometry.clone();
+        const clonedMaterial = child.material instanceof THREE.Material 
+          ? child.material.clone() 
+          : new THREE.MeshStandardMaterial({ color: 0xff0000 });
+        
+        geos.push(clonedGeometry);
+        mats.push(clonedMaterial);
       }
     });
 
-    if (!geo) {
+    if (geos.length === 0) {
       console.warn('🔺 InstancedObject: No geometry found in GLB:', glbUrl);
-      geo = new THREE.BoxGeometry(1, 1, 1); // Fallback
+      geos.push(new THREE.BoxGeometry(1, 1, 1)); // Fallback
+      mats.push(new THREE.MeshStandardMaterial({ color: 0xff0000 })); // Fallback
     }
 
-    if (!mat) {
-      console.warn('🔺 InstancedObject: No material found in GLB:', glbUrl);
-      mat = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // Fallback
-    }
-
-    return { geometry: geo, material: mat };
+    console.log(`🔧 InstancedObject: Extracted and cloned ${geos.length} geometries from GLB:`, glbUrl);
+    return { geometries: geos, materials: mats };
   }, [scene, glbUrl]);
 
   // Initialize instance matrices with progressive loading
@@ -193,20 +195,31 @@ export function InstancedObject({
     }
   }, [loadedInstances, isProgressiveLoading, items.length]);
 
-  if (!geometry || !material || items.length === 0) {
+  if (!geometries || geometries.length === 0 || items.length === 0) {
     return null;
   }
 
   const instanceCount = Math.min(loadedInstances, maxInstances);
 
+  // Render one instancedMesh per geometry/material pair from the GLB
   return (
-    <instancedMesh
-      ref={instancedMeshRef}
-      args={[geometry, material, instanceCount]}
-      frustumCulled={false} // We handle culling manually
-      castShadow
-      receiveShadow
-    />
+    <group name={`instanced-group-${glbUrl.split('/').pop()}`}>
+      {geometries.map((geometry, index) => {
+        const material = materials[index] || materials[0] || new THREE.MeshStandardMaterial({ color: 0xff0000 });
+        
+        return (
+          <instancedMesh
+            key={`instanced-mesh-${index}`}
+            ref={index === 0 ? instancedMeshRef : null} // Only first mesh gets the ref for frustum culling
+            args={[geometry, material, instanceCount]}
+            frustumCulled={false} // We handle culling manually
+            castShadow
+            receiveShadow
+            dispose={null} // CRITICAL: Prevent auto-disposal of shared resources
+          />
+        );
+      })}
+    </group>
   );
 }
 

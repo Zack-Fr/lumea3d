@@ -531,8 +531,8 @@ const ProjectEditorContent: React.FC = () => {
                   remainingCount: filteredAssets.length
                 });
                 
-                // Trigger a refresh to reflect the cleanup
-                refreshScene();
+                // REMOVED: Excessive refresh was causing loops
+                // refreshScene();
               } catch (cleanupError) {
                 console.warn('⚠️ ProjectEditor: Failed to cleanup local asset:', cleanupError);
               }
@@ -570,98 +570,20 @@ const ProjectEditorContent: React.FC = () => {
       log('error', 'ProjectEditor: Asset drop failed completely', error);
       triggerAchievement(`❌ Failed to place asset: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
-      // Ensure we don't leave the UI in a broken state
-      try {
-        refreshScene();
-      } catch (refreshError) {
-        console.error('❌ ProjectEditor: Failed to refresh scene after error:', refreshError);
-      }
+      // REMOVED: Excessive refresh in error handling was causing loops
+      // The UI will naturally recover on next user interaction
+      console.log('ℹ️ ProjectEditor: Error handled, UI will recover naturally');
     }
   }, [contextSceneId, contextProjectId, manifest, scenesApi, refreshScene, triggerAchievement]);
   
-  // Periodic cleanup of localStorage assets that have been successfully synced to backend
+  // DISABLED: Periodic cleanup was causing infinite refresh loops
+  // TODO: Implement a smarter cleanup mechanism that doesn't trigger on every refresh
+  /*
   useEffect(() => {
-    if (!manifest || !contextSceneId) return;
-    
-    const cleanupInterval = setInterval(() => {
-      try {
-        const localAssets = JSON.parse(localStorage.getItem('lumea-local-assets') || '[]');
-        if (localAssets.length === 0) return;
-        
-        // Get all item IDs from the current manifest
-        const manifestItemIds = new Set();
-        
-        // Check manifest items
-        if (Array.isArray(manifest.items)) {
-          manifest.items.forEach((item: any) => {
-            manifestItemIds.add(item.id);
-            if (item.meta?.localAssetId) {
-              manifestItemIds.add(item.meta.localAssetId);
-            }
-          });
-        }
-        
-        // Check category items
-        if (manifest.categories) {
-          Object.values(manifest.categories).forEach((categoryData: any) => {
-            if (categoryData.items && Array.isArray(categoryData.items)) {
-              categoryData.items.forEach((item: any) => {
-                manifestItemIds.add(item.id);
-                if (item.meta?.localAssetId) {
-                  manifestItemIds.add(item.meta.localAssetId);
-                }
-              });
-            }
-          });
-        }
-        
-        // Filter out local assets that now exist in the manifest (successfully synced)
-        const assetsToKeep = localAssets.filter((asset: any) => {
-          // Keep asset if it's not in manifest yet
-          const isInManifest = manifestItemIds.has(asset.id) || manifestItemIds.has(asset.meta?.localAssetId);
-          
-          // Also keep if it's marked as backend-failed
-          const isBackendFailed = asset.meta?.backendFailed;
-          
-          // Keep asset if it was created recently (within 10 seconds) to avoid race conditions
-          const isRecent = asset.meta?.droppedAt && 
-            (new Date().getTime() - new Date(asset.meta.droppedAt).getTime()) < 10000;
-          
-          const shouldKeep = !isInManifest || isBackendFailed || isRecent;
-          
-          if (!shouldKeep) {
-            console.log('🧹 Cleanup: Removing synced local asset:', {
-              id: asset.id,
-              name: asset.name,
-              droppedAt: asset.meta?.droppedAt,
-              isInManifest,
-              isBackendFailed,
-              isRecent
-            });
-          }
-          
-          return shouldKeep;
-        });
-        
-        // Update localStorage if any assets were removed
-        if (assetsToKeep.length !== localAssets.length) {
-          localStorage.setItem('lumea-local-assets', JSON.stringify(assetsToKeep));
-          console.log('🧹 Periodic cleanup completed:', {
-            removed: localAssets.length - assetsToKeep.length,
-            remaining: assetsToKeep.length
-          });
-          
-          // Refresh scene to reflect changes
-          refreshScene();
-        }
-        
-      } catch (error) {
-        console.warn('⚠️ Failed to run periodic localStorage cleanup:', error);
-      }
-    }, 5000); // Run every 5 seconds
-    
-    return () => clearInterval(cleanupInterval);
+    // Disabled periodic cleanup to prevent infinite loops
+    console.log('🚧 Periodic cleanup disabled to prevent infinite refresh loops');
   }, [manifest, contextSceneId, refreshScene]);
+  */
 
   return (
     <div className={styles.projectEditorRoot}>

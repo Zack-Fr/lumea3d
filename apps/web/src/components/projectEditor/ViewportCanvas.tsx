@@ -311,6 +311,28 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
           gl.shadowMap.enabled = true;
           gl.shadowMap.type = 2; // THREE.PCFSoftShadowMap
           
+          // Throttling for refresh calls to prevent infinite loops
+          let lastRefreshTime = 0;
+          const REFRESH_THROTTLE_MS = 2000; // Allow refresh max every 2 seconds
+          
+          const throttledRefresh = (reason: string) => {
+            const now = Date.now();
+            if (now - lastRefreshTime < REFRESH_THROTTLE_MS) {
+              console.log(`⏱️ ViewportCanvas: Refresh throttled (${reason}) - last refresh ${now - lastRefreshTime}ms ago`);
+              return;
+            }
+            
+            lastRefreshTime = now;
+            console.log(`🔄 ViewportCanvas: Executing throttled refresh (${reason})`);
+            if (onSceneRefresh) {
+              try {
+                onSceneRefresh();
+              } catch (refreshError) {
+                console.warn(`⚠️ ViewportCanvas: Throttled refresh failed (${reason}):`, refreshError);
+              }
+            }
+          };
+          
           // Initialize GPU memory monitoring
           try {
             // Get the underlying WebGL context from the Three.js renderer
@@ -339,15 +361,10 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
               gl.shadowMap.enabled = true;
               gl.shadowMap.type = 2;
               
-              if (onSceneRefresh) {
-                setTimeout(() => {
-                  try {
-                    onSceneRefresh();
-                  } catch (refreshError) {
-                    console.warn('⚠️ Failed to refresh scene after context restore:', refreshError);
-                  }
-                }, 100);
-              }
+              // Use throttled refresh to prevent loops
+              setTimeout(() => {
+                throttledRefresh('fallback-context-restore');
+              }, 100);
             };
             
             canvas.addEventListener('webglcontextlost', handleContextLost, false);
@@ -359,17 +376,10 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
             console.error('🚨 Custom WebGL context loss detected!');
             console.log('🔄 Triggering emergency scene refresh to reload meshes');
             
-            // Immediate scene refresh when context loss is detected
-            if (onSceneRefresh) {
-              setTimeout(() => {
-                try {
-                  onSceneRefresh();
-                  console.log('✅ Emergency scene refresh completed');
-                } catch (refreshError) {
-                  console.error('❌ Emergency scene refresh failed:', refreshError);
-                }
-              }, 50);
-            }
+            // Use throttled refresh to prevent loops
+            setTimeout(() => {
+              throttledRefresh('custom-context-loss');
+            }, 50);
           };
           
           window.addEventListener('webgl-context-lost', handleCustomContextLoss as EventListener);

@@ -74,24 +74,50 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
   // Only use instancing if there are multiple instances of the same model
   const shouldUseInstancing = Array.from(instanceGroups.values()).some(group => group.length > 1);
   
+  // CRITICAL FIX: Separate items into instanced vs individual rendering groups
+  // This prevents the double-rendering that causes WebGL context loss
+  const { instancedItems, individualItems } = useMemo(() => {
+    const instanced: typeof categoryItems = [];
+    const individual: typeof categoryItems = [];
+    
+    if (!shouldUseInstancing) {
+      // If no instancing needed, render all items individually  
+      individual.push(...categoryItems);
+    } else {
+      // If using instancing, separate items by whether their model appears multiple times
+      categoryItems.forEach(item => {
+        const model = item.model || '';
+        const groupItems = instanceGroups.get(model);
+        
+        if (groupItems && groupItems.length > 1) {
+          // This item belongs to a group that should be instanced
+          instanced.push(item);
+        } else {
+          // This item is unique and should be rendered individually
+          individual.push(item);
+        }
+      });
+    }
+    
+    return { instancedItems: instanced, individualItems: individual };
+  }, [categoryItems, instanceGroups, shouldUseInstancing]);
+  
   console.log('🔍 DEBUG: Instancing decision:', {
     instanceGroups: Array.from(instanceGroups.entries()).map(([model, group]) => ({ model, count: group.length })),
-    shouldUseInstancing
+    shouldUseInstancing,
+    instancedItemCount: instancedItems.length,
+    individualItemCount: individualItems.length
   });
   
-  console.log(`🏗️ CategoryRenderer "${categoryKey}":`, {
+  console.log(`🏢 CategoryRenderer "${categoryKey}" - FIXED DOUBLE RENDERING:`, {
     url: categoryUrl,
-    itemCount: categoryItems.length,
+    totalItems: categoryItems.length,
+    instancedItems: instancedItems.length,
+    individualItems: individualItems.length,
     uniqueModels: itemGroups.size,
     instanceGroupsCount: instanceGroups.size,
     useInstancing: shouldUseInstancing,
-    categoryItems: categoryItems.map(item => ({
-      id: item.id,
-      name: item.name,
-      model: item.model,
-      selectable: item.selectable,
-      position: item.transform?.position
-    }))
+    renderingStrategy: shouldUseInstancing ? 'MIXED (instanced + individual)' : 'INDIVIDUAL_ONLY'
   });
   
   if (categoryItems.length === 0) {
@@ -101,13 +127,13 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
   
   return (
     <group name={`category-${categoryKey}`}>
-      {shouldUseInstancing ? (
-        // Use instanced rendering for repeated objects
-        Array.from(instanceGroups.entries()).map(([model, groupItems], index) => {
+      {/* INSTANCED RENDERING: Only for models with multiple instances */}
+      {instancedItems.length > 0 && Array.from(instanceGroups.entries())
+        .filter(([_, groupItems]) => groupItems.length > 1) // Only render groups with multiple instances
+        .map(([model, groupItems], index) => {
           // Fix: Don't concatenate if categoryUrl is already a complete URL
           const glbUrl = categoryUrl.startsWith('http') ? categoryUrl : `${categoryUrl}${model}`;
-          console.log(`🎯 CategoryRenderer - categoryUrl: ${categoryUrl}`);
-          console.log(`🎯 CategoryRenderer - model: ${model}`);
+          console.log(`🎯 CategoryRenderer - INSTANCED: categoryUrl: ${categoryUrl}, model: ${model}`);
           console.log(`🎯 Attempting to load instanced GLB: ${glbUrl}`);
           
           // Get smart loading recommendations from GPU memory monitor
@@ -169,9 +195,12 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
             </Suspense>
           );
         })
-      ) : (
-        // Use individual rendering for unique objects
-        categoryItems.map((item) => (
+      }
+      
+      {/* INDIVIDUAL RENDERING: Only for unique models (no duplicates) */}
+      {individualItems.map((item) => {
+        console.log(`🎯 CategoryRenderer - INDIVIDUAL: rendering item ${item.id} with model ${item.model}`);
+        return (
           <Suspense 
             key={`${sceneId || 'unknown'}-${categoryKey}-${item.id}`} 
             fallback={
@@ -197,8 +226,8 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
               categoryKey={categoryKey}
             />
           </Suspense>
-        ))
-      )}
+        );
+      })}
     </group>
   );
 }
