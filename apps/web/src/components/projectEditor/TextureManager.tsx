@@ -322,6 +322,11 @@ const TextureManager: React.FC<TextureManagerProps> = ({
                       .trim();
                   }
                   
+                  // Safety check for URL
+                  if (!url || typeof url !== 'string') {
+                    return `${type.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} Texture`;
+                  }
+                  
                   // If it's a data URL (generated placeholder), create a friendly name
                   if (url.startsWith('data:')) {
                     return `${type.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} Texture`;

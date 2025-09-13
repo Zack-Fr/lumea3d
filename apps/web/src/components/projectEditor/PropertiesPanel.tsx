@@ -309,7 +309,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                 }
                 
                 // If it's a data URL or blob URL, return as is
-                if (texture.image.startsWith('data:') || texture.image.startsWith('blob:')) {
+                if (typeof texture.image === 'string' && (texture.image.startsWith('data:') || texture.image.startsWith('blob:'))) {
                   return { url: texture.image, name: textureName };
                 }
                 

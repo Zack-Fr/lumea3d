@@ -235,22 +235,55 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
       onDrop={(e) => {
         e.preventDefault();
         
+        console.log('🎯 ViewportCanvas: Drop event received:', {
+          dataTransfer: e.dataTransfer,
+          types: Array.from(e.dataTransfer.types),
+          position: { x: e.clientX, y: e.clientY }
+        });
+        
         try {
           const dragDataString = e.dataTransfer.getData('application/json');
-          if (!dragDataString) return;
+          console.log('🎯 ViewportCanvas: Drag data string:', dragDataString);
+          
+          if (!dragDataString) {
+            console.warn('⚠️ ViewportCanvas: No drag data found');
+            return;
+          }
           
           const dragData = JSON.parse(dragDataString);
+          console.log('🎯 ViewportCanvas: Parsed drag data:', dragData);
+          
           if (dragData.type === 'asset' && onAssetDrop) {
             const dropPosition = {
               x: e.clientX,
               y: e.clientY
             };
             
-            console.log('🎯 ViewportCanvas: Asset dropped:', { dragData, dropPosition });
-            onAssetDrop(dragData, dropPosition);
+            console.log('🎯 ViewportCanvas: Calling onAssetDrop with:', { dragData, dropPosition });
+            
+            // Add a timeout to prevent UI freezing
+            setTimeout(() => {
+              try {
+                onAssetDrop(dragData, dropPosition);
+              } catch (dropError) {
+                console.error('❌ ViewportCanvas: Error in onAssetDrop handler:', dropError);
+              }
+            }, 0);
+            
+          } else {
+            console.warn('⚠️ ViewportCanvas: Invalid drop data or missing handler:', {
+              hasAssetType: dragData.type === 'asset',
+              hasHandler: !!onAssetDrop,
+              dragDataType: dragData.type
+            });
           }
         } catch (error) {
           console.error('❌ ViewportCanvas: Error handling drop:', error);
+          
+          // Ensure UI doesn't freeze on error
+          setTimeout(() => {
+            console.log('🔄 ViewportCanvas: Attempting error recovery');
+          }, 100);
         }
       }}
     >

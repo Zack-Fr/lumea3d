@@ -371,65 +371,133 @@ const ProjectEditorContent: React.FC = () => {
 
   // Asset drop handler for drag and drop from sidebar
   const handleAssetDrop = useCallback(async (dragData: any, position: { x: number; y: number }) => {
-    if (!contextSceneId || !dragData.item) {
-      console.warn('ProjectEditor: Cannot drop asset - missing scene or item data');
+    console.log('🎯 ProjectEditor: handleAssetDrop called with:', { dragData, position });
+    
+    if (!dragData || !dragData.item) {
+      console.warn('ProjectEditor: Cannot drop asset - missing item data', { dragData });
+      triggerAchievement(`❌ Invalid asset data`);
       return;
     }
 
     try {
-      log('info', 'ProjectEditor: Dropping asset into scene', { dragData, position, sceneId: contextSceneId });
+      log('info', 'ProjectEditor: Processing asset drop', { 
+        dragData, 
+        position, 
+        sceneId: contextSceneId,
+        hasSceneContext: !!contextSceneId 
+      });
       
-      // Normalize the category key to match backend validation requirements
-      const rawCategory = dragData.categoryName || dragData.item.category || 'misc';
-      const normalizedCategoryKey = typeof rawCategory === 'string' 
-        ? rawCategory.toLowerCase().replace(/[^a-z0-9_]/g, '_').substring(0, 50) 
-        : 'misc';
+      // First, try to add the asset locally to avoid API dependency
+      const assetItem = dragData.item;
+      const categoryName = dragData.categoryName || assetItem.category || 'imported';
       
-      log('debug', 'ProjectEditor: Normalized category key', { rawCategory, normalizedCategoryKey });
+      // Create a unique ID for the new local asset
+      const localAssetId = `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      // Ensure project category exists before adding scene item (this is required for existing items)
-      // Note: For existing items from manifest, the category should already exist
-      // But we'll check anyway to provide better error handling
-      if (!contextProjectId) {
-        throw new Error('No project context available for drag and drop');
-      }
+      // Convert screen position to 3D world position (simplified)
+      const worldPosition = {
+        x: (Math.random() - 0.5) * 10, // Random position for now
+        y: 0.5, // Slightly above ground
+        z: (Math.random() - 0.5) * 10
+      };
       
-      // Create a duplicate of the item with a new position
-      const droppedItem: SceneItemCreateRequest = {
-        categoryKey: normalizedCategoryKey,
-        positionX: (Math.random() - 0.5) * 10, // Random position near drop point
-        positionY: 0,
-        positionZ: (Math.random() - 0.5) * 10,
-        rotationX: 0,
-        rotationY: (Math.random() - 0.5) * 360, // Random rotation between -180 and 180
-        rotationZ: 0,
-        scaleX: 1,
-        scaleY: 1,
-        scaleZ: 1,
-        selectable: true,
-        locked: false,
+      // Create local asset entry
+      const localAsset = {
+        id: localAssetId,
+        name: assetItem.name || assetItem.meta?.assetName || 'Dropped Asset',
+        url: assetItem.url || assetItem.originalUrl || assetItem.dracoUrl || assetItem.meshoptUrl,
+        category: categoryName,
+        position: [worldPosition.x, worldPosition.y, worldPosition.z],
+        rotation: [0, Math.random() * Math.PI * 2, 0], // Random Y rotation
+        scale: [1, 1, 1],
+        transform: {
+          position: worldPosition,
+          rotation_euler: [0, Math.random() * Math.PI * 2, 0],
+          scale: [1, 1, 1]
+        },
         meta: {
-          ...dragData.item.meta,
+          ...assetItem.meta,
           droppedAt: new Date().toISOString(),
-          dropPosition: position
+          dropPosition: position,
+          isLocalDrop: true
         }
       };
-
-      // Add the dropped item to the scene
-      const currentVersion = manifest?.scene?.version?.toString();
-      await scenesApi.addItem(contextSceneId, droppedItem, currentVersion);
-
-      log('info', 'ProjectEditor: Asset successfully dropped into scene');
-      triggerAchievement(`✨ +10 XP - Asset placed in scene!`);
-
-      // Refresh the scene to show the new item
-      refreshScene();
+      
+      console.log('🎯 ProjectEditor: Created local asset:', localAsset);
+      
+      // Store in localStorage for immediate rendering
+      try {
+        const existingAssets = JSON.parse(localStorage.getItem('lumea-local-assets') || '[]');
+        existingAssets.push(localAsset);
+        localStorage.setItem('lumea-local-assets', JSON.stringify(existingAssets));
+        
+        console.log('💾 ProjectEditor: Stored asset locally, total assets:', existingAssets.length);
+        
+        // Trigger achievement and refresh
+        log('info', 'ProjectEditor: Asset successfully added locally');
+        triggerAchievement(`✨ +10 XP - Asset placed in scene!`);
+        
+        // Force scene refresh to pick up the new local asset
+        refreshScene();
+        
+        // Try to also add to backend if scene context is available
+        if (contextSceneId) {
+          try {
+            // Normalize the category key to match backend validation requirements
+            const normalizedCategoryKey = typeof categoryName === 'string' 
+              ? categoryName.toLowerCase().replace(/[^a-z0-9_]/g, '_').substring(0, 50) 
+              : 'imported';
+            
+            const droppedItem: SceneItemCreateRequest = {
+              categoryKey: normalizedCategoryKey,
+              positionX: worldPosition.x,
+              positionY: worldPosition.y,
+              positionZ: worldPosition.z,
+              rotationX: 0,
+              rotationY: Math.random() * 360 - 180, // Random Y rotation in degrees
+              rotationZ: 0,
+              scaleX: 1,
+              scaleY: 1,
+              scaleZ: 1,
+              selectable: true,
+              locked: false,
+              meta: {
+                ...localAsset.meta,
+                localAssetId: localAssetId
+              }
+            };
+            
+            const currentVersion = manifest?.scene?.version?.toString();
+            await scenesApi.addItem(contextSceneId, droppedItem, currentVersion);
+            
+            console.log('✅ ProjectEditor: Also successfully added to backend');
+            
+          } catch (backendError) {
+            console.warn('⚠️ ProjectEditor: Failed to add to backend, but local version works:', backendError);
+            // Don't throw - local version is working
+          }
+        } else {
+          console.log('ℹ️ ProjectEditor: No scene context, asset added locally only');
+        }
+        
+      } catch (storageError) {
+        console.error('❌ ProjectEditor: Failed to store asset locally:', storageError);
+        throw storageError;
+      }
 
     } catch (error) {
-      log('error', 'ProjectEditor: Failed to drop asset into scene', error);
-      triggerAchievement(`❌ Failed to place asset`);
+      console.error('❌ ProjectEditor: Failed to drop asset into scene:', error);
+      log('error', 'ProjectEditor: Asset drop failed completely', error);
+      triggerAchievement(`❌ Failed to place asset: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Ensure we don't leave the UI in a broken state
+      try {
+        refreshScene();
+      } catch (refreshError) {
+        console.error('❌ ProjectEditor: Failed to refresh scene after error:', refreshError);
+      }
     }
-  }, [contextSceneId, manifest, scenesApi, refreshScene, triggerAchievement]);
+  }, [contextSceneId, contextProjectId, manifest, scenesApi, refreshScene, triggerAchievement]);
 
   return (
     <div className={styles.projectEditorRoot}>

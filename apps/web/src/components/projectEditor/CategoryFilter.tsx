@@ -214,7 +214,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
           placeholder="Search categories..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md bg-gray text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         {searchTerm && (
           <Button
@@ -234,14 +234,14 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
         <Select
           value={selectedMainCategory}
           onChange={(e) => setSelectedMainCategory(e.target.value as CategoryKey | 'all')}
-          className="w-full"
+          className="w-full bg-gray-100"
         >
-          <SelectItem value="all">All Categories</SelectItem>
+          <SelectItem value="all ">All Categories</SelectItem>
           {Object.entries(MESH_CATEGORIES).map(([key, config]) => {
             const count = categorizedAssets[key as CategoryKey]?.length || 0;
             return (
               <SelectItem key={key} value={key}>
-                {config.name} ({count})
+                {config.name} ({count}) 
               </SelectItem>
             );
           })}
