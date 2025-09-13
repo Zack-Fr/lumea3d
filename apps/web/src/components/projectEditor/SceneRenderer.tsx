@@ -1,5 +1,6 @@
 import React, { useMemo, Suspense, useCallback } from 'react';
 import { useGLTF } from '@react-three/drei';
+import * as THREE from 'three';
 import { useSceneContext } from '../../contexts/SceneContext';
 import { log } from '../../utils/logger';
 
@@ -159,10 +160,26 @@ const MeshItem: React.FC<MeshItemProps> = React.memo(({ item, categoryKey, isEna
     return [1, 1, 1] as [number, number, number];
   }, [item]);
   
+  // Add selection userData to the group for object picking
+  const userData = useMemo(() => ({
+    itemId: item.id || `${categoryKey}-${Math.random()}`,
+    category: categoryKey,
+    selectable: true,
+    locked: item.locked || false,
+    name: item.name || `Item ${item.id}`,
+    originalData: item
+  }), [item, categoryKey]);
+
   // Handle different loading states
   if (loadingState === 'loading') {
     return (
-      <group position={position} rotation={rotation} scale={scale}>
+      <group 
+        position={position} 
+        rotation={rotation} 
+        scale={scale}
+        userData={userData}
+        name={`loading-item-${userData.itemId}`}
+      >
         {/* Loading placeholder */}
         <mesh>
           <boxGeometry args={[1, 1, 1]} />
@@ -174,7 +191,13 @@ const MeshItem: React.FC<MeshItemProps> = React.memo(({ item, categoryKey, isEna
   
   if (loadingState === 'error' || !currentUrl || !gltf) {
     return (
-      <group position={position} rotation={rotation} scale={scale}>
+      <group 
+        position={position} 
+        rotation={rotation} 
+        scale={scale}
+        userData={userData}
+        name={`error-item-${userData.itemId}`}
+      >
         {/* Error placeholder */}
         <mesh>
           <boxGeometry args={[1, 0.1, 1]} />
@@ -185,6 +208,38 @@ const MeshItem: React.FC<MeshItemProps> = React.memo(({ item, categoryKey, isEna
     );
   }
 
+  // Clone the scene and apply userData to all mesh children
+  const clonedScene = useMemo(() => {
+    if (!gltf?.scene) return null;
+    
+    const cloned = gltf.scene.clone(true);
+    
+    // Apply userData to all mesh children for selection
+    cloned.traverse((child: THREE.Object3D) => {
+      if (child.type === 'Mesh') {
+        // Set name for debugging
+        if (!child.name) {
+          child.name = `${item.name || 'imported-mesh'}-${Math.random().toString(36).substr(2, 9)}`;
+        }
+        
+        // Apply complete userData for selection system
+        child.userData = {
+          ...userData,
+          originalName: child.name,
+          isImportedMesh: true
+        };
+        
+        log('debug', `Applied userData to mesh: ${child.name}`, {
+          userData: child.userData,
+          position: child.position.toArray(),
+          visible: child.visible
+        });
+      }
+    });
+    
+    return cloned;
+  }, [gltf?.scene, userData, item.name]);
+
   log('debug', `Rendering mesh item: ${item.name || item.id}`, {
     categoryKey,
     position,
@@ -192,12 +247,23 @@ const MeshItem: React.FC<MeshItemProps> = React.memo(({ item, categoryKey, isEna
     scale,
     url: currentUrl?.url,
     format: currentUrl?.type,
-    state: loadingState
+    state: loadingState,
+    hasClonedScene: !!clonedScene
   });
 
+  if (!clonedScene) {
+    return null;
+  }
+
   return (
-    <group position={position} rotation={rotation} scale={scale}>
-      <primitive object={gltf.scene.clone()} />
+    <group 
+      position={position} 
+      rotation={rotation} 
+      scale={scale}
+      userData={userData}
+      name={`scene-item-${userData.itemId}`}
+    >
+      <primitive object={clonedScene} />
     </group>
   );
 });
@@ -343,6 +409,18 @@ const SceneRenderer: React.FC = React.memo(() => {
   }
 
   log('info', `SceneRenderer: Rendering ${allRenderableItems.filter(item => item.isEnabled).length} enabled items`);
+  
+  console.log('🔍 DEBUG: components/projectEditor/SceneRenderer - ALL RENDERABLE ITEMS:');
+  allRenderableItems.forEach((renderableItem, index) => {
+    console.log(`🔍 Item ${index}:`, {
+      id: renderableItem.item.id,
+      name: renderableItem.item.name,
+      categoryKey: renderableItem.categoryKey,
+      isEnabled: renderableItem.isEnabled,
+      isLocal: renderableItem.item.isLocal,
+      url: renderableItem.item.url
+    });
+  });
 
   return (
     <group>

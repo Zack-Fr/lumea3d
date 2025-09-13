@@ -1,7 +1,6 @@
 import { Suspense, useMemo } from 'react';
 import type { SceneItem, CategoryInfo } from '../../services/scenesApi';
-import { SceneItem as SceneItemComponent } from './SceneItem';
-import { InstancedObject, useInstancedRenderer } from './InstancedRenderer';
+import { useInstancedRenderer } from './InstancedRenderer';
 import { pickCategoryUrl } from './useSceneAssets';
 import { SafeInstancedObject } from './SafeInstancedObject';
 import { SafeSceneItem } from './SafeSceneItem';
@@ -26,7 +25,18 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
           const itemCategory = typeof item.category === 'string' ? item.category : (item.category as any)?.categoryKey || '';
           return itemCategory === categoryKey;
         }).map((item) => (
-          <mesh key={item.id} position={item.transform?.position || [0, 0, 0]}>
+          <mesh 
+            key={item.id} 
+            name={`fallback-${item.id}`}
+            position={item.transform?.position || [0, 0, 0]}
+            userData={{
+              itemId: item.id,
+              category: categoryKey,
+              selectable: item.selectable ?? true,
+              locked: item.locked ?? false,
+              meta: item.meta
+            }}
+          >
             <boxGeometry args={[1, 1, 1]} />
             <meshBasicMaterial color="red" wireframe />
           </mesh>
@@ -60,14 +70,27 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
 
   // Determine which models should use instancing (more than 1 instance)
   const { instanceGroups } = useInstancedRenderer(categoryItems, categoryUrl);
-  const shouldUseInstancing = instanceGroups.size > 0;
+  // Only use instancing if there are multiple instances of the same model
+  const shouldUseInstancing = Array.from(instanceGroups.values()).some(group => group.length > 1);
+  
+  console.log('🔍 DEBUG: Instancing decision:', {
+    instanceGroups: Array.from(instanceGroups.entries()).map(([model, group]) => ({ model, count: group.length })),
+    shouldUseInstancing
+  });
   
   console.log(`🏗️ CategoryRenderer "${categoryKey}":`, {
     url: categoryUrl,
     itemCount: categoryItems.length,
     uniqueModels: itemGroups.size,
     instanceGroupsCount: instanceGroups.size,
-    useInstancing: shouldUseInstancing
+    useInstancing: shouldUseInstancing,
+    categoryItems: categoryItems.map(item => ({
+      id: item.id,
+      name: item.name,
+      model: item.model,
+      selectable: item.selectable,
+      position: item.transform?.position
+    }))
   });
   
   if (categoryItems.length === 0) {
@@ -92,7 +115,18 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
               fallback={
                 <group>
                   {groupItems.map((item: any) => (
-                    <mesh key={item.id} position={item.transform?.position || [0, 0, 0]}>
+                    <mesh 
+                      key={item.id} 
+                      name={`instanced-fallback-${item.id}`}
+                      position={item.transform?.position || [0, 0, 0]}
+                      userData={{
+                        itemId: item.id,
+                        category: categoryKey,
+                        selectable: item.selectable ?? true,
+                        locked: item.locked ?? false,
+                        meta: item.meta
+                      }}
+                    >
                       <boxGeometry args={[1, 1, 1]} />
                       <meshBasicMaterial color="yellow" wireframe />
                     </mesh>
@@ -108,6 +142,7 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
                   rotation: item.transform?.rotation_euler || [0, 0, 0],
                   scale: item.transform?.scale || [1, 1, 1]
                 }))}
+                categoryKey={categoryKey}
                 frustumCulling={true}
                 maxInstances={1000}
                 fallbackColor="orange"
@@ -121,7 +156,17 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
           <Suspense 
             key={`${sceneId || 'unknown'}-${categoryKey}-${item.id}`} 
             fallback={
-              <mesh position={item.transform?.position || [0, 0, 0]}>
+              <mesh 
+                name={`item-fallback-${item.id}`}
+                position={item.transform?.position || [0, 0, 0]}
+                userData={{
+                  itemId: item.id,
+                  category: categoryKey,
+                  selectable: item.selectable ?? true,
+                  locked: item.locked ?? false,
+                  meta: item.meta
+                }}
+              >
                 <boxGeometry args={[1, 1, 1]} />
                 <meshBasicMaterial color="blue" wireframe />
               </mesh>

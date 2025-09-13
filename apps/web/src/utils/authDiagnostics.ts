@@ -145,7 +145,7 @@ export async function runAuthDiagnostics(projectId: string): Promise<AuthDiagnos
     console.log('🌐 Request without auth:', results.networkTest.withoutAuth);
   } catch (error) {
     console.error('❌ Network test without auth failed:', error);
-    results.networkTest.withoutAuth.message = error.message;
+    results.networkTest.withoutAuth.message = error instanceof Error ? error.message : String(error);
   }
 
   // Test with auth
@@ -179,7 +179,7 @@ export async function runAuthDiagnostics(projectId: string): Promise<AuthDiagnos
 
     } catch (error) {
       console.error('❌ Network test with auth failed:', error);
-      results.networkTest.withAuth.message = error.message;
+      results.networkTest.withAuth.message = error instanceof Error ? error.message : String(error);
     }
   }
 

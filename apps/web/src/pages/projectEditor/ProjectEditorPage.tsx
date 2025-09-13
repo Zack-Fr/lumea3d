@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { once as logOnce, log } from '../../utils/logger';
 import { useNavigate } from 'react-router-dom';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import styles from './ProjectEditor.module.css';
 
 // Custom Hooks
@@ -11,11 +12,11 @@ import { useProjectEditorSettings } from '../../hooks/projectEditor/useProjectEd
 
 // Atomic Components
 import TopBar from '../../components/projectEditor/TopBar';
-import LeftSidebar from '../../components/projectEditor/LeftSidebar';
+import TabbedLeftPanel from '../../components/projectEditor/TabbedLeftPanel';
+import TabbedRightPanel from '../../components/projectEditor/TabbedRightPanel';
 import ViewportCanvas from '../../components/projectEditor/ViewportCanvas';
 import ViewportTools from '../../components/projectEditor/ViewportTools';
 import ViewportSettings from '../../components/projectEditor/ViewportSettings';
-import PropertiesPanel from '../../components/projectEditor/PropertiesPanel';
 import GamificationOverlay from '../../components/projectEditor/GamificationOverlay';
 import Achievement from '../../components/projectEditor/Achievement';
 
@@ -24,6 +25,9 @@ import { AssetImportModal } from '../../features/scenes/AssetImportModal';
 
 // Scene Context
 import { SceneProvider, useSceneContext, useSceneParams } from '../../contexts/SceneContext';
+
+// Selection Context  
+import { SelectionProvider } from '../../features/scenes/SelectionContext';
 
 // Auth Context
 import { useAuth } from '../../providers/AuthProvider';
@@ -47,7 +51,9 @@ const ProjectEditorPage: React.FC = () => {
       defaultProjectId={projectId || undefined} 
       defaultSceneId={sceneId || undefined}
     >
-      <ProjectEditorContent />
+      <SelectionProvider>
+        <ProjectEditorContent />
+      </SelectionProvider>
     </SceneProvider>
   );
 };
@@ -104,8 +110,23 @@ const ProjectEditorContent: React.FC = () => {
   // Asset Import Modal State
   const [isAssetImportModalOpen, setIsAssetImportModalOpen] = useState(false);
 
-  // Selection state for properties panel
+  // Selection state for properties panel  
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  
+  // Update selectedItemId when selection changes in the SelectionContext
+  // This will be handled by the SelectionProvider wrapper
+
+  // Camera controls state
+  const [cameraMinDistance, setCameraMinDistance] = useState(0.1);
+  const [cameraMaxDistance, setCameraMaxDistance] = useState(500);
+  const [cameraMoveSpeed, setCameraMoveSpeed] = useState(5);
+  const [enablePan, setEnablePan] = useState(true);
+  const [enableZoom, setEnableZoom] = useState(true);
+  const [enableRotate, setEnableRotate] = useState(true);
+  
+  // Clipping plane state
+  const [cameraNearClip, setCameraNearClip] = useState(0.01);
+  const [cameraFarClip, setCameraFarClip] = useState(2000);
 
   // Custom Hooks
   const {
@@ -198,6 +219,11 @@ const ProjectEditorContent: React.FC = () => {
   const handleAssetImportComplete = useCallback(async (assetId: string, assetName: string, category: string) => {
     logOnce('projecteditor:asset-imported', 'info', '✅ ProjectEditor: Asset imported');
     log('debug', 'ProjectEditor: Asset imported id', assetId);
+    console.log('🔍 DEBUG: handleAssetImportComplete called with:', { assetId, assetName, category });
+    
+    // Check if this is a local fallback asset
+    const isLocalAsset = assetId.startsWith('local-');
+    console.log('🔍 DEBUG: Asset type:', isLocalAsset ? 'LOCAL FALLBACK (blob URL)' : 'NORMAL API ASSET');
     triggerAchievement('🎯 +20 XP - New 3D asset imported!');
 
     // Add the imported asset to the current scene if we have a sceneId
@@ -274,7 +300,9 @@ const ProjectEditorContent: React.FC = () => {
 
         // Add item to scene
         log('info', 'ProjectEditor: Adding scene item', { sceneItem, sceneId: contextSceneId });
+        console.log('🔍 DEBUG: Scene item being added:', JSON.stringify(sceneItem, null, 2));
         const currentVersion = manifest?.scene?.version?.toString();
+        console.log('🔍 DEBUG: Adding to scene via scenesApi.addItem...');
         await scenesApi.addItem(contextSceneId, sceneItem, currentVersion);
 
         log('info', 'ProjectEditor: Asset successfully added to scene');
@@ -302,6 +330,44 @@ const ProjectEditorContent: React.FC = () => {
       triggerAchievement('🎮 Viewport Activated! Use WASD to navigate');
     }
   }, [handleViewportClick, isWASDActive, triggerAchievement]);
+
+  // Camera controls handlers
+  const handleZoomLimitsChange = useCallback((min: number, max: number) => {
+    setCameraMinDistance(min);
+    setCameraMaxDistance(max);
+  }, []);
+
+  const handleMoveSpeedChange = useCallback((speed: number) => {
+    setCameraMoveSpeed(speed);
+  }, []);
+
+  const handleCameraPreset = useCallback((preset: string) => {
+    // TODO: Implement camera presets using SmoothCameraTransitions
+    console.log('Camera preset activated:', preset);
+    triggerAchievement(`🎥 Camera preset: ${preset}`);
+  }, [triggerAchievement]);
+
+  const handleControlsToggle = useCallback((control: string, enabled: boolean) => {
+    switch (control) {
+      case 'pan':
+        setEnablePan(enabled);
+        break;
+      case 'zoom':
+        setEnableZoom(enabled);
+        break;
+      case 'rotate':
+        setEnableRotate(enabled);
+        break;
+    }
+    triggerAchievement(`🎮 ${control} ${enabled ? 'enabled' : 'disabled'}`);
+  }, [triggerAchievement]);
+  
+  // Clipping plane change callback
+  const handleClippingChange = useCallback((near: number, far: number) => {
+    setCameraNearClip(near);
+    setCameraFarClip(far);
+    triggerAchievement(`🎥 Clipping planes: ${near.toFixed(3)} - ${far.toFixed(0)}`);
+  }, [triggerAchievement]);
 
   // Asset drop handler for drag and drop from sidebar
   const handleAssetDrop = useCallback(async (dragData: any, position: { x: number; y: number }) => {
@@ -398,52 +464,118 @@ const ProjectEditorContent: React.FC = () => {
         onAIAssist={handleAIAssist}
       />
 
-      {/* Main Layout */}
+      {/* Main Layout with Resizable Panels */}
       <div className={styles.projectEditorLayout}>
-        {/* Left Sidebar */}
-        <LeftSidebar
-          assetCategories={assetCategories}
-          selectedTool={selectedTool}
-          onToolChange={setSelectedTool}
-          selectedAsset={selectedAsset}
-          onAssetSelect={handleAssetSelect}
-          onAssetAdd={handleAssetAdd}
-          onImportAsset={handleImportAsset}
-          selectedItemId={selectedItemId}
-          onItemSelect={setSelectedItemId}
-        />
+        <PanelGroup direction="horizontal" className={styles.resizablePanelGroup}>
+          {/* Left Assets Panel */}
+          <Panel defaultSize={25} minSize={15} maxSize={35} className={styles.leftPanelContainer}>
+            <TabbedLeftPanel
+              // Asset props
+              assetCategories={assetCategories}
+              selectedTool={selectedTool}
+              onToolChange={setSelectedTool}
+              selectedAsset={selectedAsset}
+              onAssetSelect={handleAssetSelect}
+              onAssetAdd={handleAssetAdd}
+              onImportAsset={handleImportAsset}
+              
+              // Properties panel props (not used but kept for compatibility)
+              selectedItemId={selectedItemId}
+              onItemSelect={setSelectedItemId}
+              showProperties={showProperties}
+              onPropertiesClose={() => setShowProperties(false)}
+              
+              // Camera controls props (not used but kept for compatibility)
+              cameraMode={cameraMode}
+              onCameraModeChange={handleCameraModeChange}
+              minDistance={cameraMinDistance}
+              maxDistance={cameraMaxDistance}
+              moveSpeed={cameraMoveSpeed}
+              onZoomLimitsChange={handleZoomLimitsChange}
+              onMoveSpeedChange={handleMoveSpeedChange}
+              onCameraPreset={handleCameraPreset}
+              enablePan={enablePan}
+              enableZoom={enableZoom}
+              enableRotate={enableRotate}
+              onControlsToggle={handleControlsToggle}
+            />
+          </Panel>
 
-        {/* Main Viewport Area */}
-        <main className={styles.mainViewportArea}>
-          {/* Viewport Canvas */}
-          <ViewportCanvas
-            viewportRef={viewportRef}
-            isWASDActive={isWASDActive}
-            movement={movement}
-            onViewportClick={handleViewportClickWithAchievement}
-            cameraMode={cameraMode}
-            onAssetDrop={handleAssetDrop}
-          />
+          {/* Left Panel Resize Handle */}
+          <PanelResizeHandle className={styles.panelResizeHandle} />
 
-          {/* Viewport Tools */}
-          <ViewportTools />
+          {/* Main Viewport Area */}
+          <Panel className={styles.mainViewportPanelContainer}>
+            <main className={styles.mainViewportArea}>
+              {/* Viewport Canvas */}
+              <ViewportCanvas
+                viewportRef={viewportRef}
+                isWASDActive={isWASDActive}
+                movement={movement}
+                onViewportClick={handleViewportClickWithAchievement}
+                cameraMode={cameraMode}
+                onAssetDrop={handleAssetDrop}
+                onSelectionChange={setSelectedItemId}
+                // Camera control props
+                minDistance={cameraMinDistance}
+                maxDistance={cameraMaxDistance}
+                moveSpeed={cameraMoveSpeed}
+                enablePan={enablePan}
+                enableZoom={enableZoom}
+                enableRotate={enableRotate}
+                // Clipping plane props
+                nearClip={cameraNearClip}
+                farClip={cameraFarClip}
+              />
 
-          {/* Viewport Settings */}
-          <ViewportSettings
-            cameraMode={cameraMode}
-            renderMode="realistic"
-          />
-        </main>
+              {/* Viewport Tools */}
+              <ViewportTools />
 
-        {/* Right Properties Panel */}
-        {showProperties && (
-          <PropertiesPanel
-            show={showProperties}
-            onClose={() => setShowProperties(false)}
-            sceneId={contextSceneId || undefined}
-            selectedItemId={selectedItemId || undefined}
-          />
-        )}
+              {/* Viewport Settings */}
+              <ViewportSettings
+                cameraMode={cameraMode}
+                renderMode="realistic"
+              />
+            </main>
+          </Panel>
+
+          {/* Right Panel Resize Handle (only when properties panel is visible) */}
+          {showProperties && (
+            <>
+              <PanelResizeHandle className={styles.panelResizeHandle} />
+              
+              {/* Right Tabbed Panel (Properties + Camera) */}
+              <Panel defaultSize={25} minSize={20} maxSize={40} className={styles.rightPanelContainer}>
+                <TabbedRightPanel
+                  show={showProperties}
+                  onClose={() => setShowProperties(false)}
+                  
+                  // Properties panel props
+                  sceneId={contextSceneId || undefined}
+                  selectedItemId={selectedItemId || undefined}
+                  
+                  // Camera controls props
+                  cameraMode={cameraMode}
+                  onCameraModeChange={handleCameraModeChange}
+                  minDistance={cameraMinDistance}
+                  maxDistance={cameraMaxDistance}
+                  moveSpeed={cameraMoveSpeed}
+                  onZoomLimitsChange={handleZoomLimitsChange}
+                  onMoveSpeedChange={handleMoveSpeedChange}
+                  onCameraPreset={handleCameraPreset}
+                  enablePan={enablePan}
+                  enableZoom={enableZoom}
+                  enableRotate={enableRotate}
+                  onControlsToggle={handleControlsToggle}
+                  // Clipping plane props
+                  nearClip={cameraNearClip}
+                  farClip={cameraFarClip}
+                  onClippingChange={handleClippingChange}
+                />
+              </Panel>
+            </>
+          )}
+        </PanelGroup>
       </div>
 
       {/* Asset Import Modal */}

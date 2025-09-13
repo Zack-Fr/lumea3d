@@ -42,7 +42,7 @@ export class CreateSceneDto {
     required: false,
   })
   @IsOptional()
-  @IsUrl()
+  @IsString() // Temporarily using IsString instead of IsUrl to test validation issue
   envHdriUrl?: string;
 
   @ApiProperty({

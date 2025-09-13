@@ -9,7 +9,7 @@ interface TransformGizmosProps {
 }
 
 export function TransformGizmos({ enabled }: TransformGizmosProps) {
-  const { camera, gl } = useThree();
+  const { camera } = useThree();
   const { selection, setIsTransforming, updateObjectTransform } = useSelection();
   const transformRef = useRef<any>(null);
 
@@ -17,48 +17,73 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
 
   // Update gizmo mode and attach event listeners
   useEffect(() => {
-    if (transformRef.current) {
-      transformRef.current.setMode(selection.transformMode);
+    const controls = transformRef.current;
+    if (!controls) return;
+
+    // Always detach first to prevent "not part of scene graph" errors
+    try {
+      controls.detach();
+      log('debug', '🔧 Transform controls detached');
+    } catch (error) {
+      // Ignore detach errors - object might already be detached
+    }
+
+    if (selectedObject) {
+      // Set the correct mode
+      controls.setMode(selection.transformMode);
+      log('debug', `🔧 Transform mode set to: ${selection.transformMode}`);
       
-      // Attach event listeners
-      const controls = transformRef.current;
+      try {
+        // Verify object is still part of scene graph before attaching
+        if (!selectedObject.parent) {
+          log('warn', '⚠️ Cannot attach transform controls: object not in scene graph');
+          return;
+        }
+        
+        // Attach object to transform controls
+        controls.attach(selectedObject);
+        log('debug', '🔧 Transform controls attached to:', selectedObject.name || selectedObject.uuid);
+      } catch (error) {
+        log('error', '❌ Failed to attach transform controls:', error);
+        return;
+      }
       
-      controls.addEventListener('dragging-changed', (event: any) => {
+      const handleDragChanged = (event: any) => {
         if (event.value) {
           handleDragStart();
         } else {
           handleDragEnd();
         }
-      });
+      };
       
+      controls.addEventListener('dragging-changed', handleDragChanged);
       controls.addEventListener('objectChange', handleObjectChange);
       
       return () => {
-        controls.removeEventListener('dragging-changed', () => {});
+        controls.removeEventListener('dragging-changed', handleDragChanged);
         controls.removeEventListener('objectChange', handleObjectChange);
+        // Detach on cleanup
+        try {
+          controls.detach();
+          log('debug', '🔧 Transform controls detached on cleanup');
+        } catch (error) {
+          // Ignore detach errors during cleanup
+        }
       };
     }
   }, [selection.transformMode, selectedObject]);
 
   // Handle transform start/end events
   const handleDragStart = () => {
+    console.log('🔧 Transform drag started for object:', selectedObject?.name || selectedObject?.uuid);
     log('debug', '🔧 Transform drag started');
     setIsTransforming(true);
-    
-    // Disable camera controls during transformation
-    if (gl.domElement) {
-      gl.domElement.style.cursor = 'grabbing';
-    }
   };
 
   const handleDragEnd = () => {
+    console.log('🔧 Transform drag ended for object:', selectedObject?.name || selectedObject?.uuid);
     log('debug', '🔧 Transform drag ended');
     setIsTransforming(false);
-    
-    // Re-enable camera controls
-    if (gl.domElement) {
-      gl.domElement.style.cursor = 'default';
-    }
 
     // Update the transform in our state
     if (selectedObject) {
