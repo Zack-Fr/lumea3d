@@ -196,6 +196,600 @@
   padding: 0;
 }
 
+/* Texture Manager Styles */
+.textureManager {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.textureManagerOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.textureManagerPanel {
+  position: relative;
+  width: 90%;
+  max-width: 1000px;
+  height: 80%;
+  max-height: 700px;
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(20px);
+  border-radius: 1rem;
+  border: 1px solid var(--glass-border-glow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.textureManagerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: between;
+  padding: 1rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.textureManagerTitle {
+  display: flex;
+  align-items: center;
+  color: var(--glass-white);
+  font-size: 1.125rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+.textureManagerSubtitle {
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--glass-gray);
+  font-weight: 400;
+}
+
+.textureManagerClose {
+  margin-left: auto;
+}
+
+/* Current Texture Display */
+.currentTextureSection {
+  background: var(--glass-bg-input);
+  border: 1px solid var(--glass-border);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin: 0 1rem;
+}
+
+.currentTextureHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.currentTextureLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--glass-white);
+}
+
+.currentTextureClear {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  border-radius: 0.25rem;
+  padding: 0.25rem;
+  color: var(--glass-gray);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.currentTextureClear:hover {
+  background: var(--glass-bg-secondary);
+  color: var(--glass-white);
+}
+
+.currentTexturePreview {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.currentTextureImage {
+  width: 3rem;
+  height: 3rem;
+  object-fit: cover;
+  border-radius: 0.375rem;
+  border: 1px solid var(--glass-border);
+}
+
+.currentTextureInfo {
+  flex: 1;
+}
+
+.currentTextureName {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--glass-white);
+  margin-bottom: 0.25rem;
+}
+
+.currentTextureType {
+  font-size: 0.75rem;
+  color: var(--glass-gray);
+}
+
+.textureManagerControls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.textureManagerSearch {
+  position: relative;
+  flex: 1;
+}
+
+.textureManagerSearch svg {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.textureSearchInput {
+  width: 100%;
+  padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+  background: var(--glass-bg-input);
+  border: 1px solid var(--glass-border);
+  border-radius: 0.375rem;
+  color: var(--glass-white);
+  font-size: 0.875rem;
+}
+
+.textureSearchInput:focus {
+  outline: none;
+  border-color: var(--glass-border-glow);
+}
+
+.textureManagerFilters {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.textureFilterSelect {
+  padding: 0.5rem;
+  background: var(--glass-bg-input);
+  border: 1px solid var(--glass-border);
+  border-radius: 0.375rem;
+  color: var(--glass-white);
+  font-size: 0.875rem;
+  min-width: 140px;
+}
+
+.textureViewToggle {
+  display: flex;
+  border: 1px solid var(--glass-border);
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+
+.textureViewButton {
+  padding: 0.5rem;
+  background: var(--glass-bg-input);
+  border: none;
+  color: var(--glass-gray);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.textureViewButton:hover {
+  color: var(--glass-white);
+}
+
+.textureViewButtonActive {
+  background: var(--glass-border-glow);
+  color: var(--glass-white);
+}
+
+.textureManagerActions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.textureCustomInput {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1rem 0.75rem;
+}
+
+.textureUrlInput {
+  flex: 1;
+  padding: 0.5rem;
+  background: var(--glass-bg-input);
+  border: 1px solid var(--glass-border);
+  border-radius: 0.375rem;
+  color: var(--glass-white);
+  font-size: 0.875rem;
+}
+
+.textureUrlInput:focus {
+  outline: none;
+  border-color: var(--glass-border-glow);
+}
+
+.textureManagerContent {
+  flex: 1;
+  padding: 1rem;
+}
+
+.textureGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+}
+
+.textureList {
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+.texturePreview {
+  background: var(--glass-bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.texturePreview:hover {
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+}
+
+.texturePreviewSelected {
+  border-color: var(--glass-border-glow);
+  box-shadow: 0 0 10px var(--glass-border-glow);
+}
+
+.texturePreviewImage {
+  aspect-ratio: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.textureImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.3s;
+  opacity: 0;
+}
+
+.textureImageLoaded {
+  opacity: 1;
+}
+
+.texturePreviewPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-bg-input);
+}
+
+.texturePreviewLoading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.texturePreviewOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.texturePreview:hover .texturePreviewOverlay {
+  opacity: 1;
+}
+
+.texturePreviewAction {
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: 0.25rem;
+  padding: 0.25rem;
+  color: var(--glass-white);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.texturePreviewAction:hover {
+  background: var(--glass-border-glow);
+}
+
+.texturePreviewInfo {
+  padding: 0.5rem;
+}
+
+.texturePreviewName {
+  font-size: 0.75rem;
+  color: var(--glass-white);
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.texturePreviewMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.625rem;
+  color: var(--glass-gray);
+}
+
+.textureFormat {
+  background: var(--glass-bg-input);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+}
+
+.textureDimensions {
+  font-family: monospace;
+}
+
+.textureSelectedIndicator {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: var(--glass-border-glow);
+  border-radius: 50%;
+  width: 1.25rem;
+  height: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--glass-white);
+}
+
+.textureEmptyState {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--glass-gray);
+}
+
+.textureManagerFooter {
+  padding: 1rem;
+  border-top: 1px solid var(--glass-border);
+}
+
+.textureError {
+  display: flex;
+  align-items: center;
+  color: #ff6b6b;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.textureSelectedInfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.textureSelectedDetails {
+  flex: 1;
+}
+
+.textureSelectedDetails strong {
+  display: block;
+  color: var(--glass-white);
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+.textureSelectedMeta {
+  font-size: 0.75rem;
+  color: var(--glass-gray);
+  font-family: monospace;
+}
+
+/* Texture Map Grid */
+.textureMapGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.textureMapButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  background: var(--glass-bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 0.375rem;
+  color: var(--glass-white);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.textureMapButton:hover:not(:disabled) {
+  background: var(--glass-bg-input);
+  border-color: var(--glass-border-glow);
+  transform: translateY(-1px);
+}
+
+.textureMapButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.textureMapButton span {
+  font-weight: 500;
+}
+
+.textureMapButtonWithTexture {
+  position: relative;
+  padding-left: 2.5rem;
+}
+
+.textureMapThumbnail {
+  position: absolute;
+  left: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-input);
+}
+
+.textureMapThumbnailImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Material Slots */
+.materialSlots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.materialSlot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  border: 2px solid var(--glass-border);
+  background: var(--glass-bg-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 4rem;
+  position: relative;
+}
+
+.materialSlot:hover {
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.materialSlotSelected {
+  border-color: var(--glass-border-glow);
+  background: var(--glass-bg-strong);
+  box-shadow: 0 0 10px var(--glass-border-glow);
+}
+
+.materialSlotImage {
+  width: 2rem;
+  height: 2rem;
+  object-fit: cover;
+  border-radius: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.materialSlotColor {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.25rem;
+  margin-bottom: 0.25rem;
+  border: 1px solid var(--glass-border);
+}
+
+.materialSlotName {
+  font-size: 0.625rem;
+  color: var(--glass-white);
+  font-weight: 500;
+  text-align: center;
+  max-width: 3rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.noMaterials {
+  color: var(--glass-gray);
+  font-size: 0.75rem;
+  padding: 1rem;
+  text-align: center;
+  width: 100%;
+}
+
+.resetMaterialButton {
+  width: 100%;
+  padding: 0.5rem;
+  background: var(--glass-bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 0.375rem;
+  color: var(--glass-white);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.resetMaterialButton:hover:not(:disabled) {
+  background: var(--glass-bg-input);
+  border-color: var(--glass-border-glow);
+  transform: translateY(-1px);
+}
+
+.resetMaterialButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Top Bar */
 .topBar {
   background: var(--glass-bg-primary);

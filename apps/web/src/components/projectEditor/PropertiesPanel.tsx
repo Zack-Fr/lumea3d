@@ -8,8 +8,11 @@ import {
   Palette,
   Lightbulb,
   Eye,
-  Ruler
+  Ruler,
+  Image as ImageIcon
 } from "lucide-react";
+import TextureManager from './TextureManager';
+import textureManager, { TextureMapType } from '../../utils/textureManager';
 import ScaleUnitSystem, { ScaleUnit } from './ScaleUnitSystem';
 import HdrEnvironmentUpload from './HdrEnvironmentUpload';
 import LightCreation from './LightCreation';
@@ -117,6 +120,30 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   const [localEmission, setLocalEmission] = useState<number>(0);
   const [localColor, setLocalColor] = useState<string>('#ffffff');
   
+  // Current textures for thumbnails - store both URL and name
+  const [currentTextures, setCurrentTextures] = useState<{
+    baseColor?: { url: string; name?: string };
+    normal?: { url: string; name?: string };
+    metallicRoughness?: { url: string; name?: string };
+    emissive?: { url: string; name?: string };
+    occlusion?: { url: string; name?: string };
+    opacity?: { url: string; name?: string };
+  }>({});
+  
+  // Material slots state
+  const [availableMaterials, setAvailableMaterials] = useState<{
+    name: string;
+    index: number;
+    material: THREE.Material;
+    baseColorTexture?: string;
+    baseColor?: string;
+  }[]>([]);
+  const [selectedMaterialIndex, setSelectedMaterialIndex] = useState<number>(0);
+  
+  // Texture manager state
+  const [showTextureManager, setShowTextureManager] = useState(false);
+  const [currentTextureType, setCurrentTextureType] = useState<TextureMapType>('baseColor');
+  
   // Sync local material states with selected item (without causing re-renders)
   useEffect(() => {
     if (selectedItem?.material) {
@@ -216,6 +243,298 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     });
     
     return extractedMaterial;
+  }, []);
+  
+  // Helper function to extract current texture URLs from a Three.js object
+  const extractCurrentTextures = useCallback((object: THREE.Object3D) => {
+    const textures = {
+      baseColor: undefined as { url: string; name?: string } | undefined,
+      normal: undefined as { url: string; name?: string } | undefined,
+      metallicRoughness: undefined as { url: string; name?: string } | undefined,
+      emissive: undefined as { url: string; name?: string } | undefined,
+      occlusion: undefined as { url: string; name?: string } | undefined,
+      opacity: undefined as { url: string; name?: string } | undefined,
+    };
+    
+    // Find the first material with textures in the object hierarchy
+    object.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.material && !textures.baseColor) {
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        
+        for (const material of materials) {
+          if (material instanceof THREE.MeshStandardMaterial || material instanceof THREE.MeshPhysicalMaterial) {
+            const stdMat = material as THREE.MeshStandardMaterial;
+            
+            // Extract texture URLs and names from the material with multiple fallback methods
+            const getTextureData = (texture: THREE.Texture | null): { url: string; name?: string } | undefined => {
+              if (!texture) return undefined;
+              
+              const textureName = texture.name || 'Texture';
+              
+              // Try different ways to get the texture URL
+              if (texture.source?.data?.currentSrc) {
+                return { url: texture.source.data.currentSrc, name: textureName };
+              }
+              if (texture.source?.data?.src) {
+                return { url: texture.source.data.src, name: textureName };
+              }
+              if ((texture as any).image?.currentSrc) {
+                return { url: (texture as any).image.currentSrc, name: textureName };
+              }
+              if ((texture as any).image?.src) {
+                return { url: (texture as any).image.src, name: textureName };
+              }
+              if ((texture as any).userData?.url) {
+                return { url: (texture as any).userData.url, name: textureName };
+              }
+              
+              // Handle Three.js loader cache system - get image from cache manager
+              if (texture.image && typeof texture.image === 'string') {
+                // This is a UUID reference, try to find the actual image
+                const loader = (window as any).__lumea_loader || (window as any).THREE?.Cache;
+                if (loader && loader.get) {
+                  const cachedImage = loader.get(texture.image);
+                  if (cachedImage?.currentSrc) return { url: cachedImage.currentSrc, name: textureName };
+                  if (cachedImage?.src) return { url: cachedImage.src, name: textureName };
+                }
+                
+                // Try to find in Three.js global cache
+                if ((window as any).THREE?.Cache?.files) {
+                  const cachedFile = (window as any).THREE.Cache.files[texture.image];
+                  if (cachedFile) {
+                    if (typeof cachedFile === 'string') return { url: cachedFile, name: textureName };
+                    if (cachedFile.currentSrc) return { url: cachedFile.currentSrc, name: textureName };
+                    if (cachedFile.src) return { url: cachedFile.src, name: textureName };
+                  }
+                }
+                
+                // If it's a data URL or blob URL, return as is
+                if (texture.image.startsWith('data:') || texture.image.startsWith('blob:')) {
+                  return { url: texture.image, name: textureName };
+                }
+                
+                // Create a placeholder or fallback URL for UUID textures
+                // You could also try to reconstruct the original URL if you know the pattern
+                console.log('🎨 Found texture with UUID reference:', texture.name, 'UUID:', texture.image);
+                
+                // Try to render the texture to a canvas to get a data URL
+                try {
+                  const canvas = document.createElement('canvas');
+                  const ctx = canvas.getContext('2d');
+                  canvas.width = 128;
+                  canvas.height = 128;
+                  
+                  // Try to get the texture's image data
+                  if (texture.source?.data) {
+                    const imageData = texture.source.data;
+                    if (imageData instanceof HTMLImageElement || imageData instanceof HTMLCanvasElement) {
+                      ctx?.drawImage(imageData, 0, 0, 128, 128);
+                      const dataUrl = canvas.toDataURL('image/png');
+                      console.log('🎨 Created data URL from texture:', texture.name);
+                      return { url: dataUrl, name: textureName };
+                    }
+                  }
+                  
+                  // Fallback: create a simple colored placeholder
+                  if (ctx) {
+                    const name = texture.name || 'Texture';
+                    let hash = 0;
+                    for (let i = 0; i < name.length; i++) {
+                      hash = ((hash << 5) - hash + name.charCodeAt(i)) & 0xffffffff;
+                    }
+                    
+                    const hue = Math.abs(hash) % 360;
+                    ctx.fillStyle = `hsl(${hue}, 50%, 45%)`;
+                    ctx.fillRect(0, 0, 128, 128);
+                    
+                    // Add name overlay
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    ctx.fillRect(0, 96, 128, 32);
+                    
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    const displayName = name.length > 16 ? name.substring(0, 13) + '...' : name;
+                    ctx.fillText(displayName, 64, 112);
+                    
+                    const dataUrl = canvas.toDataURL('image/png');
+                    console.log('🎨 Created fallback data URL for texture:', texture.name);
+                    return { url: dataUrl, name: textureName };
+                  }
+                } catch (error) {
+                  console.warn('⚠️ Failed to create canvas data URL for texture:', error);
+                }
+                
+                // Ultimate fallback - enhanced SVG placeholder
+                const name = texture.name || 'Texture';
+                let hash = 0;
+                for (let i = 0; i < name.length; i++) {
+                  hash = ((hash << 5) - hash + name.charCodeAt(i)) & 0xffffffff;
+                }
+                const hue = Math.abs(hash) % 360;
+                const displayName = name.length > 12 ? name.substring(0, 9) + '...' : name;
+                
+                const svgUrl = `data:image/svg+xml;base64,${btoa(`
+                  <svg width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:hsl(${hue}, 50%, 55%);stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:hsl(${hue}, 50%, 35%);stop-opacity:1" />
+                      </linearGradient>
+                    </defs>
+                    <rect width="64" height="64" fill="url(#grad)"/>
+                    <rect x="0" y="48" width="64" height="16" fill="rgba(0,0,0,0.7)"/>
+                    <text x="32" y="58" text-anchor="middle" fill="white" font-size="8" font-weight="bold">${displayName}</text>
+                  </svg>
+                `)}`;
+                
+                console.log('🎨 Created SVG fallback for texture:', name);
+                return { url: svgUrl, name: textureName };
+              }
+              
+              // If texture has an actual Image object
+              if (texture.image && typeof texture.image === 'object') {
+                if (texture.image.currentSrc) return { url: texture.image.currentSrc, name: textureName };
+                if (texture.image.src) return { url: texture.image.src, name: textureName };
+                
+                // Create a visual placeholder for texture based on its name
+                console.log('🖼️ Found texture object for:', texture.name, 'creating visual placeholder...');
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 128;
+                canvas.height = 128;
+                
+                if (ctx) {
+                  // Generate consistent color from texture name
+                  let hash = 0;
+                  const name = texture.name || 'Texture';
+                  for (let i = 0; i < name.length; i++) {
+                    hash = ((hash << 5) - hash + name.charCodeAt(i)) & 0xffffffff;
+                  }
+                  
+                  const hue = Math.abs(hash) % 360;
+                  const saturation = 60 + (Math.abs(hash >> 8) % 30); // 60-90%
+                  const lightness = 40 + (Math.abs(hash >> 16) % 30); // 40-70%
+                  
+                  // Create gradient background
+                  const gradient = ctx.createLinearGradient(0, 0, 128, 128);
+                  gradient.addColorStop(0, `hsl(${hue}, ${saturation}%, ${lightness + 15}%)`);
+                  gradient.addColorStop(1, `hsl(${hue}, ${saturation}%, ${lightness - 10}%)`);
+                  
+                  ctx.fillStyle = gradient;
+                  ctx.fillRect(0, 0, 128, 128);
+                  
+                  // Add subtle texture pattern
+                  ctx.globalAlpha = 0.1;
+                  ctx.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness + 25}%)`;
+                  for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 8; j++) {
+                      if ((i + j) % 2 === 0) {
+                        ctx.fillRect(i * 16, j * 16, 8, 8);
+                      }
+                    }
+                  }
+                  ctx.globalAlpha = 1;
+                  
+                  // Add name overlay
+                  ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                  ctx.fillRect(0, 96, 128, 32);
+                  
+                  ctx.fillStyle = 'white';
+                  ctx.font = 'bold 10px sans-serif';
+                  ctx.textAlign = 'center';
+                  ctx.textBaseline = 'middle';
+                  
+                  const displayName = name.length > 16 ? name.substring(0, 13) + '...' : name;
+                  ctx.fillText(displayName, 64, 112);
+                  
+                  const dataUrl = canvas.toDataURL('image/png');
+                  console.log('🎨 Created enhanced placeholder for texture:', texture.name);
+                  return { url: dataUrl, name: textureName };
+                }
+              }
+              
+              console.log('🔍 Could not extract URL from texture:', {
+                name: texture.name,
+                hasImage: !!texture.image,
+                imageType: typeof texture.image,
+                image: texture.image
+              });
+              return undefined;
+            };
+            
+            textures.baseColor = getTextureData(stdMat.map);
+            textures.normal = getTextureData(stdMat.normalMap);
+            textures.metallicRoughness = getTextureData(stdMat.metalnessMap) || getTextureData(stdMat.roughnessMap);
+            textures.emissive = getTextureData(stdMat.emissiveMap);
+            textures.occlusion = getTextureData(stdMat.aoMap);
+            textures.opacity = getTextureData(stdMat.alphaMap);
+            
+            console.log('🖼️ Extracted texture URLs:', textures);
+            break;
+          }
+        }
+      }
+    });
+    
+    return textures;
+  }, []);
+  
+  // Helper function to extract all materials from a Three.js object
+  const extractAvailableMaterials = useCallback((object: THREE.Object3D) => {
+    const materials: {
+      name: string;
+      index: number;
+      material: THREE.Material;
+      baseColorTexture?: string;
+      baseColor?: string;
+    }[] = [];
+    
+    let materialIndex = 0;
+    
+    object.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.material) {
+        const meshMaterials = Array.isArray(child.material) ? child.material : [child.material];
+        
+        meshMaterials.forEach((material) => {
+          // Check if we already have this material
+          const existingMaterial = materials.find(m => m.material === material);
+          if (existingMaterial) return;
+          
+          const materialName = material.name || `Material ${materialIndex + 1}`;
+          let baseColorTexture: string | undefined;
+          let baseColor: string = '#ffffff';
+          
+          if (material instanceof THREE.MeshStandardMaterial || material instanceof THREE.MeshPhysicalMaterial) {
+            const stdMat = material as THREE.MeshStandardMaterial;
+            
+            // Get base color texture if available
+            if (stdMat.map?.source?.data?.currentSrc || stdMat.map?.source?.data?.src) {
+              baseColorTexture = stdMat.map.source.data.currentSrc || stdMat.map.source.data.src;
+            }
+            
+            // Get base color
+            baseColor = `#${stdMat.color.getHexString()}`;
+          }
+          
+          materials.push({
+            name: materialName,
+            index: materialIndex,
+            material,
+            baseColorTexture,
+            baseColor
+          });
+          
+          materialIndex++;
+        });
+      }
+    });
+    
+    console.log('🎨 Extracted materials:', materials);
+    return materials;
   }, []);
 
   // Update shell properties via API
@@ -668,6 +987,327 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     }, 300); // 300ms debounce
   }, [selection.selectedObject, updateItemMaterial]);
   
+  // Handle material slot selection
+  const handleMaterialSlotSelected = useCallback((materialIndex: number) => {
+    setSelectedMaterialIndex(materialIndex);
+    
+    // Extract material properties and textures for the selected material
+    if (availableMaterials[materialIndex]) {
+      const selectedMaterial = availableMaterials[materialIndex].material;
+      
+      if (selectedMaterial instanceof THREE.MeshStandardMaterial || 
+          selectedMaterial instanceof THREE.MeshPhysicalMaterial) {
+        const stdMat = selectedMaterial as THREE.MeshStandardMaterial;
+        
+        // Update local sliders with selected material properties
+        setLocalRoughness(Math.round(stdMat.roughness * 100));
+        setLocalMetallic(Math.round(stdMat.metalness * 100));
+        setLocalEmission(Math.round(stdMat.emissive.r * 100));
+        setLocalColor(`#${stdMat.color.getHexString()}`);
+        
+        // Update current textures for the selected material using the extraction helper
+        const extractedTextures = selection.selectedObject
+          ? extractCurrentTextures(selection.selectedObject.object)
+          : {
+              baseColor: undefined,
+              normal: undefined,
+              metallicRoughness: undefined,
+              emissive: undefined,
+              occlusion: undefined,
+              opacity: undefined,
+            };
+        const textures = {
+          baseColor: extractedTextures.baseColor,
+          normal: extractedTextures.normal,
+          metallicRoughness: extractedTextures.metallicRoughness,
+          emissive: extractedTextures.emissive,
+          occlusion: extractedTextures.occlusion,
+          opacity: extractedTextures.opacity,
+        };
+        
+        setCurrentTextures(textures);
+      }
+    }
+  }, [availableMaterials]);
+  
+  // Handle texture selection from texture manager
+  const handleTextureSelected = useCallback(async (url: string, type: TextureMapType) => {
+    if (!selection.selectedObject?.object || availableMaterials.length === 0) {
+      console.warn('No selected object or materials for texture application');
+      return;
+    }
+    
+    const currentMaterial = availableMaterials[selectedMaterialIndex];  
+    if (!currentMaterial) {
+      console.warn('No current material selected');
+      return;
+    }
+    
+    // Handle texture removal (empty URL)
+    if (!url || url.trim() === '') {
+      try {
+        setIsUpdatingItem(true);
+        const material = currentMaterial.material;
+        
+        if (material instanceof THREE.MeshStandardMaterial || 
+            material instanceof THREE.MeshPhysicalMaterial) {
+          const stdMat = material as THREE.MeshStandardMaterial;
+          
+          // Remove the specific texture map
+          let textureToRemove: THREE.Texture | null = null;
+          
+          switch (type) {
+            case 'baseColor':
+              textureToRemove = stdMat.map;
+              stdMat.map = null;
+              break;
+            case 'normal':
+              textureToRemove = stdMat.normalMap;
+              stdMat.normalMap = null;
+              break;
+            case 'metallicRoughness':
+              textureToRemove = stdMat.metalnessMap || stdMat.roughnessMap;
+              stdMat.metalnessMap = null;
+              stdMat.roughnessMap = null;
+              break;
+            case 'emissive':
+              textureToRemove = stdMat.emissiveMap;
+              stdMat.emissiveMap = null;
+              break;
+            case 'occlusion':
+              textureToRemove = stdMat.aoMap;
+              stdMat.aoMap = null;
+              break;
+            case 'opacity':
+              textureToRemove = stdMat.alphaMap;
+              stdMat.alphaMap = null;
+              stdMat.transparent = false;
+              break;
+          }
+          
+          // Dispose the old texture
+          if (textureToRemove) {
+            textureToRemove.dispose();
+          }
+          
+          material.needsUpdate = true;
+          
+          // Update current textures state
+          setCurrentTextures(prev => ({
+            ...prev,
+            [type]: undefined
+          }));
+          
+          console.log(`✅ Removed ${type} texture from material`);
+        }
+        
+        setShowTextureManager(false);
+        return;
+        
+      } catch (error) {
+        console.error('❌ Failed to remove texture:', error);
+      } finally {
+        setIsUpdatingItem(false);
+      }
+    }
+    
+    try {
+      // Initialize texture manager with KTX2 loader if needed
+      const ktx2Loader = (window as any).__lumea_ktx2_loader;
+      if (ktx2Loader && !textureManager.getCacheStats().cachedTextures) {
+        textureManager.initialize(ktx2Loader);
+      }
+      
+      // Apply texture to all materials in selected object
+      const promises: Promise<void>[] = [];
+      selection.selectedObject.object.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.material) {
+          const materials = Array.isArray(child.material) ? child.material : [child.material];
+          materials.forEach((material) => {
+            if (material instanceof THREE.MeshStandardMaterial || 
+                material instanceof THREE.MeshPhysicalMaterial) {
+              const promise = textureManager.swapMaterialTexture(material, type, url);
+              promises.push(promise);
+            }
+          });
+        }
+      });
+      
+      await Promise.all(promises);
+      console.log(`✅ Applied texture ${url} as ${type} to selected object`);
+      
+      // Update current textures state for thumbnails
+      // Extract the texture name from the applied texture
+      let appliedTextureName: string | undefined;
+      
+      // Try to get texture name from the applied material
+      selection.selectedObject.object.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.material && !appliedTextureName) {
+          const materials = Array.isArray(child.material) ? child.material : [child.material];
+          for (const material of materials) {
+            if (material instanceof THREE.MeshStandardMaterial || material instanceof THREE.MeshPhysicalMaterial) {
+              const stdMat = material as THREE.MeshStandardMaterial;
+              let texture: THREE.Texture | null = null;
+              
+              switch (type) {
+                case 'baseColor': texture = stdMat.map; break;
+                case 'normal': texture = stdMat.normalMap; break;
+                case 'metallicRoughness': texture = stdMat.metalnessMap || stdMat.roughnessMap; break;
+                case 'emissive': texture = stdMat.emissiveMap; break;
+                case 'occlusion': texture = stdMat.aoMap; break;
+                case 'opacity': texture = stdMat.alphaMap; break;
+              }
+              
+              if (texture?.name) {
+                appliedTextureName = texture.name;
+                break;
+              }
+            }
+          }
+        }
+      });
+      
+      setCurrentTextures(prev => ({
+        ...prev,
+        [type]: { url, name: appliedTextureName }
+      }));
+      
+      // Close texture manager
+      setShowTextureManager(false);
+      
+    } catch (error) {
+      console.error('❌ Failed to apply texture:', error);
+      throw error;
+    }
+  }, [selection.selectedObject]);
+  
+  // Open texture manager for specific texture type
+  const openTextureManager = useCallback((textureType: TextureMapType) => {
+    setCurrentTextureType(textureType);
+    setShowTextureManager(true);
+  }, []);
+  
+  // Get current texture URL for the selected type
+  const getCurrentTextureUrl = useCallback((textureType: TextureMapType): string | undefined => {
+    const textureData = (() => {
+      switch (textureType) {
+        case 'baseColor': return currentTextures.baseColor;
+        case 'normal': return currentTextures.normal;
+        case 'metallicRoughness': return currentTextures.metallicRoughness;
+        case 'emissive': return currentTextures.emissive;
+        case 'occlusion': return currentTextures.occlusion;
+        case 'opacity': return currentTextures.opacity;
+        default: return undefined;
+      }
+    })();
+    
+    const url = textureData?.url;
+    console.log(`🎯 getCurrentTextureUrl for ${textureType}:`, url);
+    console.log('🎯 currentTextures state:', currentTextures);
+    return url;
+  }, [currentTextures]);
+  
+  // Get current texture name for the selected type
+  const getCurrentTextureName = useCallback((textureType: TextureMapType): string | undefined => {
+    const textureData = (() => {
+      switch (textureType) {
+        case 'baseColor': return currentTextures.baseColor;
+        case 'normal': return currentTextures.normal;
+        case 'metallicRoughness': return currentTextures.metallicRoughness;
+        case 'emissive': return currentTextures.emissive;
+        case 'occlusion': return currentTextures.occlusion;
+        case 'opacity': return currentTextures.opacity;
+        default: return undefined;
+      }
+    })();
+    
+    return textureData?.name;
+  }, [currentTextures]);
+  
+  // Reset material to default values
+  const handleResetMaterial = useCallback(async () => {
+    if (!selection.selectedObject?.object) {
+      console.warn('No selected object for material reset');
+      return;
+    }
+    
+    try {
+      setIsUpdatingItem(true);
+      setLastError(null);
+      
+      // Reset local state values
+      setLocalRoughness(50);
+      setLocalMetallic(0);
+      setLocalEmission(0);
+      setLocalColor('#ffffff');
+      
+      // Clear current textures
+      setCurrentTextures({});
+      
+      // Apply default material properties to all materials in the selected object
+      selection.selectedObject.object.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.material) {
+          const materials = Array.isArray(child.material) ? child.material : [child.material];
+          materials.forEach((material) => {
+            if (material instanceof THREE.MeshStandardMaterial || 
+                material instanceof THREE.MeshPhysicalMaterial) {
+              const stdMat = material as THREE.MeshStandardMaterial;
+              
+              // Reset material properties to defaults
+              stdMat.roughness = 0.5;
+              stdMat.metalness = 0;
+              stdMat.emissive.setScalar(0);
+              stdMat.color.set('#ffffff');
+              
+              // Remove all texture maps
+              if (stdMat.map) {
+                stdMat.map.dispose();
+                stdMat.map = null;
+              }
+              if (stdMat.normalMap) {
+                stdMat.normalMap.dispose();
+                stdMat.normalMap = null;
+              }
+              if (stdMat.metalnessMap) {
+                stdMat.metalnessMap.dispose();
+                stdMat.metalnessMap = null;
+              }
+              if (stdMat.roughnessMap) {
+                stdMat.roughnessMap.dispose();
+                stdMat.roughnessMap = null;
+              }
+              if (stdMat.emissiveMap) {
+                stdMat.emissiveMap.dispose();
+                stdMat.emissiveMap = null;
+              }
+              if (stdMat.aoMap) {
+                stdMat.aoMap.dispose();
+                stdMat.aoMap = null;
+              }
+              if (stdMat.alphaMap) {
+                stdMat.alphaMap.dispose();
+                stdMat.alphaMap = null;
+                stdMat.transparent = false;
+              }
+              
+              // Mark material for update
+              material.needsUpdate = true;
+            }
+          });
+        }
+      });
+      
+      console.log('✅ Material reset to default values');
+      
+    } catch (error) {
+      console.error('❌ Failed to reset material:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to reset material';
+      setLastError(errorMessage);
+    } finally {
+      setIsUpdatingItem(false);
+    }
+  }, [selection.selectedObject]);
+  
   // Update environment lighting
   const updateEnvironmentLighting = useCallback(async (settings: Partial<EnvironmentSettings>) => {
     if (!activeSceneId) {
@@ -733,6 +1373,20 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
         },
         material: extractMaterialProperties(obj)
       });
+      
+      // Extract available materials from the object
+      const materials = extractAvailableMaterials(obj);
+      setAvailableMaterials(materials);
+      setSelectedMaterialIndex(0); // Select first material by default
+      
+      // Extract current textures for thumbnails from first material
+      if (materials.length > 0) {
+        const textures = extractCurrentTextures(obj);
+        setCurrentTextures(textures);
+      } else {
+        setCurrentTextures({});
+      }
+      
       return;
     }
     
@@ -771,7 +1425,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     
     // No selection found
     setSelectedItem(null);
-  }, [selectedItemId, manifest, selection.selectedObject, selection.selectedObject?.transformUpdateCount, extractMaterialProperties]);
+  }, [selectedItemId, manifest, selection.selectedObject, selection.selectedObject?.transformUpdateCount, extractMaterialProperties, extractCurrentTextures, extractAvailableMaterials]);
 
   if (!show) return null;
 
@@ -915,44 +1569,155 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
             <h3 className={styles.propertySectionTitle}>
               <Palette className="w-4 h-4 mr-2" />
               Material
+              {currentTextures.baseColor && (
+                <span className="ml-2 inline-flex items-center gap-2 text-xs text-gray-400">
+                  <span>Base Map:</span>
+                  <span className="inline-block w-6 h-6 rounded overflow-hidden border border-gray-600 align-middle">
+                    <img 
+                      src={currentTextures.baseColor?.url} 
+                      alt="Base Color Map"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </span>
+                </span>
+              )}
             </h3>
             <div className={styles.propertySectionContent}>
               {selectedItem ? (
                 <>
                   <div className={styles.materialSwatches}>
-                    <div 
-                      className={`${styles.materialSwatch} ${styles.materialSwatchRed}`}
-                      onClick={() => {
-                        setLocalColor('#ff0000');
-                        debouncedMaterialUpdate({ color: '#ff0000' });
-                      }}
-                      style={{ cursor: isUpdatingItem ? 'wait' : 'pointer' }}
-                    ></div>
-                    <div 
-                      className={`${styles.materialSwatch} ${styles.materialSwatchBlue}`}
-                      onClick={() => {
-                        setLocalColor('#0066ff');
-                        debouncedMaterialUpdate({ color: '#0066ff' });
-                      }}
-                      style={{ cursor: isUpdatingItem ? 'wait' : 'pointer' }}
-                    ></div>
-                    <div 
-                      className={`${styles.materialSwatch} ${styles.materialSwatchGreen}`}
-                      onClick={() => {
-                        setLocalColor('#00ff66');
-                        debouncedMaterialUpdate({ color: '#00ff66' });
-                      }}
-                      style={{ cursor: isUpdatingItem ? 'wait' : 'pointer' }}
-                    ></div>
-                    <div 
-                      className={`${styles.materialSwatch} ${styles.materialSwatchYellow}`}
-                      onClick={() => {
-                        setLocalColor('#ffff00');
-                        debouncedMaterialUpdate({ color: '#ffff00' });
-                      }}
-                      style={{ cursor: isUpdatingItem ? 'wait' : 'pointer' }}
-                    ></div>
+                    {/* Material Slots */}
+                    <div className={styles.materialSlots}>
+                      {availableMaterials.length > 0 ? (
+                        availableMaterials.map((material, index) => (
+                          <div 
+                            key={material.index}
+                            className={`${styles.materialSlot} ${index === selectedMaterialIndex ? styles.materialSlotSelected : ''}`}
+                            onClick={() => handleMaterialSlotSelected(index)}
+                            style={{ cursor: isUpdatingItem ? 'wait' : 'pointer' }}
+                            title={`Select ${material.name}`}
+                          >
+                            {material.baseColorTexture ? (
+                              <img 
+                                src={material.baseColorTexture} 
+                                alt={material.name}
+                                className={styles.materialSlotImage}
+                              />
+                            ) : (
+                              <div 
+                                className={styles.materialSlotColor}
+                                style={{ backgroundColor: material.baseColor }}
+                              ></div>
+                            )}
+                            <span className={styles.materialSlotName}>{material.name}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className={styles.noMaterials}>
+                          <span>No materials found</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Reset Material Button */}
+                    {availableMaterials.length > 0 && (
+                      <button
+                        className={styles.resetMaterialButton}
+                        onClick={handleResetMaterial}
+                        disabled={isUpdatingItem}
+                        title="Reset current material to default values"
+                      >
+                        <span>Reset Current Material</span>
+                      </button>
+                    )}
                   </div>
+                  
+                  {/* Texture Maps Section */}
+                  <div className={styles.propertyGroup}>
+                    <label className={styles.propertyLabel}>Texture Maps</label>
+                    <div className={styles.textureMapGrid}>
+                      <button
+                        className={`${styles.textureMapButton} ${currentTextures.baseColor ? styles.textureMapButtonWithTexture : ''}`}
+                        onClick={() => openTextureManager('baseColor')}
+                        disabled={isUpdatingItem}
+                        title="Apply Base Color Texture"
+                      >
+                        {currentTextures.baseColor ? (
+                          <div className={styles.textureMapThumbnail}>
+                            <img 
+                              src={currentTextures.baseColor?.url} 
+                              alt="Base Color"
+                              className={styles.textureMapThumbnailImage}
+                            />
+                          </div>
+                        ) : (
+                          <ImageIcon className="w-4 h-4 mr-1" />
+                        )}
+                        <span>Base Color</span>
+                      </button>
+                      
+                      <button
+                        className={`${styles.textureMapButton} ${currentTextures.normal ? styles.textureMapButtonWithTexture : ''}`}
+                        onClick={() => openTextureManager('normal')}
+                        disabled={isUpdatingItem}
+                        title="Apply Normal Map"
+                      >
+                        {currentTextures.normal ? (
+                          <div className={styles.textureMapThumbnail}>
+                            <img 
+                              src={currentTextures.normal?.url} 
+                              alt="Normal Map"
+                              className={styles.textureMapThumbnailImage}
+                            />
+                          </div>
+                        ) : (
+                          <ImageIcon className="w-4 h-4 mr-1" />
+                        )}
+                        <span>Normal</span>
+                      </button>
+                      
+                      <button
+                        className={styles.textureMapButton}
+                        onClick={() => openTextureManager('metallicRoughness')}
+                        disabled={isUpdatingItem}
+                        title="Apply Metallic Roughness Map"
+                      >
+                        <ImageIcon className="w-4 h-4 mr-1" />
+                        <span>Metal/Rough</span>
+                      </button>
+                      
+                      <button
+                        className={styles.textureMapButton}
+                        onClick={() => openTextureManager('emissive')}
+                        disabled={isUpdatingItem}
+                        title="Apply Emissive Map"
+                      >
+                        <ImageIcon className="w-4 h-4 mr-1" />
+                        <span>Emissive</span>
+                      </button>
+                      
+                      <button
+                        className={styles.textureMapButton}
+                        onClick={() => openTextureManager('occlusion')}
+                        disabled={isUpdatingItem}
+                        title="Apply Occlusion Map"
+                      >
+                        <ImageIcon className="w-4 h-4 mr-1" />
+                        <span>Occlusion</span>
+                      </button>
+                      
+                      <button
+                        className={styles.textureMapButton}
+                        onClick={() => openTextureManager('opacity')}
+                        disabled={isUpdatingItem}
+                        title="Apply Opacity Map"
+                      >
+                        <ImageIcon className="w-4 h-4 mr-1" />
+                        <span>Opacity</span>
+                      </button>
+                    </div>
+                  </div>
+                  
                   <div className={styles.propertyGroup}>
                     <label className={styles.propertyLabel}>Roughness</label>
                     <Slider 
@@ -1413,6 +2178,16 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
           </div>
         </div>
       </ScrollArea>
+      
+      {/* Texture Manager Modal */}
+      <TextureManager
+        show={showTextureManager}
+        onClose={() => setShowTextureManager(false)}
+        onTextureSelected={handleTextureSelected}
+        currentTextureType={currentTextureType}
+        currentTextureUrl={getCurrentTextureUrl(currentTextureType)}
+        currentTextureName={getCurrentTextureName(currentTextureType)}
+      />
     </aside>
   );
 });
