@@ -4,6 +4,7 @@ import { useInstancedRenderer } from './InstancedRenderer';
 import { pickCategoryUrl } from './useSceneAssets';
 import { SafeInstancedObject } from './SafeInstancedObject';
 import { SafeSceneItem } from './SafeSceneItem';
+import { gpuMemoryMonitor } from '../../utils/gpuMemoryMonitor';
 
 interface CategoryRendererProps {
   categoryKey: string;
@@ -56,8 +57,8 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
     const groups = new Map<string, typeof categoryItems>();
     
     categoryItems.forEach(item => {
-      const model = item.model;
-      if (!model) return; // Skip items without model
+      // Use empty string for items without model (they should use entire GLB scene)
+      const model = item.model || '';
       
       if (!groups.has(model)) {
         groups.set(model, []);
@@ -109,6 +110,22 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
           console.log(`🎯 CategoryRenderer - model: ${model}`);
           console.log(`🎯 Attempting to load instanced GLB: ${glbUrl}`);
           
+          // Get smart loading recommendations from GPU memory monitor
+          const modelComplexity = gpuMemoryMonitor.estimateModelComplexity(glbUrl);
+          const recommendation = gpuMemoryMonitor.checkMemoryBeforeInstanceLoading(groupItems.length, modelComplexity);
+          
+          // Log recommendations and warnings
+          if (recommendation.warnings.length > 0) {
+            console.warn(`⚠️ CategoryRenderer GPU Recommendations for ${categoryKey}:`, {
+              requested: groupItems.length,
+              recommended: recommendation.maxSafeInstances,
+              progressive: recommendation.useProgressive,
+              batchSize: recommendation.recommendedBatchSize,
+              warnings: recommendation.warnings,
+              complexity: modelComplexity
+            });
+          }
+          
           return (
             <Suspense 
               key={`instanced-${sceneId || 'unknown'}-${model}-${index}`} 
@@ -141,11 +158,13 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
                   position: item.transform?.position || [0, 0, 0],
                   rotation: item.transform?.rotation_euler || [0, 0, 0],
                   scale: item.transform?.scale || [1, 1, 1]
-                }))}
+                })).slice(0, recommendation.maxSafeInstances)} // Limit instances based on GPU capacity
                 categoryKey={categoryKey}
                 frustumCulling={true}
-                maxInstances={1000}
+                maxInstances={recommendation.maxSafeInstances}
                 fallbackColor="orange"
+                progressive={recommendation.useProgressive}
+                batchSize={recommendation.recommendedBatchSize}
               />
             </Suspense>
           );

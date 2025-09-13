@@ -180,14 +180,14 @@ const AssetList: React.FC<AssetListProps> = ({
         return (
           <div key={categoryName} className="space-y-2">
             {/* Category header */}
-            <div className="flex items-center gap-2 py-2 border-b border-gray-100">
+            <div className="flex items-center gap-2 py-2 border-b ">
               <IconComponent className="w-4 h-4 text-gray-500" />
-              <span className="font-medium text-sm text-gray-700">
+              <span className="font-medium text-sm text-white">
                 {categoryName.split('_').map(word => 
                   word.charAt(0).toUpperCase() + word.slice(1)
                 ).join(' ')}
               </span>
-              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+              <span className="text-xs text-white bg-[var(--glass-maroon)] 0 px-2 py-0.5 rounded-full">
                 {categoryAssets.length}
               </span>
               {!isCategoryEnabled && (
@@ -216,8 +216,8 @@ const AssetList: React.FC<AssetListProps> = ({
                         : 'flex items-center gap-3 p-2 rounded-md'
                       }
                       ${isSelected 
-                        ? 'bg-blue-50 border-blue-200 shadow-sm' 
-                        : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                        ? ' border-blue-200 shadow-sm' 
+                        : 'bg-[var(--glass-maroon)] border-gray-200 hover:bg-[var(--glass-yellow-dark)] hover:shadow-sm'
                       }
                       ${!isCategoryEnabled ? 'opacity-60' : ''}
                     `}

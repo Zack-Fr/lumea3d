@@ -13,6 +13,8 @@ interface SafeInstancedObjectProps {
   frustumCulling?: boolean;
   maxInstances?: number;
   fallbackColor?: string;
+  progressive?: boolean;
+  batchSize?: number;
 }
 
 export function SafeInstancedObject({ 
@@ -21,7 +23,9 @@ export function SafeInstancedObject({
   categoryKey = 'unknown',
   frustumCulling, 
   maxInstances, 
-  fallbackColor = 'red' 
+  fallbackColor = 'red',
+  progressive,
+  batchSize
 }: SafeInstancedObjectProps) {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -111,6 +115,8 @@ console.log(`🔍 SafeInstancedObject: Testing URL accessibility: ${glbUrl}`);
         items={items}
         frustumCulling={frustumCulling}
         maxInstances={maxInstances}
+        progressive={progressive}
+        batchSize={batchSize}
       />
     );
   } catch (error) {

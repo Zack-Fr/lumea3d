@@ -230,11 +230,11 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
 
       {/* Main category filter */}
       <div className="space-y-2">
-        <label className="text-xs font-medium text-gray-600">Main Category</label>
+        <label className="text-xs font-medium  text-gray-600">Main Category</label>
         <Select
           value={selectedMainCategory}
           onChange={(e) => setSelectedMainCategory(e.target.value as CategoryKey | 'all')}
-          className="w-full bg-gray-100"
+          className="w-full"
         >
           <SelectItem value="all ">All Categories</SelectItem>
           {Object.entries(MESH_CATEGORIES).map(([key, config]) => {
@@ -329,7 +329,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </div>
               
               <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-xs bg-white/60 px-1.5 py-0.5 rounded-full">
+                <span className="text-xs bg-[var(--glass-maroon)] px-1.5 py-0.5 rounded-full">
                   {count}
                 </span>
                 {isEnabled ? (

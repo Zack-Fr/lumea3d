@@ -123,7 +123,7 @@ export function SceneRenderer({ sceneId }: SceneRendererProps) {
           id: asset.id,
           name: asset.name,
           category: asset.category,
-          model: asset.name || 'default', // Required by SceneItem interface
+          model: '', // Use empty string to render entire GLB scene like regular manifest items
           selectable: true,
           locked: false,
           meta: {

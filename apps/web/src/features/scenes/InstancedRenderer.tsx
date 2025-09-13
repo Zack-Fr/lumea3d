@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
@@ -16,19 +16,25 @@ interface InstancedObjectProps {
   items: InstancedItem[];
   frustumCulling?: boolean;
   maxInstances?: number;
+  progressive?: boolean;
+  batchSize?: number;
 }
 
 export function InstancedObject({ 
   glbUrl, 
   items, 
   frustumCulling = true,
-  maxInstances = 1000 
+  maxInstances = 1000,
+  progressive = false,
+  batchSize = 5
 }: InstancedObjectProps) {
   const { scene } = useGLTF(glbUrl);
   const instancedMeshRef = useRef<THREE.InstancedMesh>(null);
   const matrixRef = useRef<THREE.Matrix4[]>([]);
   const visibilityRef = useRef<boolean[]>([]);
   const lastUpdateRef = useRef(0);
+  const [loadedInstances, setLoadedInstances] = useState(0);
+  const [isProgressiveLoading, setIsProgressiveLoading] = useState(false);
 
   // Extract geometry and material from the loaded model
   const { geometry, material } = useMemo(() => {
@@ -56,28 +62,67 @@ export function InstancedObject({
     return { geometry: geo, material: mat };
   }, [scene, glbUrl]);
 
-  // Initialize instance matrices
+  // Initialize instance matrices with progressive loading
   useEffect(() => {
     const count = Math.min(items.length, maxInstances);
     matrixRef.current = new Array(count);
     visibilityRef.current = new Array(count);
 
-    for (let i = 0; i < count; i++) {
+    if (progressive && count > batchSize) {
+      console.log('🔄 InstancedObject: Using progressive loading for', count, 'instances');
+      setIsProgressiveLoading(true);
+      setLoadedInstances(0);
+      
+      const loadBatch = (startIndex: number) => {
+        const endIndex = Math.min(startIndex + batchSize, count);
+        
+        for (let i = startIndex; i < endIndex; i++) {
+          const item = items[i];
+          const matrix = new THREE.Matrix4();
+          
+          // Apply transform
+          const position = new THREE.Vector3(...item.position);
+          const rotation = new THREE.Euler(...item.rotation);
+          const scale = new THREE.Vector3(...item.scale);
+          
+          matrix.compose(position, new THREE.Quaternion().setFromEuler(rotation), scale);
+          matrixRef.current[i] = matrix;
+          visibilityRef.current[i] = item.visible !== false;
+        }
+        
+        setLoadedInstances(endIndex);
+        
+        // Load next batch with a small delay to prevent GPU memory spikes
+        if (endIndex < count) {
+          setTimeout(() => loadBatch(endIndex), 50); // 50ms delay between batches
+        } else {
+          setIsProgressiveLoading(false);
+          console.log('🔧 InstancedObject: Progressive loading completed', count, 'instances for', glbUrl);
+        }
+      };
+      
+      // Start progressive loading with initial batch
+      loadBatch(0);
+    } else {
+      // Regular loading for small numbers of instances
+      for (let i = 0; i < count; i++) {
         const item = items[i];
         const matrix = new THREE.Matrix4();
         
-      // Apply transform
+        // Apply transform
         const position = new THREE.Vector3(...item.position);
         const rotation = new THREE.Euler(...item.rotation);
         const scale = new THREE.Vector3(...item.scale);
-      
+        
         matrix.compose(position, new THREE.Quaternion().setFromEuler(rotation), scale);
         matrixRef.current[i] = matrix;
         visibilityRef.current[i] = item.visible !== false;
+      }
+      
+      setLoadedInstances(count);
+      console.log('🔧 InstancedObject: Initialized', count, 'instances for', glbUrl);
     }
-
-    console.log('🔧 InstancedObject: Initialized', count, 'instances for', glbUrl);
-  }, [items, maxInstances, glbUrl]);
+  }, [items, maxInstances, glbUrl, progressive, batchSize]);
 
   // Update instance matrices on every frame (for frustum culling)
   useFrame(({ camera }) => {
@@ -127,12 +172,12 @@ export function InstancedObject({
     }
   });
 
-  // Initial matrix setup
+  // Initial matrix setup (updated to use loadedInstances)
   useEffect(() => {
-    if (!instancedMeshRef.current) return;
+    if (!instancedMeshRef.current || loadedInstances === 0) return;
 
     const mesh = instancedMeshRef.current;
-    const count = matrixRef.current.length;
+    const count = loadedInstances;
 
     for (let i = 0; i < count; i++) {
       if (matrixRef.current[i]) {
@@ -142,13 +187,17 @@ export function InstancedObject({
 
     mesh.instanceMatrix.needsUpdate = true;
     mesh.count = count;
-  }, []);
+    
+    if (isProgressiveLoading) {
+      console.log('📊 InstancedObject: Updated to show', count, 'of', items.length, 'instances');
+    }
+  }, [loadedInstances, isProgressiveLoading, items.length]);
 
   if (!geometry || !material || items.length === 0) {
     return null;
   }
 
-  const instanceCount = Math.min(items.length, maxInstances);
+  const instanceCount = Math.min(loadedInstances, maxInstances);
 
   return (
     <instancedMesh
