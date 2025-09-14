@@ -18,6 +18,7 @@ import { TransformControlsPanel } from '../../features/scenes/TransformControlsP
 import { TransformKeyboardControls } from '../../features/scenes/TransformKeyboardControls';
 import { SelectionBridge } from '../../features/scenes/SelectionBridge';
 import { GridSystem } from '../../features/scenes/GridSystem';
+import { LayerHierarchyBridge } from '../../features/scenes/LayerHierarchyBridge';
 import { PerformanceStatsOverlay } from './PerformanceStatsOverlay';
 import LightsContainer from './LightsContainer';
 import CameraControlsComponent from './CameraControls';
@@ -505,81 +506,13 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
         {sceneId && <SceneRenderer sceneId={sceneId} />}
       </Suspense>
       
-      {/* Debug test cubes for selection testing */}
-      <group name="debug-objects">
-        <mesh 
-          name="debug-cube-center"
-          position={[0, 1, 0]}
-          castShadow
-          receiveShadow
-          userData={{
-            itemId: 'debug-cube-center',
-            category: 'debug',
-            selectable: true,
-            locked: false,
-            meta: { isDebug: true, name: 'Center Cube' }
-          }}
-        >
-          <boxGeometry args={[2, 2, 2]} />
-          <meshStandardMaterial color="#ff4444" transparent opacity={0.8} />
-        </mesh>
-        
-        <mesh 
-          name="debug-cube-left"
-          position={[-4, 0.5, 0]}
-          castShadow
-          receiveShadow
-          userData={{
-            itemId: 'debug-cube-left',
-            category: 'debug',
-            selectable: true,
-            locked: false,
-            meta: { isDebug: true, name: 'Left Cube' }
-          }}
-        >
-          <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial color="#44ff44" transparent opacity={0.8} />
-        </mesh>
-        
-        <mesh 
-          name="debug-cube-right"
-          position={[4, 0.5, 0]}
-          castShadow
-          receiveShadow
-          userData={{
-            itemId: 'debug-cube-right',
-            category: 'debug',
-            selectable: true,
-            locked: false,
-            meta: { isDebug: true, name: 'Right Cube' }
-          }}
-        >
-          <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial color="#4444ff" transparent opacity={0.8} />
-        </mesh>
-        
-        {/* Additional sphere for testing */}
-        <mesh 
-          name="debug-sphere"
-          position={[0, 0.5, 4]}
-          castShadow
-          receiveShadow
-          userData={{
-            itemId: 'debug-sphere',
-            category: 'debug',
-            selectable: true,
-            locked: false,
-            meta: { isDebug: true, name: 'Test Sphere' }
-          }}
-        >
-          <sphereGeometry args={[0.8, 16, 16]} />
-          <meshStandardMaterial color="#ffaa44" transparent opacity={0.8} />
-        </mesh>
-      </group>
       
       {/* Selection and Transform System */}
       <ClickSelection enabled={true} />
       <TransformGizmos enabled={true} />
+      
+      {/* Layer Hierarchy Data Bridge */}
+      <LayerHierarchyBridge />
       <SelectionHighlightSystem 
         enabled={true}
         highlightColor="#f5c842"
