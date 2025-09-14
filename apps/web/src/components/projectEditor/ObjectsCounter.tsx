@@ -27,7 +27,7 @@ const ObjectsCounter: React.FC<ObjectsCounterProps> = ({
       {/* Objects Summary */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Hash className="w-4 h-4 text-blue-500" />
+          <Hash className="w-4 h-4 text-[var(--glass-yellow)]" />
           <span className="text-sm font-medium">Objects</span>
           <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
             {objectInfo.visible}/{objectInfo.total}
@@ -57,9 +57,9 @@ const ObjectsCounter: React.FC<ObjectsCounterProps> = ({
           <div className="text-lg font-semibold text-gray-900">{objectInfo.total}</div>
           <div className="text-xs text-gray-600">Total</div>
         </div>
-        <div className="bg-blue-50 p-2 rounded text-center">
-          <div className="text-lg font-semibold text-blue-900">{objectInfo.visible}</div>
-          <div className="text-xs text-blue-600">Visible</div>
+        <div className="bg-[var(--glass-yellow)]/10 p-2 rounded text-center">
+          <div className="text-lg font-semibold text-[var(--glass-black)]">{objectInfo.visible}</div>
+          <div className="text-xs text-[var(--glass-yellow)]">Visible</div>
         </div>
       </div>
       

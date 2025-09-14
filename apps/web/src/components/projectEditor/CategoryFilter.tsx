@@ -178,8 +178,8 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
       {/* Header with search and view controls */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-blue-500" />
-          <span className="font-medium text-sm">Filter Assets</span>
+          <Filter className="w-4 h-4 text-day-500" />
+          <span className="font-medium text-sm text-[var(--glass-yellow)]">Filter Assets</span>
           <span className="text-xs text-gray-500 bg-gray-500 px-2 py-0.5 rounded-full">
             {filteredCategories.length}/{availableCategories.length}
           </span>
