@@ -42,7 +42,7 @@ import {
 } from "../../utils/dashboardTransformers";
 
 // Data and types
-// import { PROJECTS, PIPELINE_STAGES, USER_STATS } from "../../data/dashboardData";
+import { QUICK_ACTIONS } from "../../data/dashboardData";
 
 // Atomic components
 import ProjectCard from "../../components/dashboard/ProjectCard";
@@ -80,7 +80,7 @@ const UserDashboardPage = memo(() => {
     ...calculatedUserStats,
     achievements: [], // Keep static for now
     recentActivity: [], // Keep static for now
-    quickActions: [], // Keep static for now
+    quickActions: QUICK_ACTIONS, // Restore quick actions
     upcomingDeadlines: [], // Keep static for now
   };
 
