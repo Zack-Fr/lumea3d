@@ -13,6 +13,7 @@ import { ProjectsModule } from './projects/projects.module';
 import { MonitoringModule } from './shared/monitoring.module';
 import { MonitoringMiddleware } from './shared/middleware/monitoring.middleware';
 import { DebugController } from './debug/debug.controller';
+import { RealtimeModule } from './realtime/realtime.module';
 
 @Module({
   imports: [
@@ -63,6 +64,9 @@ import { DebugController } from './debug/debug.controller';
     
     // Projects module for project management
     ProjectsModule,
+    
+    // Realtime module for WebSocket and SSE collaboration features
+    RealtimeModule,
   ],
   controllers: [DebugController],
   providers: [],

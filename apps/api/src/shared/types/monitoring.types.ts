@@ -10,6 +10,7 @@ export interface HealthCheck {
     storage: HealthCheckResult;
     memory: HealthCheckResult;
     disk: HealthCheckResult;
+    realtime: HealthCheckResult;
   };
   metrics: {
     totalRequests: number;

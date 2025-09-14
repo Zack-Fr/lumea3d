@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { LoggerService } from './logger.service';
 import { MetricsService } from './metrics.service';
@@ -7,6 +7,7 @@ import { HealthCheck, HealthCheckResult, SimpleHealth } from '../types/monitorin
 @Injectable()
 export class HealthService {
   private readonly startTime: number;
+  private realtimeGateway: any = null; // Will be injected optionally
 
   constructor(
     private readonly prisma: PrismaService,
@@ -14,6 +15,13 @@ export class HealthService {
     private readonly metrics: MetricsService,
   ) {
     this.startTime = Date.now();
+  }
+
+  /**
+   * Set realtime gateway reference (called from realtime module)
+   */
+  setRealtimeGateway(gateway: any): void {
+    this.realtimeGateway = gateway;
   }
 
   async getHealthCheck(): Promise<HealthCheck> {
@@ -27,12 +35,14 @@ export class HealthService {
         storageCheck,
         memoryCheck,
         diskCheck,
+        realtimeCheck,
       ] = await Promise.allSettled([
         this.checkDatabase(),
         this.checkRedis(),
         this.checkStorage(),
         this.checkMemory(),
         this.checkDisk(),
+        this.checkRealtime(),
       ]);
 
       const checks = {
@@ -41,6 +51,7 @@ export class HealthService {
         storage: this.getResultValue(storageCheck),
         memory: this.getResultValue(memoryCheck),
         disk: this.getResultValue(diskCheck),
+        realtime: this.getResultValue(realtimeCheck),
       };
 
       // Determine overall status
@@ -88,6 +99,7 @@ export class HealthService {
           storage: { status: 'unhealthy', responseTime: 0, message: 'Health check failed' },
           memory: { status: 'unhealthy', responseTime: 0, message: 'Health check failed' },
           disk: { status: 'unhealthy', responseTime: 0, message: 'Health check failed' },
+          realtime: { status: 'unhealthy', responseTime: 0, message: 'Health check failed' },
         },
         metrics: {
           totalRequests: 0,
@@ -292,14 +304,71 @@ export class HealthService {
     }
   }
 
+  private async checkRealtime(): Promise<HealthCheckResult> {
+    const startTime = Date.now();
+    
+    try {
+      if (!this.realtimeGateway) {
+        return {
+          status: 'degraded',
+          responseTime: Date.now() - startTime,
+          message: 'Realtime gateway not initialized',
+        };
+      }
+
+      const isHealthy = this.realtimeGateway.isHealthy();
+      const metrics = this.realtimeGateway.getMetrics();
+      const responseTime = Date.now() - startTime;
+      
+      if (!isHealthy) {
+        return {
+          status: 'unhealthy',
+          responseTime,
+          message: 'Realtime WebSocket namespace not healthy',
+        };
+      }
+
+      return {
+        status: 'healthy',
+        responseTime,
+        message: `Realtime gateway healthy - ${metrics.connections.current} active connections`,
+        details: {
+          activeConnections: metrics.connections.current,
+          totalConnections: metrics.connections.total,
+          totalScenes: metrics.presence.totalScenes,
+          messagesInTotal: Object.values(metrics.messages_in_total || {}).reduce((a: number, b: number) => a + b, 0),
+          messagesOutTotal: Object.values(metrics.messages_out_total || {}).reduce((a: number, b: number) => a + b, 0),
+        },
+      };
+
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        responseTime: Date.now() - startTime,
+        message: `Realtime check failed: ${error.message}`,
+      };
+    }
+  }
+
   private async getMetricsSummary(): Promise<HealthCheck['metrics']> {
-    // In a real implementation, you would aggregate metrics from your metrics service
-    // For now, we'll return mock data
+    let realtimeMetrics = { activeConnections: 0 };
+    
+    if (this.realtimeGateway && this.realtimeGateway.isHealthy()) {
+      try {
+        const metrics = this.realtimeGateway.getMetrics();
+        realtimeMetrics = {
+          activeConnections: metrics.connections.current || 0,
+        };
+      } catch (error) {
+        this.logger.warn('Failed to get realtime metrics for health summary', error as Error);
+      }
+    }
+
     return {
       totalRequests: 0,
       averageResponseTime: 0,
       errorRate: 0,
-      activeConnections: 0,
+      activeConnections: realtimeMetrics.activeConnections,
     };
   }
 
