@@ -27,6 +27,8 @@ import { ScenePersistenceStatus } from './ScenePersistenceStatus';
 import { useSceneHistory } from './useSceneHistory';
 import { useSceneKeyboardShortcuts, createSceneEditorShortcuts } from './useSceneKeyboardShortcuts';
 import { SceneShortcutsHelp, useSceneShortcutsHelp } from './SceneShortcutsHelp';
+import { useTransformKeyboardShortcuts } from './useTransformKeyboardShortcuts';
+import { TransformFeedback } from './TransformFeedback';
 
 // Import our new Shell UI components
 import { ShellUIControls } from './ShellUIControls';
@@ -187,10 +189,15 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
   // Shortcuts help system
   const shortcutsHelp = useSceneShortcutsHelp();
 
+  // Transform undo/redo keyboard shortcuts
+  const transformShortcuts = useTransformKeyboardShortcuts({
+    enabled: true
+  });
+
   // Create keyboard shortcuts
   const shortcuts = createSceneEditorShortcuts({
-    onUndo: sceneHistory.undo,
-    onRedo: sceneHistory.redo,
+    onUndo: transformShortcuts.undo,
+    onRedo: transformShortcuts.redo,
   onSave: () => log('info', '💾 Manual save triggered'),
     onToggleGrid: () => updateControls({ showGrid: !controls.showGrid }),
     onDeselectAll: () => log('info', '🔲 Deselect all'),
@@ -288,6 +295,11 @@ export default function SceneViewer({ manifest }: SceneViewerProps) {
       
       {/* Keyboard Controls for Transform */}
       <TransformKeyboardControls />
+      
+      {/* Transform Undo/Redo Feedback */}
+      <TransformFeedback 
+        className="absolute top-4 right-4 z-50"
+      />
       
       {/* Controls Instructions Overlay */}
       <ControlsInstructions

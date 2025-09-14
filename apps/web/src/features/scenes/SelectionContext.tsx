@@ -4,6 +4,7 @@ import { log } from '../../utils/logger';
 import { scenesApi } from '../../services/scenesApi';
 import { instancedTransformProxyManager } from './InstancedTransformProxy';
 import { useSceneContext } from '../../contexts/SceneContext';
+import { transformHistoryManager, type TransformState } from './TransformHistoryManager';
 
 export interface SelectedObject {
   id: string;
@@ -14,6 +15,7 @@ export interface SelectedObject {
   originalRotation: Euler;
   originalScale: Vector3;
   transformUpdateCount?: number; // Force React updates when transforms change
+  transformStartState?: TransformState; // State when transform started
 }
 
 export interface SelectionState {
@@ -30,6 +32,10 @@ export interface SelectionContextType {
   setIsTransforming: (transforming: boolean) => void;
   updateObjectTransform: (position?: Vector3, rotation?: Euler, scale?: Vector3) => void;
   deleteObject: () => void;
+  undoTransform: () => boolean;
+  redoTransform: () => boolean;
+  canUndoTransform: () => boolean;
+  canRedoTransform: () => boolean;
 }
 
 const SelectionContext = createContext<SelectionContextType | null>(null);
@@ -130,10 +136,50 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
   }, []);
 
   const setIsTransforming = useCallback((transforming: boolean) => {
-    setSelection(prev => ({
-      ...prev,
-      isTransforming: transforming,
-    }));
+    setSelection(prev => {
+      // Start transform history tracking when transform begins
+      if (transforming && prev.selectedObject && !prev.selectedObject.transformStartState) {
+        const startState = transformHistoryManager.startTransform(
+          prev.selectedObject.object
+        );
+        
+        return {
+          ...prev,
+          isTransforming: transforming,
+          selectedObject: {
+            ...prev.selectedObject,
+            transformStartState: startState
+          }
+        };
+      }
+      
+      // Finish transform history tracking when transform ends
+      if (!transforming && prev.selectedObject && prev.selectedObject.transformStartState) {
+        const transformMode = prev.transformMode;
+        const description = `${transformMode.charAt(0).toUpperCase() + transformMode.slice(1)} ${prev.selectedObject.object.name || 'object'}`;
+        
+        transformHistoryManager.finishTransform(
+          prev.selectedObject.object,
+          prev.selectedObject.itemId,
+          prev.selectedObject.transformStartState,
+          description
+        );
+        
+        return {
+          ...prev,
+          isTransforming: transforming,
+          selectedObject: {
+            ...prev.selectedObject,
+            transformStartState: undefined
+          }
+        };
+      }
+      
+      return {
+        ...prev,
+        isTransforming: transforming,
+      };
+    });
   }, []);
 
   const updateObjectTransform = useCallback((
@@ -275,6 +321,112 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
     }, 10); // Small delay to ensure transform controls detach first
   }, [selection.selectedObject, sceneId, manifest?.scene?.version, refreshScene]);
 
+  // Find an object in the scene by itemId
+  const findObjectByItemId = useCallback((itemId: string): Object3D | null => {
+    // This is a helper function to find objects in the scene
+    // We'll need to traverse the scene graph to find the object
+    // For now, we'll check if it's the currently selected object
+    if (selection.selectedObject && selection.selectedObject.itemId === itemId) {
+      return selection.selectedObject.object;
+    }
+    
+    // TODO: Implement full scene graph traversal if needed
+    // For most cases, the undo will be for the currently selected object
+    return null;
+  }, [selection.selectedObject]);
+
+  const undoTransform = useCallback((): boolean => {
+    const entry = transformHistoryManager.undo();
+    if (!entry) {
+      log('warn', '↶ TransformUndo: No transform to undo');
+      return false;
+    }
+
+    // Find the object to restore
+    const targetObject = findObjectByItemId(entry.itemId);
+    if (!targetObject) {
+      log('error', '↶ TransformUndo: Target object not found:', entry.itemId);
+      return false;
+    }
+
+    // Apply the before state (undo)
+    transformHistoryManager.applyTransformState(targetObject, entry.beforeState);
+    
+    // Handle special cases for different object types
+    const isLightHelper = (selection.selectedObject as any)?.isLightHelper;
+    const helperObject = (selection.selectedObject as any)?.helperObject;
+    
+    if (isLightHelper && helperObject && 'update' in helperObject && typeof helperObject.update === 'function') {
+      helperObject.update();
+      log('debug', '💡 Helper visual updated after undo');
+    }
+
+    // Update selection state to trigger re-renders
+    setSelection(prev => {
+      if (!prev.selectedObject) return prev;
+      return {
+        ...prev,
+        selectedObject: {
+          ...prev.selectedObject,
+          transformUpdateCount: (prev.selectedObject.transformUpdateCount || 0) + 1
+        }
+      };
+    });
+
+    log('info', '↶ TransformUndo: Restored transform for:', entry.objectName);
+    return true;
+  }, [selection.selectedObject, findObjectByItemId]);
+
+  const redoTransform = useCallback((): boolean => {
+    const entry = transformHistoryManager.redo();
+    if (!entry) {
+      log('warn', '↷ TransformRedo: No transform to redo');
+      return false;
+    }
+
+    // Find the object to restore
+    const targetObject = findObjectByItemId(entry.itemId);
+    if (!targetObject) {
+      log('error', '↷ TransformRedo: Target object not found:', entry.itemId);
+      return false;
+    }
+
+    // Apply the after state (redo)
+    transformHistoryManager.applyTransformState(targetObject, entry.afterState);
+    
+    // Handle special cases for different object types
+    const isLightHelper = (selection.selectedObject as any)?.isLightHelper;
+    const helperObject = (selection.selectedObject as any)?.helperObject;
+    
+    if (isLightHelper && helperObject && 'update' in helperObject && typeof helperObject.update === 'function') {
+      helperObject.update();
+      log('debug', '💡 Helper visual updated after redo');
+    }
+
+    // Update selection state to trigger re-renders
+    setSelection(prev => {
+      if (!prev.selectedObject) return prev;
+      return {
+        ...prev,
+        selectedObject: {
+          ...prev.selectedObject,
+          transformUpdateCount: (prev.selectedObject.transformUpdateCount || 0) + 1
+        }
+      };
+    });
+
+    log('info', '↷ TransformRedo: Restored transform for:', entry.objectName);
+    return true;
+  }, [selection.selectedObject, findObjectByItemId]);
+
+  const canUndoTransform = useCallback((): boolean => {
+    return transformHistoryManager.canUndo();
+  }, []);
+
+  const canRedoTransform = useCallback((): boolean => {
+    return transformHistoryManager.canRedo();
+  }, []);
+
   return (
     <SelectionContext.Provider
       value={{
@@ -285,6 +437,10 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
         setIsTransforming,
         updateObjectTransform,
         deleteObject,
+        undoTransform,
+        redoTransform,
+        canUndoTransform,
+        canRedoTransform,
       }}
     >
       {children}
