@@ -201,7 +201,49 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
 
       if (selectedObj) {
         console.log('🎯 Click selection hit:', selectedObj.userData.itemId);
-        selectObject(selectedObj);
+        
+        // Check if this is an instanced mesh and handle proxy selection
+        const userData = selectedObj.userData;
+        if (userData?.meta?.isInstancedMesh && userData?.meta?.assetId) {
+          console.log('🎯 Detected instanced mesh selection:', {
+            itemId: userData.itemId,
+            assetId: userData.meta.assetId,
+            instanceId: userData.meta.instanceId,
+            userData
+          });
+          
+          // Import the instanced mesh selection handler
+          import('./InstancedTransformProxy').then(({ handleInstancedMeshSelection }) => {
+            // Find the intersection that corresponds to this selected object
+            const relevantIntersection = intersects.find(intersect => 
+              intersect.object === selectedObj || intersect.object.userData?.itemId === userData.itemId
+            ) || intersects[0];
+            
+            console.log('🎯 Using intersection for instanced mesh:', {
+              objectName: relevantIntersection.object.name,
+              instanceId: relevantIntersection.instanceId,
+              userData: relevantIntersection.object.userData
+            });
+            
+            const proxySelection = handleInstancedMeshSelection(relevantIntersection, selectObject);
+            
+            if (proxySelection) {
+              console.log('🎯 Created proxy selection for instanced mesh:', userData.itemId);
+            } else {
+              console.warn('⚠️ Proxy selection failed, using regular selection');
+              // Fallback to regular selection if proxy creation failed
+              selectObject(selectedObj);
+            }
+          }).catch(error => {
+            console.error('❌ Failed to load instanced mesh selection handler:', error);
+            // Fallback to regular selection
+            selectObject(selectedObj);
+          });
+        } else {
+          // Regular non-instanced mesh selection
+          console.log('🎯 Using regular selection for non-instanced object:', userData?.itemId);
+          selectObject(selectedObj);
+        }
       } else {
         console.log('🎯 Click selection miss - deselecting');
         deselectObject();

@@ -374,14 +374,14 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
           // Listen for custom WebGL context loss events from the memory monitor
           const handleCustomContextLoss = (_event: Event) => {
             console.error('🚨 Custom WebGL context loss detected!');
-            console.log('🔄 Triggering emergency scene refresh to reload meshes');
+            console.log('💬 Context loss handled by GPU memory monitor - no emergency refresh needed');
             
-            // Use throttled refresh to prevent loops
-            setTimeout(() => {
-              throttledRefresh('custom-context-loss');
-            }, 50);
+            // REMOVED: Emergency refresh loop that was causing 200k log spam
+            // The GPU memory monitor and pooled instancing system handle context loss gracefully
+            // No need to force scene refresh which can cause infinite loops
           };
           
+          // Keep the listener for logging, but don't trigger refresh loops
           window.addEventListener('webgl-context-lost', handleCustomContextLoss as EventListener);
           
           // Initialize KTX2 loader for optimized textures

@@ -33,6 +33,7 @@ import { ShellUIControls } from './ShellUIControls';
 import { LayerManagementPanel } from './LayerManagementPanel';
 import { SmoothCameraControls, CameraTransitionStatus } from './SmoothCameraControls';
 import { PerformanceStats } from './PerformanceStats';
+import { InstancedSelectionBridge } from './InstancedSelectionBridge';
 
 interface SceneGraphProps {
   manifest: SceneManifestV2;
@@ -106,6 +107,9 @@ function SceneGraph({ manifest, controls, onFPSUpdate }: SceneGraphProps) {
       <ClickSelection enabled={true} />
       <TransformGizmos enabled={true} />
       <SelectionHighlight />
+      
+      {/* New Instanced Selection System */}
+      <InstancedSelectionBridge />
       
       {/* Smooth Camera Controls */}
       <SmoothCameraControls enabled={true} />

@@ -18,6 +18,7 @@ interface InstancedObjectProps {
   maxInstances?: number;
   progressive?: boolean;
   batchSize?: number;
+  categoryKey?: string;
 }
 
 export function InstancedObject({ 
@@ -26,7 +27,8 @@ export function InstancedObject({
   frustumCulling = true,
   maxInstances = 1000,
   progressive = false,
-  batchSize = 5
+  batchSize = 5,
+  categoryKey = 'unknown'
 }: InstancedObjectProps) {
   const { scene } = useGLTF(glbUrl);
   const instancedMeshRef = useRef<THREE.InstancedMesh>(null);
@@ -126,6 +128,40 @@ export function InstancedObject({
     }
   }, [items, maxInstances, glbUrl, progressive, batchSize]);
 
+  // Add custom raycasting support for InstancedMesh selection
+  const setupInstancedMeshSelection = (mesh: THREE.InstancedMesh) => {
+    // Store original raycast method
+    const originalRaycast = mesh.raycast.bind(mesh);
+    
+    // Override raycast to handle individual instances
+    mesh.raycast = (raycaster, intersects) => {
+      // Call original raycast to get basic intersection
+      const tempIntersects: THREE.Intersection[] = [];
+      originalRaycast(raycaster, tempIntersects);
+      
+      // For each intersection, determine which instance was hit
+      tempIntersects.forEach(intersection => {
+        if (intersection.instanceId !== undefined) {
+          const instanceId = intersection.instanceId;
+          const item = items[instanceId];
+          
+          if (item && instanceId < items.length) {
+            // Modify the existing intersection's object userData directly
+            intersection.object.userData = {
+              itemId: item.id,
+              category: categoryKey || 'unknown',
+              selectable: true,
+              locked: false,
+              meta: { instanceId, isInstancedMesh: true }
+            };
+            
+            intersects.push(intersection);
+          }
+        }
+      });
+    };
+  };
+
   // Update instance matrices on every frame (for frustum culling)
   useFrame(({ camera }) => {
     if (!instancedMeshRef.current || !frustumCulling) return;
@@ -210,7 +246,15 @@ export function InstancedObject({
         return (
           <instancedMesh
             key={`instanced-mesh-${index}`}
-            ref={index === 0 ? instancedMeshRef : null} // Only first mesh gets the ref for frustum culling
+            ref={(mesh) => {
+              if (index === 0 && mesh) {
+                (instancedMeshRef as any).current = mesh;
+              }
+              if (mesh) {
+                setupInstancedMeshSelection(mesh);
+                console.log(`🔧 InstancedObject: Set up selection for instancedMesh ${index} with ${items.length} instances`);
+              }
+            }}
             args={[geometry, material, instanceCount]}
             frustumCulled={false} // We handle culling manually
             castShadow

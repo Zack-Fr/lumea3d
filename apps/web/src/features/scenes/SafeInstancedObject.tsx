@@ -117,6 +117,7 @@ console.log(`🔍 SafeInstancedObject: Testing URL accessibility: ${glbUrl}`);
         maxInstances={maxInstances}
         progressive={progressive}
         batchSize={batchSize}
+        categoryKey={categoryKey}
       />
     );
   } catch (error) {

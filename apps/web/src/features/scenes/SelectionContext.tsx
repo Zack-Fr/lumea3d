@@ -3,6 +3,7 @@ import { Object3D, Vector3, Euler } from 'three';
 import * as THREE from 'three';
 import { log } from '../../utils/logger';
 import { scenesApi } from '../../services/scenesApi';
+import { instancedTransformProxyManager } from './InstancedTransformProxy';
 import { useSceneContext } from '../../contexts/SceneContext';
 
 export interface SelectedObject {
@@ -101,12 +102,24 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
   }, []);
 
   const deselectObject = useCallback(() => {
-  log('info', '🎯 Object deselected');
-    setSelection(prev => ({
-      ...prev,
-      selectedObject: null,
-      isTransforming: false,
-    }));
+    log('info', '🎯 Object deselected');
+    
+    setSelection(prev => {
+      // Clean up instanced mesh proxy if it exists
+      if (prev.selectedObject && (prev.selectedObject as any).isInstancedMesh) {
+        const selectionObj = prev.selectedObject as any;
+        if (selectionObj.cleanup && typeof selectionObj.cleanup === 'function') {
+          selectionObj.cleanup();
+          log('info', '🧹 Cleaned up instanced mesh proxy on deselect');
+        }
+      }
+      
+      return {
+        ...prev,
+        selectedObject: null,
+        isTransforming: false,
+      };
+    });
   }, []);
 
   const setTransformMode = useCallback((mode: 'translate' | 'rotate' | 'scale') => {
@@ -135,13 +148,16 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
       const { object } = prev.selectedObject;
       const isLightHelper = (prev.selectedObject as any).isLightHelper;
       const helperObject = (prev.selectedObject as any).helperObject;
+      const isInstancedMesh = (prev.selectedObject as any).isInstancedMesh;
+      const assetId = (prev.selectedObject as any).assetId;
 
       if (position) {
         console.log('🔄 Transform position update:', {
           objectName: object.name,
           newPosition: position.toArray(),
           isLight: object.type.includes('Light'),
-          isLightHelper
+          isLightHelper,
+          isInstancedMesh
         });
         
         // Update the object (which is now the actual light if selected via helper)
@@ -165,12 +181,25 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
         object.updateMatrixWorld(true);
       }
 
+      // CRITICAL: Sync proxy transforms back to instancing pool
+      if (isInstancedMesh && prev.selectedObject && prev.selectedObject.itemId && assetId) {
+        const itemId = prev.selectedObject.itemId;
+        const proxy = instancedTransformProxyManager.getProxy(itemId);
+        if (proxy) {
+          proxy.syncToPool();
+          console.log('🏊 Synced instanced mesh proxy to pool:', itemId);
+        } else {
+          console.warn('⚠️ No proxy found for instanced mesh:', itemId);
+        }
+      }
+
       log('debug', '🔄 Object transform updated:', {
         itemId: prev.selectedObject.itemId,
         position: object.position.toArray(),
         rotation: object.rotation.toArray(),
         scale: object.scale.toArray(),
-        isLight: object.type.includes('Light')
+        isLight: object.type.includes('Light'),
+        isInstancedMesh
       });
       
       // Increment transform counter to trigger React updates
