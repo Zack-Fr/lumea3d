@@ -125,6 +125,36 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
     return null;
   }
   
+  // Convert items to the new format expected by MultiInstancedRenderer
+  const instancedItems = categoryItems.map(item => {
+    // DEBUG: Log each itemId to identify temp vs real IDs
+    const isTemporaryId = item.id?.startsWith('temp_') || false;
+    if (isTemporaryId) {
+      console.warn(`⚠️ CategoryRenderer: Found temporary ID in scene data:`, {
+        itemId: item.id,
+        categoryKey,
+        position: item.transform?.position
+      });
+    }
+    
+    return {
+      id: item.id, // Real backend itemId (hopefully)
+      assetId: `${categoryKey}:${categoryUrl}`, // Generate consistent assetId
+      glbUrl: categoryUrl,
+      position: item.transform?.position || [0, 0, 0] as [number, number, number],
+      yaw_deg: item.transform?.rotation_euler ? item.transform.rotation_euler[1] * (180 / Math.PI) : 0, // Convert Y rotation to degrees
+      scale: item.transform?.scale || [1, 1, 1] as [number, number, number]
+    };
+  });
+  
+  console.log(`🏢 CategoryRenderer "${categoryKey}" - Rendering Strategy:`, {
+    url: categoryUrl,
+    totalItems: categoryItems.length,
+    assetId: `${categoryKey}:${categoryUrl}`,
+    renderingStrategy: FEATURE_INSTANCING ? 'INSTANCED_EXPERIMENTAL' : 'PER_OBJECT_STABLE',
+    featureFlag: FEATURE_INSTANCING
+  });
+  
   return (
     <group name={`category-${categoryKey}`}>
       {/* INSTANCED RENDERING: Only for models with multiple instances */}

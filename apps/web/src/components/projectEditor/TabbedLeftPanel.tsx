@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Button } from "../ui/Button";
-import { ScrollArea } from "../ui/ScrollArea";
 import { 
   Plus,
   Search
@@ -137,10 +136,9 @@ const TabbedLeftPanel: React.FC<TabbedLeftPanelProps> = ({
       ))];
       
       return (
-        <ScrollArea className={styles.assetsScrollArea}>
-          <div className={styles.assetsContainer}>
-            {/* Enhanced Category Filter */}
-            <CategoryFilter
+        <div>
+          {/* Enhanced Category Filter */}
+          <CategoryFilter
               availableCategories={availableCategories}
               enabledCategories={enabledCategories}
               searchTerm={searchTerm}
@@ -190,8 +188,7 @@ const TabbedLeftPanel: React.FC<TabbedLeftPanelProps> = ({
                 console.log('📦 TabbedLeftPanel: Started dragging asset:', dragData);
               }}
             />
-          </div>
-        </ScrollArea>
+        </div>
       );
     }
 
@@ -199,11 +196,10 @@ const TabbedLeftPanel: React.FC<TabbedLeftPanelProps> = ({
     const currentCategory = assetCategories.find(cat => cat.id === selectedTool) || assetCategories[0];
 
     return (
-      <ScrollArea className={styles.assetsScrollArea}>
-        <div className={styles.assetsContainer}>
-          <div className={styles.tabContent}>
-            <div className={styles.assetList}>
-              {currentCategory.items.map((item) => (
+      <div>
+        <div className={styles.tabContent}>
+          <div className={styles.assetList}>
+            {currentCategory.items.map((item: any) => (
                 <AssetCard
                   key={item.id}
                   asset={item}
@@ -215,8 +211,7 @@ const TabbedLeftPanel: React.FC<TabbedLeftPanelProps> = ({
               ))}
             </div>
           </div>
-        </div>
-      </ScrollArea>
+      </div>
     );
   };
 
@@ -224,43 +219,51 @@ const TabbedLeftPanel: React.FC<TabbedLeftPanelProps> = ({
 
   return (
     <aside className={styles.leftSidebar}>
-      {/* Scene Assets Section */}
-      <div className={styles.sidebarSection}>
-        <div className={styles.sidebarHeader}>
-          <div className={styles.sidebarTitleRow}>
-            <h2 className={styles.sidebarTitle}>Scene Assets</h2>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className={styles.addButton}
-              onClick={onImportAsset}
-              title="Import new 3D asset"
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
+      {/* Fixed Header - like right panel */}
+      <div className={styles.sidebarHeader}>
+        <div className={styles.sidebarTitleRow}>
+          <h2 className={styles.sidebarTitle}>Scene Assets & Layers</h2>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className={styles.addButton}
+            onClick={onImportAsset}
+            title="Import new 3D asset"
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+        </div>
+        
+        {/* Search for assets */}
+        {!sceneId && (
+          <div className={styles.searchContainer}>
+            <Search className={styles.searchIcon} />
+            <input
+              type="text"
+              placeholder="Search assets..."
+              className={styles.searchInput}
+            />
           </div>
-          
-          {/* Search for assets */}
-          {!sceneId && (
-            <div className={styles.searchContainer}>
-              <Search className={styles.searchIcon} />
-              <input
-                type="text"
-                placeholder="Search assets..."
-                className={styles.searchInput}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Assets Content */}
-        <div className={styles.sidebarContent}>
-          {renderTabContent()}
-        </div>
+        )}
       </div>
 
-      {/* Layers Section */}
-      <LayersPanel className={styles.sidebarSection} />
+      {/* Scrollable Content Area - same pattern as rightPanelContent */}
+      <div className="flex-1" style={{ minHeight: 0, overflowY: 'auto' }}>
+        <div className="space-y-0">
+          {/* Scene Assets Section */}
+          <div className={styles.sidebarSection}>
+            <div className="p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <h3 className={styles.sidebarTitle} style={{ fontSize: '0.875rem' }}>Assets</h3>
+              </div>
+              {renderTabContent()}
+            </div>
+          </div>
+
+          {/* Layers Section */}
+          <LayersPanel className={styles.sidebarSection} />
+        </div>
+      </div>
     </aside>
   );
 };

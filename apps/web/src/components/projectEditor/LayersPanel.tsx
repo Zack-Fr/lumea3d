@@ -1,5 +1,4 @@
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
-import { ScrollArea } from "../ui/ScrollArea";
 import { 
   Layers,
   Eye,
@@ -14,6 +13,7 @@ import {
 import { useSceneContext } from '../../contexts/SceneContext';
 import { useSelection } from '../../features/scenes/SelectionContext';
 import { LightsManager } from './LightsContainer';
+import { StandaloneLayerHierarchy } from '../../features/scenes/StandaloneLayerHierarchy';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 
 interface LayersPanelProps {
@@ -111,8 +111,8 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
         </div>
       </div>
 
-      <ScrollArea className={styles.sidebarContent}>
-        <div className="space-y-4 p-4">
+      {/* Content - parent handles scrolling */}
+      <div className="space-y-4 p-4">
           
           {/* Objects Section */}
           <div className="space-y-3">
@@ -197,6 +197,19 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
             )}
           </div>
 
+          {/* Active Layers Section */}
+          <div className="space-y-3 border-t pt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-purple-500" />
+                <span className="text-sm font-medium">Active Layers</span>
+              </div>
+            </div>
+            
+            {/* Layer Hierarchy */}
+            <StandaloneLayerHierarchy className="p-1" />
+          </div>
+
           {/* Lights Section */}
           <div className="space-y-3 border-t pt-4">
             <div className="flex items-center justify-between">
@@ -277,8 +290,7 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
             )}
           </div>
 
-        </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };

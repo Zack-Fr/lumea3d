@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { Object3D, Vector3, Euler } from 'three';
-import * as THREE from 'three';
 import { log } from '../../utils/logger';
 import { scenesApi } from '../../services/scenesApi';
 import { useSceneContext } from '../../contexts/SceneContext';
@@ -191,6 +190,16 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
 
     const { object, itemId } = selection.selectedObject;
     
+    // DEBUG: Check if this is a temporary ID
+    const isTemporaryId = itemId?.startsWith('temp_') || false;
+    if (isTemporaryId) {
+      log('error', '❌ CRITICAL: Attempting to delete object with temporary ID!', {
+        itemId,
+        objectName: object.name,
+        objectUserData: object.userData
+      });
+    }
+    
     log('info', '🗑️ Deleting object:', itemId);
 
     // STEP 1: First clear the selection to detach transform controls
@@ -210,8 +219,9 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
             await scenesApi.removeItem(sceneId, itemId, manifest?.scene?.version?.toString());
             log('info', '✅ Object deleted from backend:', itemId);
             
-            // Refresh scene to update manifest and object counts
-            refreshScene();
+            // DON'T refresh scene automatically - this causes camera reset and scene reload
+            // The object is already removed from the scene graph below
+            // refreshScene(); // REMOVED: This was causing camera reset
           } catch (apiError) {
             log('error', '❌ Failed to delete object from backend:', apiError);
             // Continue with local deletion even if API fails
@@ -224,20 +234,10 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
           log('debug', '🗑️ Object removed from scene graph');
         }
 
-        // STEP 5: Clean up geometry and materials
-        if (object instanceof THREE.Mesh) {
-          if (object.geometry) {
-            object.geometry.dispose();
-          }
-          if (object.material) {
-            if (Array.isArray(object.material)) {
-              object.material.forEach(material => material.dispose());
-            } else {
-              object.material.dispose();
-            }
-          }
-          log('debug', '🗑️ Object geometry and materials disposed');
-        }
+        // STEP 5: Skip geometry/material disposal to prevent WebGL context loss
+        // GLB assets are shared/cloned, disposing them causes context loss
+        // Just removing from scene graph is sufficient - Three.js will GC unused resources
+        log('debug', '🗑️ Skipped geometry disposal to prevent WebGL context loss');
 
         log('info', '✅ Object deleted successfully:', itemId);
       } catch (error) {

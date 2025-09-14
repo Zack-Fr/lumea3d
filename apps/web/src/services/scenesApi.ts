@@ -506,8 +506,12 @@ export const scenesApi = {
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'If-Match': version ? `W/"${version}"` : '"*"',
     };
+    if (version) {
+      // Backend expects numeric version in If-Match header (consistent with addItem/removeItem)
+      const numericVersion = parseInt(version.toString(), 10);
+      headers['If-Match'] = numericVersion.toString();
+    }
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
@@ -532,21 +536,64 @@ export const scenesApi = {
     const token = getCurrentToken();
     const url = `${API_BASE_URL}/scenes/${sceneId}/items/${itemId}`;
     
-    const headers: Record<string, string> = {
-      'If-Match': version ? `W/"${version}"` : '"*"',
-    };
+    // DEBUG: Log delete request details
+    console.log('🗑️ SCENES_API: removeItem request:', {
+      sceneId,
+      itemId,
+      version,
+      url,
+      isTemporaryId: itemId?.startsWith('temp_')
+    });
+    
+    const headers: Record<string, string> = {};
+    if (version) {
+      // Backend expects numeric version in If-Match header (same as addItem)
+      const numericVersion = parseInt(version.toString(), 10);
+      headers['If-Match'] = numericVersion.toString();
+    }
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
+    
+    console.log('🗑️ SCENES_API: removeItem headers:', headers);
     
     const response = await fetch(url, {
       method: 'DELETE',
       headers,
     });
     
+    console.log('🗑️ SCENES_API: removeItem response status:', response.status, response.statusText);
+    
     if (!response.ok) {
-      throw new SceneApiError(response.status, `Failed to remove item: ${response.statusText}`);
+      // Get response body for better error details
+      let errorMessage = `Failed to remove item: ${response.statusText}`;
+      let errorDetails = '';
+      
+      try {
+        const errorBody = await response.text();
+        console.error('🗑️ SCENES_API: removeItem error response body:', errorBody);
+        errorDetails = errorBody;
+        
+        // Try to parse as JSON for better error message
+        try {
+          const errorJson = JSON.parse(errorBody);
+          if (errorJson.message) {
+            errorMessage = errorJson.message;
+          }
+          if (errorJson.error) {
+            errorDetails = errorJson.error;
+          }
+        } catch (jsonError) {
+          // Not JSON, use raw text
+        }
+      } catch (textError) {
+        console.error('🗑️ SCENES_API: Could not read error response body:', textError);
+      }
+      
+      throw new SceneApiError(response.status, errorMessage, errorDetails);
     }
+    
+    console.log('✅ SCENES_API: removeItem success');
   },
 
   /**
