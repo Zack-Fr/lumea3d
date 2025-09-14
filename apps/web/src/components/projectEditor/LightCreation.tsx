@@ -202,7 +202,7 @@ const LightCreation: React.FC<LightCreationProps> = ({ onLightCreated }) => {
               key={type}
               className={`p-2 rounded border cursor-pointer transition-colors ${
                 selectedLightType === type
-                  ? 'border-blue-500 bg-blue-500/10'
+                  ? 'border-[var(--glass-yellow)] bg-[var(--glass-yellow)]/10'
                   : 'border-gray-600 hover:border-gray-500'
               }`}
               onClick={() => setSelectedLightType(type)}
@@ -220,7 +220,7 @@ const LightCreation: React.FC<LightCreationProps> = ({ onLightCreated }) => {
       <Button
         onClick={handleCreateLight}
         disabled={isCreatingLight || !sceneId}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+        className="w-full bg-[var(--glass-yellow)] hover:bg-[var(--glass-yellow-dark)] text-[var(--glass-black)]"
       >
         {isCreatingLight ? (
           <>

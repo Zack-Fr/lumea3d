@@ -43,9 +43,9 @@ const ScaleUnitSystem: React.FC<ScaleSystemProps> = ({
   return (
     <div className={className}>
       <div className="flex items-center gap-2 mb-3">
-        <Ruler className="w-4 h-4 text-blue-500" />
-        <span className="text-sm font-medium">Scene Scale</span>
-        <Info className="w-3 h-3 text-gray-400 cursor-help" />
+        <Ruler className="w-4 h-4 text-[var(--glass-yellow)]" />
+        <span className="text-sm font-medium text-[var(--glass-yellow)]">Scene Scale</span>
+        <Info className="w-3 h-3 text-[var(--glass-yellow)] cursor-help" />
       </div>
       
       <div className="space-y-3">
@@ -78,7 +78,15 @@ const ScaleUnitSystem: React.FC<ScaleSystemProps> = ({
               step="0.1"
               value={sceneScale}
               onChange={(e) => onScaleChange(parseFloat(e.target.value))}
-              className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              className="flex-1 h-2"
+              style={{
+                background: 'linear-gradient(to right, var(--glass-maroon) 0%, var(--glass-yellow) 100%)',
+                borderRadius: '3px',
+                outline: 'none',
+                WebkitAppearance: 'none',
+                appearance: 'none',
+                cursor: 'pointer'
+              }}
             />
             <span className="text-xs text-gray-500 min-w-[3rem] text-right">
               {sceneScale.toFixed(1)}x

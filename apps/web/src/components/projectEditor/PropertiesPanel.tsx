@@ -8,7 +8,6 @@ import {
   Palette,
   Lightbulb,
   Eye,
-  Ruler,
   Image as ImageIcon
 } from "lucide-react";
 import TextureManager from './TextureManager';
@@ -657,7 +656,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   
   // Light creation handler
   const handleLightCreated = useCallback((light: THREE.Light) => {
-    console.log('💡 Light created in PropertiesPanel:', light.name);
+    // console.log('Light created in PropertiesPanel:', light.name);
     setCreatedLights(prev => [...prev, light]);
   }, []);
   
@@ -698,7 +697,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
               light.shadow.map = null;
             }
           }
-          console.log(`💡 Light ${light.name} castShadow set to:`, value);
+          // console.log(`💡 Light ${light.name} castShadow set to:`, value);
           break;
       }
       
@@ -1766,8 +1765,8 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                   
                   {/* Material Update Feedback */}
                   {isUpdatingItem && (
-                    <div className="mt-3 px-3 py-2 bg-blue-900/30 border border-blue-600 rounded text-xs text-blue-200 flex items-center gap-2">
-                      <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="mt-3 px-3 py-2 bg-[var(--glass-yellow)]/20 border border-[var(--glass-yellow)] rounded text-xs text-[var(--glass-black)] flex items-center gap-2">
+                      <div className="w-3 h-3 border-2 border-[var(--glass-yellow)] border-t-transparent rounded-full animate-spin"></div>
                       Applying material changes...
                     </div>
                   )}
@@ -1834,7 +1833,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                     }}
                     className={`px-3 py-1 rounded text-xs transition-colors ${
                       defaultLightEnabled 
-                        ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                        ? 'bg-[var(--glass-yellow)] text-[var(--glass-black)] hover:bg-[var(--glass-yellow-dark)]' 
                         : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
                     }`}
                   >
@@ -2103,17 +2102,13 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
 
           {/* Scene Scale */}
           <div className={styles.propertySection}>
-            <h3 className={styles.propertySectionTitle}>
-              <Ruler className="w-4 h-4 mr-2" />
-              Scene Scale
-            </h3>
             <div className={styles.propertySectionContent}>
               <ScaleUnitSystem
                 currentUnit={scaleSettings.unit}
                 sceneScale={scaleSettings.sceneScale}
                 onUnitChange={handleUnitChange}
                 onScaleChange={handleScaleChange}
-                className=""
+                className={styles.sliderContainer}
               />
             </div>
           </div>

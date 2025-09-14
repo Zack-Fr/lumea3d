@@ -4,8 +4,12 @@ interface SliderProps extends React.InputHTMLAttributes<HTMLInputElement> {
   value?: number;
 }
 
-export function Slider(props: SliderProps) {
-  return <input type="range" {...props} />;
+export function Slider({ className, ...props }: SliderProps) {
+  return (
+    <div className={className}>
+      <input type="range" {...props} />
+    </div>
+  );
 }
 
 export default Slider;
