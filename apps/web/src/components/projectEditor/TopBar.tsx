@@ -15,12 +15,14 @@ import {
   Sparkles,
   ChevronDown,
   Folder,
-  Plus
+  Plus,
+  Save
 } from "lucide-react";
 import { useSceneContext } from '../../contexts/SceneContext';
 import { useScenes } from '../../hooks/scenes/useSceneQuery';
 import { useScenesList } from '../../hooks/scenes/useScenesList';
 import { useAuth } from '../../providers/AuthProvider';
+import { useSaveQueueStore } from '../../stores/saveQueueStore';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 
 interface TopBarProps {
@@ -51,6 +53,7 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
   const navigate = useNavigate();
   const { sceneId, projectId } = useSceneContext();
   const { token, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { saveState, createSnapshot, setSceneId, queue } = useSaveQueueStore();
   const [showSceneSelector, setShowSceneSelector] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -65,6 +68,41 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
       sceneId
     });
   }, [token, isAuthenticated, authLoading, projectId, sceneId]);
+
+  // Initialize save queue with scene ID and fetch current version
+  useEffect(() => {
+    const initializeSaveQueue = async () => {
+      if (sceneId) {
+        try {
+          // Store current auth token for the save queue to use
+          if (token) {
+            localStorage.setItem('authToken', token);
+          }
+          
+          // Fetch current scene version
+          const response = await fetch(`http://localhost:3001/scenes/${sceneId}/version`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          
+          if (response.ok) {
+            const { version } = await response.json();
+            setSceneId(sceneId, version);
+            console.log(`🔄 Initialized save queue with scene version: ${version}`);
+          } else {
+            console.warn(`⚠️ Failed to fetch scene version, using default version 1`);
+            setSceneId(sceneId, 1);
+          }
+        } catch (error) {
+          console.error(`❌ Error fetching scene version:`, error);
+          setSceneId(sceneId, 1);
+        }
+      }
+    };
+    
+    initializeSaveQueue();
+  }, [sceneId, setSceneId, token]);
 
   // Fetch scenes for the current project
   const { data: availableScenes = [], isLoading: scenesLoading, error: scenesError } = useScenes(projectId || '', {
@@ -153,6 +191,23 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
     } catch (error) {
       console.error('❌ Failed to create scene:', error);
       alert('Failed to create scene. Please try again.');
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      // Store current auth token for the save queue to use
+      if (token) {
+        localStorage.setItem('authToken', token);
+      }
+      
+      const timestamp = new Date().toLocaleString();
+      await createSnapshot(`Manual Save - ${timestamp}`);
+      console.log('💾 Manual save completed');
+    } catch (error) {
+      console.error('❌ Manual save failed:', error);
+      console.error('Auth token available:', !!token);
+      alert('Save failed. Please try again.');
     }
   };
   return (
@@ -296,6 +351,20 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
             className={styles.controlButton}
           >
             {lightingMode === "day" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </Button>
+
+          <Button 
+            variant={queue.length > 0 ? "default" : "ghost"} 
+            size="sm"
+            onClick={handleSave}
+            disabled={saveState.isSaving || !sceneId}
+            className={`${styles.controlButton} ${queue.length > 0 ? 'bg-blue-500 text-white' : ''}`}
+            title={`Save scene (${saveState.isSaving ? 'Saving...' : queue.length > 0 ? `${queue.length} unsaved changes` : 'All saved'})`}
+          >
+            <Save className={`w-4 h-4 ${saveState.isSaving ? 'animate-pulse' : queue.length > 0 ? 'animate-bounce' : ''}`} />
+            {queue.length > 0 && (
+              <span className="ml-1 text-xs">{queue.length}</span>
+            )}
           </Button>
 
           <Button 

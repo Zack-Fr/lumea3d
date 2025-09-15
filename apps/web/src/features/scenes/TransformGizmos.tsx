@@ -3,6 +3,7 @@ import { log } from '../../utils/logger';
 import { TransformControls } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 import { useSelection } from './SelectionContext';
+import { useSaveQueueStore } from '../../stores/saveQueueStore';
 
 interface TransformGizmosProps {
   enabled: boolean;
@@ -11,6 +12,7 @@ interface TransformGizmosProps {
 export function TransformGizmos({ enabled }: TransformGizmosProps) {
   const { camera } = useThree();
   const { selection, setIsTransforming, updateObjectTransform } = useSelection();
+  const { stage } = useSaveQueueStore();
   const transformRef = useRef<any>(null);
 
   const selectedObject = selection.selectedObject?.object;
@@ -92,6 +94,27 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
         selectedObject.rotation,
         selectedObject.scale
       );
+
+      // Stage the transform change for delta save
+      const itemId = selectedObject.userData?.itemId || selectedObject.userData?.id || selectedObject.name || selectedObject.uuid;
+      if (itemId) {
+        const deltaOp = {
+          op: 'update_item' as const,
+          id: itemId,
+          transform: {
+            position: [selectedObject.position.x, selectedObject.position.y, selectedObject.position.z] as [number, number, number],
+            rotation_euler: [selectedObject.rotation.x, selectedObject.rotation.y, selectedObject.rotation.z] as [number, number, number],
+            scale: [selectedObject.scale.x, selectedObject.scale.y, selectedObject.scale.z] as [number, number, number],
+          }
+        };
+        
+        stage(deltaOp);
+        console.log('💾 Staged transform update for item:', itemId);
+        log('debug', '💾 Transform staged for delta save', { itemId, transform: deltaOp.transform });
+      } else {
+        console.warn('⚠️ Cannot stage transform: no item ID found on object');
+        log('warn', '⚠️ Cannot stage transform: no item ID found', { userData: selectedObject.userData });
+      }
     }
   };
 

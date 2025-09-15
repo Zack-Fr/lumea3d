@@ -444,7 +444,7 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
             } catch (error) {
               console.warn('⚠️ Failed to check GPU performance:', error);
             }
-          }, 10000); // Check every 10 seconds
+          }, 50000000); // Check every 10 seconds
         }}
       >
         {/* Controllable default ambient light */}

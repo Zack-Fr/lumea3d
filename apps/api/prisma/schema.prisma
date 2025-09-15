@@ -297,6 +297,7 @@ model Scene3D {
   projectId       String
   name            String
   version         Int       @default(1)
+  props           Json?
 
   scale           Float?    @default(1.0)
   exposure        Float?    @default(1.0)
@@ -323,6 +324,7 @@ model Scene3D {
   navmeshAsset    Asset?    @relation(fields: [navmeshAssetId], references: [id], onDelete: SetNull)
   shellAsset      Asset?    @relation("SceneShell", fields: [shellAssetId], references: [id], onDelete: SetNull)
   items           SceneItem3D[]
+  snapshots       SceneSnapshot[]
 
   @@index([projectId])
   @@index([createdAt])
@@ -362,6 +364,20 @@ model SceneItem3D {
 
   @@index([sceneId])
   @@index([categoryKey])
+}
+
+model SceneSnapshot {
+  id        String   @id @default(cuid())
+  sceneId   String   
+  label     String   // e.g., "Manual Save" or auto timestamp
+  manifest  Json     // entire scene manifest v2 for restore
+  createdAt DateTime @default(now())
+
+  // Relations
+  scene     Scene3D  @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+
+  @@index([sceneId])
+  @@index([createdAt])
 }
 
 // generator erd {

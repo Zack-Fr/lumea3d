@@ -31,6 +31,8 @@ import { UpdateSceneDto } from './dto/update-scene.dto';
 import { CreateSceneItemDto } from './dto/create-scene-item.dto';
 import { UpdateSceneItemDto } from './dto/update-scene-item.dto';
 import { SceneManifestFrontend, SceneDelta } from './dto/scene-manifest.dto';
+import { BatchDeltaDto, BatchDeltaResponseDto } from './dto/delta-operations.dto';
+import { CreateSnapshotDto, CreateSnapshotResponseDto, RestoreSnapshotDto, RestoreSnapshotResponseDto, ListSnapshotsResponseDto } from './dto/snapshot.dto';
 import { JwtAuthGuard } from '../auth/shared/guards/jwt-auth.guard';
 import { ScenesAuthGuard } from '../shared/guards/scenes-auth.guard';
 import { ProjectAuthGuard } from '../shared/guards/project-auth.guard';
@@ -163,6 +165,64 @@ export class FlatScenesController {
   }
 
   // Scene Items endpoints
+
+  @Patch(':sceneId/items')
+  @UseGuards(ScenesAuthGuard)
+  @ApiOperation({ 
+    summary: 'Apply batch delta operations to scene items',
+    description: 'Flat route - applies multiple delta operations atomically. Requires If-Match header for optimistic locking.',
+  })
+  @ApiParam({ name: 'sceneId', description: 'Scene ID' })
+  @ApiHeader({
+    name: 'If-Match',
+    description: 'Expected scene version for optimistic locking',
+    required: true,
+  })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique key for idempotent operations',
+    required: false,
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Delta operations applied successfully',
+    type: BatchDeltaResponseDto 
+  })
+  @ApiResponse({ status: 400, description: 'If-Match header missing or invalid operations' })
+  @ApiResponse({ status: 404, description: 'Scene not found' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  @ApiResponse({ status: 412, description: 'Precondition Failed - version conflict' })
+  async applyDeltaOperations(
+    @Param('sceneId') sceneId: string,
+    @Headers('if-match') ifMatch: string,
+    @Headers('idempotency-key') idempotencyKey: string,
+    @Body() batchDeltaDto: BatchDeltaDto,
+    @Request() req: RequestWithSceneContext,
+  ): Promise<BatchDeltaResponseDto> {
+    if (!ifMatch) {
+      throw new BadRequestException('If-Match header is required for delta operations');
+    }
+    
+    const expectedVersion = parseInt(ifMatch, 10);
+    if (isNaN(expectedVersion)) {
+      throw new BadRequestException('If-Match header must be a valid version number');
+    }
+
+    try {
+      return await this.scenesService.applyDelta(
+        sceneId,
+        req.user.id,
+        batchDeltaDto.operations,
+        expectedVersion,
+        idempotencyKey,
+      );
+    } catch (error) {
+      if (error.message?.includes('version conflict') || error.message?.includes('Version mismatch')) {
+        throw new PreconditionFailedException('Scene has been modified by another user');
+      }
+      throw error;
+    }
+  }
 
   @Post(':sceneId/items')
   @UseGuards(ScenesAuthGuard)
@@ -457,5 +517,72 @@ export class FlatScenesController {
     return this.scenesService
       .getVersion(projectId, sceneId, req.user.id)
       .then(version => ({ version }));
+  }
+
+  // Scene Snapshots endpoints
+
+  @Post(':sceneId/snapshots')
+  @UseGuards(ScenesAuthGuard)
+  @ApiOperation({
+    summary: 'Create a scene snapshot',
+    description: 'Flat route - creates a manual save snapshot with the current scene state',
+  })
+  @ApiParam({ name: 'sceneId', description: 'Scene ID' })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Snapshot created successfully', 
+    type: CreateSnapshotResponseDto 
+  })
+  @ApiResponse({ status: 404, description: 'Scene not found' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  createSnapshot(
+    @Param('sceneId') sceneId: string,
+    @Body() createSnapshotDto: CreateSnapshotDto,
+    @Request() req: RequestWithSceneContext,
+  ): Promise<CreateSnapshotResponseDto> {
+    return this.scenesService.createSnapshot(sceneId, req.user.id, createSnapshotDto);
+  }
+
+  @Get(':sceneId/snapshots')
+  @UseGuards(ScenesAuthGuard)
+  @ApiOperation({
+    summary: 'List scene snapshots',
+    description: 'Flat route - returns all snapshots for the scene',
+  })
+  @ApiParam({ name: 'sceneId', description: 'Scene ID' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Snapshots listed successfully', 
+    type: ListSnapshotsResponseDto 
+  })
+  @ApiResponse({ status: 404, description: 'Scene not found' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  listSnapshots(
+    @Param('sceneId') sceneId: string,
+    @Request() req: RequestWithSceneContext,
+  ): Promise<ListSnapshotsResponseDto> {
+    return this.scenesService.listSnapshots(sceneId, req.user.id);
+  }
+
+  @Post(':sceneId/restore')
+  @UseGuards(ScenesAuthGuard)
+  @ApiOperation({
+    summary: 'Restore scene from snapshot',
+    description: 'Flat route - restores the scene to a previous snapshot state',
+  })
+  @ApiParam({ name: 'sceneId', description: 'Scene ID' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Scene restored successfully', 
+    type: RestoreSnapshotResponseDto 
+  })
+  @ApiResponse({ status: 404, description: 'Scene or snapshot not found' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  restoreFromSnapshot(
+    @Param('sceneId') sceneId: string,
+    @Body() restoreSnapshotDto: RestoreSnapshotDto,
+    @Request() req: RequestWithSceneContext,
+  ): Promise<RestoreSnapshotResponseDto> {
+    return this.scenesService.restoreFromSnapshot(sceneId, req.user.id, restoreSnapshotDto);
   }
 }

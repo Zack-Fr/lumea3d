@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, ConflictException, Inject, forwardRef, PreconditionFailedException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ValidationService } from '../shared/services/validation.service';
 import { StorageService } from '../storage/storage.service';
@@ -7,7 +7,9 @@ import { UpdateSceneDto } from './dto/update-scene.dto';
 import { CreateSceneItemDto } from './dto/create-scene-item.dto';
 import { UpdateSceneItemDto } from './dto/update-scene-item.dto';
 import { SceneManifestV2, SceneManifestFrontend, SceneDelta } from './dto/scene-manifest.dto';
-import { Scene3D, SceneItem3D, Prisma } from '@prisma/client';
+import { DeltaOp, BatchDeltaResponseDto } from './dto/delta-operations.dto';
+import { CreateSnapshotDto, CreateSnapshotResponseDto, RestoreSnapshotDto, RestoreSnapshotResponseDto, ListSnapshotsResponseDto } from './dto/snapshot.dto';
+import { Scene3D, SceneItem3D, SceneSnapshot, Prisma } from '@prisma/client';
 
 export interface SceneWithItems extends Scene3D {
   items: SceneItem3D[];
@@ -1228,6 +1230,400 @@ export class ScenesService {
   async getVersionBySceneId(sceneId: string, userId: string): Promise<number> {
     const scene = await this.findOneBySceneId(sceneId, userId);
     return scene.version;
+  }
+
+  /**
+   * Apply batched delta operations atomically
+   */
+  async applyDelta(
+    sceneId: string,
+    userId: string,
+    operations: DeltaOp[],
+    ifMatch?: number,
+    idempotencyKey?: string,
+  ): Promise<BatchDeltaResponseDto> {
+    // Verify scene access first
+    const scene = await this.findOneBySceneId(sceneId, userId);
+    
+    // Check version match if provided
+    if (ifMatch !== undefined && scene.version !== ifMatch) {
+      throw new PreconditionFailedException(
+        `Scene version conflict. Expected ${ifMatch}, got ${scene.version}`,
+      );
+    }
+
+    // Apply operations within a transaction
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Process each operation
+      for (const op of operations) {
+        switch (op.op) {
+          case 'update_item':
+            await this.applyUpdateItemOp(tx, sceneId, op, userId);
+            break;
+          case 'add_item':
+            await this.applyAddItemOp(tx, sceneId, op, userId, scene.projectId);
+            break;
+          case 'remove_item':
+            await this.applyRemoveItemOp(tx, sceneId, op, userId);
+            break;
+          case 'update_props':
+            await this.applyUpdatePropsOp(tx, sceneId, op);
+            break;
+          case 'update_material':
+            await this.applyUpdateMaterialOp(tx, sceneId, op, userId);
+            break;
+          default:
+            throw new BadRequestException(`Unknown operation type: ${(op as any).op}`);
+        }
+      }
+
+      // Increment scene version once per batch
+      const updatedScene = await tx.scene3D.update({
+        where: { id: sceneId },
+        data: { version: { increment: 1 } },
+      });
+
+      return { version: updatedScene.version };
+    });
+
+    // Generate ETag for response
+    const etag = `W/"v${result.version}"`;
+
+    // Notify realtime clients
+    this.notifySceneUpdate(sceneId, {
+      type: 'batch_update',
+      target: 'scene',
+      operations: operations.length,
+      version: result.version,
+    });
+
+    return {
+      version: result.version,
+      etag,
+    };
+  }
+
+  /**
+   * Create a scene snapshot
+   */
+  async createSnapshot(
+    sceneId: string,
+    userId: string,
+    createSnapshotDto: CreateSnapshotDto,
+  ): Promise<CreateSnapshotResponseDto> {
+    // Generate current manifest for the snapshot
+    const manifest = await this.generateManifestBySceneId(sceneId, userId);
+    
+    // Create the snapshot
+    const snapshot = await this.prisma.sceneSnapshot.create({
+      data: {
+        sceneId,
+        label: createSnapshotDto.label,
+        manifest: manifest as any,
+      },
+    });
+
+    return {
+      snapshotId: snapshot.id,
+      label: snapshot.label,
+      createdAt: snapshot.createdAt.toISOString(),
+    };
+  }
+
+  /**
+   * List snapshots for a scene
+   */
+  async listSnapshots(
+    sceneId: string,
+    userId: string,
+  ): Promise<ListSnapshotsResponseDto> {
+    // Verify access to scene
+    await this.findOneBySceneId(sceneId, userId);
+    
+    const snapshots = await this.prisma.sceneSnapshot.findMany({
+      where: { sceneId },
+      select: {
+        id: true,
+        label: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      snapshots: snapshots.map(s => ({
+        id: s.id,
+        label: s.label,
+        createdAt: s.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  /**
+   * Restore scene from snapshot
+   */
+  async restoreFromSnapshot(
+    sceneId: string,
+    userId: string,
+    restoreSnapshotDto: RestoreSnapshotDto,
+  ): Promise<RestoreSnapshotResponseDto> {
+    // Verify access to scene
+    const scene = await this.findOneBySceneId(sceneId, userId);
+    
+    // Get the snapshot
+    const snapshot = await this.prisma.sceneSnapshot.findFirst({
+      where: {
+        id: restoreSnapshotDto.snapshotId,
+        sceneId,
+      },
+    });
+
+    if (!snapshot) {
+      throw new NotFoundException('Snapshot not found');
+    }
+
+    // Restore from manifest within transaction
+    const result = await this.prisma.$transaction(async (tx) => {
+      const manifest = snapshot.manifest as any as SceneManifestV2;
+      
+      // Clear existing items
+      await tx.sceneItem3D.deleteMany({
+        where: { sceneId },
+      });
+
+      // Restore items from manifest
+      for (const item of manifest.items) {
+        await tx.sceneItem3D.create({
+          data: {
+            id: item.id,
+            sceneId,
+            categoryKey: item.categoryKey,
+            model: item.model,
+            positionX: item.transform.position.x,
+            positionY: item.transform.position.y,
+            positionZ: item.transform.position.z,
+            rotationX: item.transform.rotation.x,
+            rotationY: item.transform.rotation.y,
+            rotationZ: item.transform.rotation.z,
+            scaleX: item.transform.scale.x,
+            scaleY: item.transform.scale.y,
+            scaleZ: item.transform.scale.z,
+            materialVariant: item.material?.variant,
+            materialOverrides: item.material?.overrides,
+            selectable: item.behavior.selectable,
+            locked: item.behavior.locked,
+            meta: item.meta,
+          },
+        });
+      }
+
+      // Update scene properties and increment version
+      const updatedScene = await tx.scene3D.update({
+        where: { id: sceneId },
+        data: {
+          name: manifest.scene.name,
+          scale: manifest.scene.scale,
+          exposure: manifest.scene.exposure,
+          envHdriUrl: manifest.scene.envHdriUrl,
+          envIntensity: manifest.scene.envIntensity,
+          spawnPositionX: manifest.scene.spawnPoint.position.x,
+          spawnPositionY: manifest.scene.spawnPoint.position.y,
+          spawnPositionZ: manifest.scene.spawnPoint.position.z,
+          spawnYawDeg: manifest.scene.spawnPoint.yawDeg,
+          navmeshAssetId: manifest.scene.navmeshAssetId,
+          shellAssetId: manifest.scene.shell?.assetId,
+          shellCastShadow: manifest.scene.shell?.castShadow,
+          shellReceiveShadow: manifest.scene.shell?.receiveShadow,
+          version: { increment: 1 },
+        },
+      });
+
+      return { version: updatedScene.version };
+    });
+
+    // Generate ETag for response
+    const etag = `W/"v${result.version}"`;
+
+    // Notify realtime clients
+    this.notifySceneUpdate(sceneId, {
+      type: 'restore',
+      target: 'scene',
+      snapshotId: restoreSnapshotDto.snapshotId,
+      version: result.version,
+    });
+
+    return {
+      version: result.version,
+      etag,
+      restoredLabel: snapshot.label,
+    };
+  }
+
+  /**
+   * Helper methods for applying delta operations
+   */
+  private async applyUpdateItemOp(
+    tx: Prisma.TransactionClient,
+    sceneId: string,
+    op: Extract<DeltaOp, { op: 'update_item' }>,
+    userId: string,
+  ) {
+    const item = await tx.sceneItem3D.findFirst({
+      where: { id: op.id, sceneId },
+    });
+
+    if (!item) {
+      throw new NotFoundException(`Scene item ${op.id} not found`);
+    }
+
+    if (item.locked) {
+      throw new ForbiddenException('Cannot modify locked scene item');
+    }
+
+    const updateData: any = {};
+    
+    if (op.transform) {
+      if (op.transform.position) {
+        updateData.positionX = op.transform.position[0];
+        updateData.positionY = op.transform.position[1];
+        updateData.positionZ = op.transform.position[2];
+      }
+      if (op.transform.rotation_euler) {
+        updateData.rotationX = op.transform.rotation_euler[0];
+        updateData.rotationY = op.transform.rotation_euler[1]; // yawDeg maps to rotationY
+        updateData.rotationZ = op.transform.rotation_euler[2];
+      }
+      if (op.transform.scale) {
+        updateData.scaleX = op.transform.scale[0];
+        updateData.scaleY = op.transform.scale[1];
+        updateData.scaleZ = op.transform.scale[2];
+      }
+    }
+
+    await tx.sceneItem3D.update({
+      where: { id: op.id },
+      data: updateData,
+    });
+  }
+
+  private async applyAddItemOp(
+    tx: Prisma.TransactionClient,
+    sceneId: string,
+    op: Extract<DeltaOp, { op: 'add_item' }>,
+    userId: string,
+    projectId: string,
+  ) {
+    // For now, we'll use categoryKey if provided, or derive it from assetId
+    // In a full implementation, you'd have asset-to-category mapping
+    const categoryKey = op.categoryKey || 'default';
+    
+    await tx.sceneItem3D.create({
+      data: {
+        sceneId,
+        categoryKey,
+        model: op.model,
+        positionX: op.transform.position?.[0] ?? 0,
+        positionY: op.transform.position?.[1] ?? 0,
+        positionZ: op.transform.position?.[2] ?? 0,
+        rotationX: op.transform.rotation_euler?.[0] ?? 0,
+        rotationY: op.transform.rotation_euler?.[1] ?? 0,
+        rotationZ: op.transform.rotation_euler?.[2] ?? 0,
+        scaleX: op.transform.scale?.[0] ?? 1,
+        scaleY: op.transform.scale?.[1] ?? 1,
+        scaleZ: op.transform.scale?.[2] ?? 1,
+      },
+    });
+  }
+
+  private async applyRemoveItemOp(
+    tx: Prisma.TransactionClient,
+    sceneId: string,
+    op: Extract<DeltaOp, { op: 'remove_item' }>,
+    userId: string,
+  ) {
+    const item = await tx.sceneItem3D.findFirst({
+      where: { id: op.id, sceneId },
+    });
+
+    if (!item) {
+      throw new NotFoundException(`Scene item ${op.id} not found`);
+    }
+
+    if (item.locked) {
+      throw new ForbiddenException('Cannot remove locked scene item');
+    }
+
+    await tx.sceneItem3D.delete({
+      where: { id: op.id },
+    });
+  }
+
+  private async applyUpdatePropsOp(
+    tx: Prisma.TransactionClient,
+    sceneId: string,
+    op: Extract<DeltaOp, { op: 'update_props' }>,
+  ) {
+    // Get current scene props
+    const scene = await tx.scene3D.findUnique({
+      where: { id: sceneId },
+      select: { props: true },
+    });
+
+    const currentProps = (scene?.props as any) || {};
+    const { op: opType, ...propsUpdate } = op;
+    
+    // Deep merge the props update
+    const mergedProps = this.mergeDeep(currentProps, propsUpdate);
+
+    await tx.scene3D.update({
+      where: { id: sceneId },
+      data: { props: mergedProps },
+    });
+  }
+
+  private async applyUpdateMaterialOp(
+    tx: Prisma.TransactionClient,
+    sceneId: string,
+    op: Extract<DeltaOp, { op: 'update_material' }>,
+    userId: string,
+  ) {
+    const item = await tx.sceneItem3D.findFirst({
+      where: { id: op.id, sceneId },
+    });
+
+    if (!item) {
+      throw new NotFoundException(`Scene item ${op.id} not found`);
+    }
+
+    if (item.locked) {
+      throw new ForbiddenException('Cannot modify locked scene item');
+    }
+
+    await tx.sceneItem3D.update({
+      where: { id: op.id },
+      data: { materialOverrides: op.materialOverrides },
+    });
+  }
+
+  private mergeDeep(target: any, source: any): any {
+    const output = { ...target };
+    if (this.isObject(target) && this.isObject(source)) {
+      Object.keys(source).forEach(key => {
+        if (this.isObject(source[key])) {
+          if (!(key in target))
+            Object.assign(output, { [key]: source[key] });
+          else
+            output[key] = this.mergeDeep(target[key], source[key]);
+        } else {
+          Object.assign(output, { [key]: source[key] });
+        }
+      });
+    }
+    return output;
+  }
+
+  private isObject(item: any): boolean {
+    return item && typeof item === 'object' && !Array.isArray(item);
   }
 
   /**
