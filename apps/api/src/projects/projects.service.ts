@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { UpdateProjectDto } from './dto/update-project.dto';
 import { Project, Scene3D, ProjectMember, ProjectRole } from '@prisma/client';
 
 export interface ProjectWithScenes extends Project {
@@ -14,6 +15,10 @@ export interface ProjectWithScenes extends Project {
   _count: {
     members: number;
   };
+  // Thumbnail fields are included from Project model
+  thumbnailUrl?: string;
+  customThumbnailUrl?: string;
+  thumbnailUpdatedAt?: Date;
 }
 
 export interface ProjectCreationResult {
@@ -178,6 +183,26 @@ export class ProjectsService {
     }
 
     return project;
+  }
+
+  /**
+   * Update a project (only if user is a member with appropriate permissions)
+   */
+  async updateProject(projectId: string, userId: string, updateData: UpdateProjectDto): Promise<ProjectWithScenes> {
+    // First verify the user has access to the project
+    const existingProject = await this.findOne(projectId, userId);
+    
+    // Update the project
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        ...updateData,
+        updatedAt: new Date(),
+      },
+    });
+
+    // Return the updated project
+    return this.findOne(projectId, userId);
   }
 
   /**
