@@ -15,10 +15,7 @@ export interface ProjectWithScenes extends Project {
   _count: {
     members: number;
   };
-  // Thumbnail fields are included from Project model
-  thumbnailUrl?: string;
-  customThumbnailUrl?: string;
-  thumbnailUpdatedAt?: Date;
+  // Thumbnail fields are already included from Project model
 }
 
 export interface ProjectCreationResult {
