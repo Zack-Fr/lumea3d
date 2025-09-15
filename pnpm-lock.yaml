@@ -181,7 +181,7 @@ importers:
         specifier: ^4.8.1
         version: 4.8.1
       socket.io-client:
-        specifier: ^4.7.2
+        specifier: ^4.8.1
         version: 4.8.1
       zod:
         specifier: ^3.22.4
@@ -334,7 +334,7 @@ importers:
         specifier: ^6.15.0
         version: 6.30.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       socket.io-client:
-        specifier: ^4.7.2
+        specifier: ^4.8.1
         version: 4.8.1
       tailwind-merge:
         specifier: ^3.3.1

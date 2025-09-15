@@ -16,7 +16,7 @@ export class AssetsService {
     'application/octet-stream', // Alternative for .glb
   ];
   
-  private readonly MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+  private readonly MAX_FILE_SIZE = 200 * 1024 * 1024; // 100MB
   private readonly MIN_FILE_SIZE = 1024; // 1KB
 
   constructor(
