@@ -23,6 +23,7 @@ import { useScenes } from '../../hooks/scenes/useSceneQuery';
 import { useScenesList } from '../../hooks/scenes/useScenesList';
 import { useAuth } from '../../providers/AuthProvider';
 import { useSaveQueueStore } from '../../stores/saveQueueStore';
+import { captureAndUploadScreenshot } from '../../utils/canvasScreenshot';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 
 interface TopBarProps {
@@ -202,6 +203,19 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
       }
       
       const timestamp = new Date().toLocaleString();
+      
+      // Capture and upload canvas screenshot as thumbnail
+      if (projectId) {
+        try {
+          console.log('📷 Capturing canvas screenshot...');
+          const result = await captureAndUploadScreenshot(projectId);
+          console.log('📷 Canvas screenshot uploaded:', result.thumbnailUrl);
+        } catch (screenshotError) {
+          console.warn('⚠️ Failed to capture canvas screenshot:', screenshotError);
+          // Continue with save even if screenshot fails
+        }
+      }
+      
       await createSnapshot(`Manual Save - ${timestamp}`);
       console.log('💾 Manual save completed');
     } catch (error) {
