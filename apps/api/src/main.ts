@@ -6,9 +6,20 @@ import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
+import { join } from 'path';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  
+  // Serve static files for thumbnails
+  const thumbnailsPath = process.env.THUMBNAILS_STORAGE_PATH || join(process.cwd(), 'storage', 'thumbnails');
+  app.useStaticAssets(thumbnailsPath, {
+    prefix: '/storage/thumbnails/',
+    setHeaders: (res) => {
+      res.set('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+    },
+  });
   
   // Security middleware
   app.use(helmet({
