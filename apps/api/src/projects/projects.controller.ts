@@ -4,9 +4,12 @@ import {
   Get, 
   Param, 
   Post, 
+  Put,
+  Delete,
   UseGuards, 
   HttpStatus,
   HttpCode,
+  BadRequestException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { 
@@ -18,8 +21,11 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { ProjectsService, ProjectWithScenes, ProjectCreationResult } from './projects.service';
+import { ThumbnailService } from './thumbnail.service';
 import { CreateProjectResponseDto } from './dto/create-project-response.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { UpdateProjectDto } from './dto/update-project.dto';
+import { ThumbnailUploadDto, ThumbnailUploadResponseDto } from './dto/thumbnail-upload.dto';
 import { CurrentUser } from '../auth/shared/decorators/current-user.decorator';
 
 @ApiTags('Projects')
@@ -27,7 +33,10 @@ import { CurrentUser } from '../auth/shared/decorators/current-user.decorator';
 @UseGuards(AuthGuard('jwt'))
 @Controller('projects')
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(
+    private readonly projectsService: ProjectsService,
+    private readonly thumbnailService: ThumbnailService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -139,5 +148,94 @@ export class ProjectsController {
     @CurrentUser() user: any,
   ): Promise<ProjectWithScenes> {
     return this.projectsService.findOne(id, user.id);
+  }
+
+  @Put(':id')
+  @ApiOperation({
+    summary: 'Update project',
+    description: 'Updates project information including name and thumbnails'
+  })
+  @ApiParam({ name: 'id', description: 'Project UUID' })
+  @ApiBody({ type: UpdateProjectDto })
+  @ApiResponse({ status: 200, description: 'Project updated successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Project not found or access denied' })
+  async update(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() updateProjectDto: UpdateProjectDto,
+  ): Promise<ProjectWithScenes> {
+    return this.projectsService.updateProject(id, user.id, updateProjectDto);
+  }
+
+  @Post(':id/thumbnail')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Upload project thumbnail',
+    description: 'Upload a custom thumbnail or save canvas screenshot for a project'
+  })
+  @ApiParam({ name: 'id', description: 'Project UUID' })
+  @ApiBody({ type: ThumbnailUploadDto })
+  @ApiResponse({ status: 200, description: 'Thumbnail uploaded successfully', type: ThumbnailUploadResponseDto })
+  @ApiResponse({ status: 400, description: 'Invalid image data or project not found' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async uploadThumbnail(
+    @Param('id') projectId: string,
+    @CurrentUser() user: any,
+    @Body() thumbnailUploadDto: ThumbnailUploadDto,
+  ): Promise<ThumbnailUploadResponseDto> {
+    // Verify user has access to the project
+    await this.projectsService.findOne(projectId, user.id);
+
+    // Validate image data
+    const validation = this.thumbnailService.validateImageData(thumbnailUploadDto.imageData);
+    if (!validation.isValid) {
+      throw new BadRequestException(validation.error);
+    }
+
+    // Process and save thumbnail
+    const type = thumbnailUploadDto.type || 'custom';
+    const result = await this.thumbnailService.processThumbnail(
+      projectId,
+      thumbnailUploadDto.imageData,
+      type,
+      thumbnailUploadDto.originalFilename,
+    );
+
+    // Update project in database
+    await this.thumbnailService.updateProjectThumbnail(projectId, result.url, type);
+
+    return {
+      thumbnailUrl: result.url,
+      type,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  @Delete(':id/thumbnail/:type')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Delete project thumbnail',
+    description: 'Delete auto-generated or custom thumbnail for a project'
+  })
+  @ApiParam({ name: 'id', description: 'Project UUID' })
+  @ApiParam({ name: 'type', description: 'Thumbnail type to delete', enum: ['auto', 'custom', 'all'] })
+  @ApiResponse({ status: 204, description: 'Thumbnail deleted successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid thumbnail type or project not found' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async deleteThumbnail(
+    @Param('id') projectId: string,
+    @Param('type') type: 'auto' | 'custom' | 'all',
+    @CurrentUser() user: any,
+  ): Promise<void> {
+    // Verify user has access to the project
+    await this.projectsService.findOne(projectId, user.id);
+
+    // Validate thumbnail type
+    if (!['auto', 'custom', 'all'].includes(type)) {
+      throw new BadRequestException('Invalid thumbnail type. Must be: auto, custom, or all');
+    }
+
+    await this.thumbnailService.deleteProjectThumbnail(projectId, type);
   }
 }

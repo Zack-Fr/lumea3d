@@ -19,6 +19,7 @@ import ViewportTools from '../../components/projectEditor/ViewportTools';
 import ViewportSettings from '../../components/projectEditor/ViewportSettings';
 import GamificationOverlay from '../../components/projectEditor/GamificationOverlay';
 import Achievement from '../../components/projectEditor/Achievement';
+import RealtimeChat from '../../features/realtime/components/RealtimeChat';
 
 // Asset Import Components
 import { AssetImportModal } from '../../features/scenes/AssetImportModal';
@@ -574,7 +575,7 @@ const ProjectEditorContent: React.FC = () => {
       // The UI will naturally recover on next user interaction
       console.log('ℹ️ ProjectEditor: Error handled, UI will recover naturally');
     }
-  }, [contextSceneId, contextProjectId, manifest, scenesApi, refreshScene, triggerAchievement]);
+  }, [contextSceneId, contextProjectId, manifest, refreshScene, triggerAchievement]);
   
   // DISABLED: Periodic cleanup was causing infinite refresh loops
   // TODO: Implement a smarter cleanup mechanism that doesn't trigger on every refresh
@@ -617,7 +618,6 @@ const ProjectEditorContent: React.FC = () => {
         onPropertiesToggle={handlePropertiesToggle}
         onAIAssist={handleAIAssist}
       />
-
       {/* Main Layout with Resizable Panels */}
       <div className={styles.projectEditorLayout}>
         <PanelGroup direction="horizontal" className={styles.resizablePanelGroup}>
@@ -732,7 +732,7 @@ const ProjectEditorContent: React.FC = () => {
           )}
         </PanelGroup>
       </div>
-
+      <RealtimeChat />
       {/* Asset Import Modal */}
       <AssetImportModal
         isOpen={isAssetImportModalOpen}
