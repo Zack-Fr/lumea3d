@@ -567,8 +567,8 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
         </motion.div>
       )}
       
-      {/* Performance Stats Overlay */}
-      <PerformanceStatsOverlay visible={true} position="top-right" />
+  {/* Performance Stats Overlay */}
+  <PerformanceStatsOverlay visible={true} position="top-right" projectId={projectId} />
       
       {/* Transform Controls Panel */}
       <TransformControlsPanel />
