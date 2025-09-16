@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect } from "react";
+import React, { memo, useCallback, useEffect, useState } from "react";
 import { once as logOnce } from '../../utils/logger';
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -59,10 +59,19 @@ const UserDashboardPage = memo(() => {
   const { logout } = useAuth();
 
   // Fetch dashboard data from API
-  const { userProfile, projects: apiProjects, isLoading, error, isAuthenticationError } = useDashboardData();
+  const { userProfile, projects: apiProjects, isLoading, error, isAuthenticationError, refetch } = useDashboardData();
 
-  // Transform API data to dashboard format
-  const transformedProjects = transformProjectsForDashboard(apiProjects);
+  // State for thumbnail updates (to override project thumbnails locally)
+  const [thumbnailUpdates, setThumbnailUpdates] = useState<Record<string, string>>({});
+
+  // Transform API data to dashboard format and apply thumbnail updates
+  const baseTransformedProjects = transformProjectsForDashboard(apiProjects);
+  const transformedProjects = baseTransformedProjects.map(project => {
+    const projectId = project.originalId || project.id.toString();
+    const updatedThumbnail = thumbnailUpdates[projectId];
+    return updatedThumbnail ? { ...project, thumbnail: updatedThumbnail } : project;
+  });
+  
   const calculatedUserStats = calculateUserStatsFromProjects(apiProjects, userProfile);
   const pipelineStages = calculatePipelineStagesFromProjects(apiProjects);
 
@@ -125,6 +134,50 @@ const UserDashboardPage = memo(() => {
     handleQuickAction(action, undefined);
   }, [handleQuickAction]);
 
+  // Handle thumbnail update
+  const handleThumbnailUpdate = useCallback((project: any, thumbnailUrl: string) => {
+    console.log(`📷 Thumbnail updated for project ${project.name}:`, thumbnailUrl);
+    
+    // Update local state to immediately show the new thumbnail
+    const projectId = project.originalId || project.id.toString();
+    setThumbnailUpdates(prev => ({
+      ...prev,
+      [projectId]: thumbnailUrl
+    }));
+    
+    // Show success message
+    alert('✅ Thumbnail updated successfully!');
+  }, []);
+
+  // Handle project deletion
+  const handleProjectDelete = useCallback(async (project: any) => {
+    try {
+      const projectId = project.originalId || project.id.toString();
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('token') || localStorage.getItem('access_token') || ''}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Delete failed with status:', response.status, errorText);
+        throw new Error(`Failed to delete project: ${response.status} ${errorText}`);
+      }
+
+      console.log(`🗑️ Project deleted: ${project.name}`);
+      
+      // Refresh the data without full page reload
+      await refetch();
+      alert('✅ Project deleted successfully!');
+    } catch (error) {
+      console.error('❌ Project deletion failed:', error);
+      alert('Failed to delete project. Please try again.');
+    }
+  }, [refetch]);
+
   // Show loading state
   if (isLoading) {
     return (
@@ -183,6 +236,8 @@ const UserDashboardPage = memo(() => {
           pipelineStages={pipelineStages}
           onProjectClick={handleProjectCardClick}
           onNavigate={handleNavigate}
+          onThumbnailUpdate={handleThumbnailUpdate}
+          onProjectDelete={handleProjectDelete}
         />
 
         {/* Right Sidebar - Activity & Deadlines */}
@@ -462,9 +517,11 @@ interface MainContentProps {
   pipelineStages: any[];
   onProjectClick: (project: any) => void;
   onNavigate: (page: any) => void;
+  onThumbnailUpdate: (project: any, thumbnailUrl: string) => void;
+  onProjectDelete: (project: any) => void;
 }
 
-const MainContent = memo(({ projects, pipelineStages, onProjectClick, onNavigate }: MainContentProps) => (
+const MainContent = memo(({ projects, pipelineStages, onProjectClick, onNavigate, onThumbnailUpdate, onProjectDelete }: MainContentProps) => (
   <main className="flex-1 flex">
     <section className="flex-1 p-6 relative z-10" aria-label="Main dashboard content">
       {/* Welcome Section */}
@@ -478,6 +535,8 @@ const MainContent = memo(({ projects, pipelineStages, onProjectClick, onNavigate
         projects={projects}
         onProjectClick={onProjectClick}
         onNavigate={onNavigate}
+        onThumbnailUpdate={onThumbnailUpdate}
+        onProjectDelete={onProjectDelete}
       />
 
       {/* Stats Section */}
@@ -548,9 +607,11 @@ interface ProjectsSectionProps {
   projects: any[];
   onProjectClick: (project: any) => void;
   onNavigate: (page: string) => void;
+  onThumbnailUpdate: (project: any, thumbnailUrl: string) => void;
+  onProjectDelete: (project: any) => void;
 }
 
-const ProjectsSection = memo(({ projects, onProjectClick, onNavigate }: ProjectsSectionProps) => (
+const ProjectsSection = memo(({ projects, onProjectClick, onNavigate, onThumbnailUpdate, onProjectDelete }: ProjectsSectionProps) => (
   <div>
     <div className="flex items-center justify-between mb-6">
       <h2 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -572,6 +633,8 @@ const ProjectsSection = memo(({ projects, onProjectClick, onNavigate }: Projects
           key={project.originalId ?? project.id}
           project={project}
           onClick={onProjectClick}
+          onThumbnailUpdate={onThumbnailUpdate}
+          onProjectDelete={onProjectDelete}
         />
       ))}
     </div>

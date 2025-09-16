@@ -16,6 +16,7 @@ export interface DashboardProps {
 
 export interface Project {
   id: number;
+  originalId?: string; // Original API project ID (UUID string)
   name: string;
   client: string;
   stage: ProjectStage;

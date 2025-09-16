@@ -184,32 +184,46 @@ export class ProjectsController {
     @CurrentUser() user: any,
     @Body() thumbnailUploadDto: ThumbnailUploadDto,
   ): Promise<ThumbnailUploadResponseDto> {
-    // Verify user has access to the project
-    await this.projectsService.findOne(projectId, user.id);
+    try {
+      console.log(`Uploading thumbnail for project ${projectId}, user ${user.id}`);
+      
+      // Verify user has access to the project
+      await this.projectsService.findOne(projectId, user.id);
+      console.log('Project access verified');
 
-    // Validate image data
-    const validation = this.thumbnailService.validateImageData(thumbnailUploadDto.imageData);
-    if (!validation.isValid) {
-      throw new BadRequestException(validation.error);
+      // Validate image data
+      const validation = this.thumbnailService.validateImageData(thumbnailUploadDto.imageData);
+      if (!validation.isValid) {
+        console.log('Image validation failed:', validation.error);
+        throw new BadRequestException(validation.error);
+      }
+      console.log('Image validation passed');
+
+      // Process and save thumbnail
+      const type = thumbnailUploadDto.type || 'custom';
+      console.log(`Processing thumbnail with type: ${type}`);
+      
+      const result = await this.thumbnailService.processThumbnail(
+        projectId,
+        thumbnailUploadDto.imageData,
+        type,
+        thumbnailUploadDto.originalFilename,
+      );
+      console.log('Thumbnail processed successfully:', result.fileName);
+
+      // Update project in database
+      await this.thumbnailService.updateProjectThumbnail(projectId, result.url, type);
+      console.log('Database updated successfully');
+
+      return {
+        thumbnailUrl: result.url,
+        type,
+        createdAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Thumbnail upload failed:', error);
+      throw error;
     }
-
-    // Process and save thumbnail
-    const type = thumbnailUploadDto.type || 'custom';
-    const result = await this.thumbnailService.processThumbnail(
-      projectId,
-      thumbnailUploadDto.imageData,
-      type,
-      thumbnailUploadDto.originalFilename,
-    );
-
-    // Update project in database
-    await this.thumbnailService.updateProjectThumbnail(projectId, result.url, type);
-
-    return {
-      thumbnailUrl: result.url,
-      type,
-      createdAt: new Date().toISOString(),
-    };
   }
 
   @Delete(':id/thumbnail/:type')
@@ -237,5 +251,26 @@ export class ProjectsController {
     }
 
     await this.thumbnailService.deleteProjectThumbnail(projectId, type);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Delete project',
+    description: 'Permanently delete a project and all its associated data (scenes, thumbnails, etc.)'
+  })
+  @ApiParam({ name: 'id', description: 'Project UUID' })
+  @ApiResponse({ status: 204, description: 'Project deleted successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Project not found or access denied' })
+  async deleteProject(
+    @Param('id') projectId: string,
+    @CurrentUser() user: any,
+  ): Promise<void> {
+    // Verify user has access to the project
+    await this.projectsService.findOne(projectId, user.id);
+    
+    // Delete the project (this will cascade to related data)
+    await this.projectsService.deleteProject(projectId, user.id);
   }
 }

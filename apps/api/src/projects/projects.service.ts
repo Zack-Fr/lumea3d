@@ -220,4 +220,39 @@ export class ProjectsService {
 
     return member?.role ?? null;
   }
+
+  /**
+   * Delete a project (only if user is the owner)
+   */
+  async deleteProject(projectId: string, userId: string): Promise<void> {
+    // First verify the user has access to the project
+    const project = await this.prisma.project.findFirst({
+      where: {
+        id: projectId,
+        members: {
+          some: {
+            userId,
+          },
+        },
+      },
+      select: {
+        id: true,
+        userId: true, // Project owner
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found or access denied');
+    }
+
+    // Only the project owner can delete the project
+    if (project.userId !== userId) {
+      throw new NotFoundException('Only the project owner can delete this project');
+    }
+
+    // Delete the project (cascading deletes will handle related data)
+    await this.prisma.project.delete({
+      where: { id: projectId },
+    });
+  }
 }

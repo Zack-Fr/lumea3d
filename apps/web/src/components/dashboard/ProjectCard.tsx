@@ -18,6 +18,7 @@ const ProjectCard = memo(({ project, onClick, onThumbnailUpdate, onProjectDelete
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleClick = () => {
+    console.log('📎 Project card clicked - navigating to editor');
     onClick?.(project);
   };
 
@@ -36,11 +37,18 @@ const ProjectCard = memo(({ project, onClick, onThumbnailUpdate, onProjectDelete
   }, [showMenu]);
 
   const handleMenuClick = (e: React.MouseEvent) => {
+    console.log('🔧 Menu button clicked');
+    e.preventDefault();
     e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
     setShowMenu(!showMenu);
   };
 
-  const handleThumbnailUpload = () => {
+  const handleThumbnailUpload = (e: React.MouseEvent) => {
+    console.log('📷 Thumbnail upload clicked');
+    e.preventDefault();
+    e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
     fileInputRef.current?.click();
     setShowMenu(false);
   };
@@ -71,7 +79,7 @@ const ProjectCard = memo(({ project, onClick, onThumbnailUpdate, onProjectDelete
           const base64Data = event.target?.result as string;
           
           // Upload as custom thumbnail
-          const result = await uploadCanvasScreenshot(project.id, base64Data, 'custom');
+          const result = await uploadCanvasScreenshot(project.originalId || project.id.toString(), base64Data, 'custom');
           
           console.log('📷 Custom thumbnail uploaded:', result.thumbnailUrl);
           onThumbnailUpdate?.(project, result.thumbnailUrl);
@@ -93,7 +101,10 @@ const ProjectCard = memo(({ project, onClick, onThumbnailUpdate, onProjectDelete
     e.target.value = '';
   };
 
-  const handleDeleteProject = () => {
+  const handleDeleteProject = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
     setShowMenu(false);
     
     if (confirm(`Are you sure you want to delete the project "${project.name}"? This action cannot be undone.`)) {
@@ -117,7 +128,15 @@ const ProjectCard = memo(({ project, onClick, onThumbnailUpdate, onProjectDelete
   return (
     <div 
       className={styles.projectCard}
-      onClick={handleClick}
+      onClick={(e) => {
+        // Only navigate if we're not clicking on menu elements
+        const target = e.target as HTMLElement;
+        const isMenuClick = target.closest('[data-menu]') !== null;
+        console.log('🎯 Card clicked, target:', target.tagName, 'isMenuClick:', isMenuClick);
+        if (!isMenuClick) {
+          handleClick();
+        }
+      }}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -140,18 +159,36 @@ const ProjectCard = memo(({ project, onClick, onThumbnailUpdate, onProjectDelete
       <div className={styles.projectContent}>
         <div className={styles.projectHeader}>
           <h3 className={styles.projectTitle}>{project.name}</h3>
-          <div ref={menuRef} style={{ position: 'relative' }}>
+          <div 
+            ref={menuRef} 
+            style={{ position: 'relative' }}
+            data-menu
+            onClick={(e) => {
+              console.log('🔒 Menu container clicked');
+              e.preventDefault();
+              e.stopPropagation();
+              e.nativeEvent.stopImmediatePropagation();
+            }}
+          >
             <button 
               className={styles.projectMenu}
               aria-label={`More options for ${project.name}`}
               onClick={handleMenuClick}
               disabled={isUploading}
             >
-              <MoreVertical className="w-4 h-4" />
+              <MoreVertical className="w-6 h-6" />
             </button>
             
             {showMenu && (
-              <div className={styles.projectDropdown || 'project-dropdown'}>
+              <div 
+                className={styles.projectDropdown || 'project-dropdown'}
+                onClick={(e) => { 
+                  console.log('🔒 Dropdown container clicked'); 
+                  e.preventDefault();
+                  e.stopPropagation(); 
+                  e.nativeEvent.stopImmediatePropagation();
+                }}
+              >
                 <button
                   onClick={handleThumbnailUpload}
                   className={styles.dropdownItem || 'dropdown-item'}
@@ -205,6 +242,7 @@ const ProjectCard = memo(({ project, onClick, onThumbnailUpdate, onProjectDelete
         accept="image/*"
         onChange={handleFileChange}
         style={{ display: 'none' }}
+        data-menu
       />
     </div>
   );

@@ -49,8 +49,10 @@ export const transformProjectsForDashboard = (apiProjects: DashboardProject[]): 
     // Use first scene name or project name as client (mock data)
     const clientName = apiProject.scenes3D?.[0]?.name || apiProject.name;
 
-    // Generate thumbnail URL (mock data - in real app this would come from API)
-    const thumbnail = `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000000000000000)}?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBpbnRlcmlvciUyMGxpdmluZyUyMHJvb218ZW58MXx8fHwxNzU1ODEyOTIyfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral`;
+    // Use real thumbnail URL from API, prefer custom over auto, fallback to placeholder
+    const thumbnail = apiProject.customThumbnailUrl || 
+                     apiProject.thumbnailUrl || 
+                     `https://images.unsplash.com/photo-1586023492125-27b2c045efd7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MXwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBpbnRlcmlvciUyMGxpdmluZyUyMHJvb218ZW58MXx8fHwxNjA5NDU5MjAwMA&ixlib=rb-4.1.0&q=80&w=400&h=300`;
 
     return {
       // Keep original string id for stable keys; numeric id preserved for legacy uses

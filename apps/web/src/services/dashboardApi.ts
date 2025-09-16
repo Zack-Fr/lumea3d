@@ -17,6 +17,9 @@ export interface DashboardProject {
   id: string;
   name: string;
   userId: string;
+  thumbnailUrl?: string;
+  customThumbnailUrl?: string;
+  thumbnailUpdatedAt?: string;
   createdAt: string;
   updatedAt: string;
   scenes3D: Array<{

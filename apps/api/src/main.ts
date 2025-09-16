@@ -10,7 +10,16 @@ import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    // Increase body size limits for thumbnail uploads
+    bodyParser: true,
+    rawBody: true,
+  });
+  
+  // Configure Express to handle larger payloads (10MB limit)
+  app.use(require('express').json({ limit: '10mb' }));
+  app.use(require('express').urlencoded({ limit: '10mb', extended: true }));
+  app.use(require('express').raw({ limit: '10mb' }));
   
   // Serve static files for thumbnails
   const thumbnailsPath = process.env.THUMBNAILS_STORAGE_PATH || join(process.cwd(), 'storage', 'thumbnails');
