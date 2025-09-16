@@ -1,7 +1,7 @@
 import { memo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Gamepad2, ArrowRight, Play, Sparkles, Zap, Menu, Settings, Volume2, VolumeX } from "lucide-react";
+import {ArrowRight,Sparkles, Zap, Menu, Settings, Volume2, VolumeX } from "lucide-react";
 import { Button } from "../../components/ui/Button";
 import { useMouse } from "../../hooks/useMouse";
 import { usePanels } from "../../hooks/usePanels";
@@ -9,7 +9,7 @@ import { useAudio } from "../../hooks/useAudio";
 import { useStyleCarousel } from "../../hooks/useStyleCarousel";
 import { useAuth } from "../../providers/AuthProvider";
 import { MenuItem } from "../../types/landing";
-import { MENU_ITEMS, ACHIEVEMENTS, DESIGN_STYLES, COMMUNITY_STATS, FEATURE_PILLS } from "../../data/landingData";
+import { MENU_ITEMS, DESIGN_STYLES, COMMUNITY_STATS, FEATURE_PILLS } from "../../data/landingData";
 import MenuPanel from "../../components/landing/MenuPanel";
 import ProgressPanel from "../../components/landing/ProgressPanel";
 import FeaturePill from "../../components/landing/FeaturePill";
@@ -234,7 +234,6 @@ const FloatingControls = memo(({
   leftPanelOpen, 
   rightPanelOpen, 
   soundEnabled,
-  isAuthenticated,
   onToggleLeftPanel, 
   onToggleRightPanel, 
   onToggleSound 

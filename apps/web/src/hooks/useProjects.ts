@@ -7,7 +7,6 @@ import {
   CreateProjectDto, 
   ProjectCreationResult, 
   ProjectApiError,
-  ProjectWithScenes as ProjectWithScenesApi
 } from '../services/projectsApi';
 
 export interface Project {

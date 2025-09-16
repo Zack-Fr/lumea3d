@@ -1,12 +1,12 @@
 import { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Trophy, Shield, Sparkles, Info } from "lucide-react";
+import { X, Trophy, Sparkles, Info } from "lucide-react";
 import { Card } from "../ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Separator } from "../../components/ui/Separator";
 import { ScrollArea } from "../../components/ui/ScrollArea";
-import { Achievement, DesignStyle, CommunityStats } from "../../types/landing";
-import AchievementCard from "./AchievementCard";
+import { DesignStyle, CommunityStats } from "../../types/landing";
+// import AchievementCard from "./AchievementCard";
 import StyleCard from "./StyleCard";
 import UserProjectsSection from "./UserProjectsSection";
 import s from "../../pages/landing/Landing.module.css";

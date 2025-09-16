@@ -226,7 +226,7 @@ export const useSaveQueueStore = create<SaveQueueState>()(
       },
 
       createSnapshot: async (label: string) => {
-        const { sceneId, saveState } = get();
+        const { sceneId } = get();
         
         if (!sceneId) {
           throw new Error('No scene ID set');

@@ -21,7 +21,7 @@ interface UseRealtimeConnectionReturn {
   users: RealtimeUser[];
   messages: ChatMessage[];
   sendMessage: (message: RealtimeEvent) => void;
-  sendCameraUpdate: (position: number[], rotation: number[]) => void;
+  sendCameraUpdate: (position: number[]) => void;
   sendChatMessage: (content: string) => void;
 }
 
@@ -53,7 +53,7 @@ export const useRealtimeConnection = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const socketRef = useRef<Socket | null>(null);
   const pingStartTime = useRef<number>(0);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptsRef = useRef<number>(0);
   const isCleaningUpRef = useRef<boolean>(false);
 
@@ -70,7 +70,7 @@ export const useRealtimeConnection = ({
   }, []);
 
   // Send camera position update
-  const sendCameraUpdate = useCallback((position: number[], rotation: number[]) => {
+  const sendCameraUpdate = useCallback((position: number[]) => {
     // Convert rotation to quaternion (simplified)
     const quaternion = [0, 0, 0, 1]; // TODO: Proper euler to quaternion conversion
     
@@ -193,9 +193,9 @@ export const useRealtimeConnection = ({
       reconnectAttemptsRef.current++;
       log('error', 'Realtime connection failed', {
         error: error.message,
-        type: error.type,
-        description: error.description,
-        context: error.context,
+        type: (error as any).type || 'unknown',
+        description: (error as any).description || 'Connection failed',
+        context: (error as any).context || null,
         serverUrl,
         sceneId,
         hasToken: !!token,
