@@ -194,7 +194,7 @@ jobs:
       - name: Wait for services
         run: |
           echo "Waiting for API service..."
-          timeout 120 bash -c 'until curl -f http://localhost:3000/monitoring/health; do 
+          timeout 120 bash -c 'until curl -f http://localhost:3001/monitoring/health; do 
             echo "API not ready, waiting..."; 
             docker compose -f infra/docker-compose.yml logs api || true; 
             sleep 5; 
@@ -213,7 +213,7 @@ jobs:
         run: |
           set -e
           echo "Testing API health endpoint..."
-          curl -f -v http://localhost:3000/monitoring/health || {
+          curl -f -v http://localhost:3001/monitoring/health || {
             echo "API health check failed"
             docker compose -f infra/docker-compose.yml logs api
             exit 1
@@ -227,7 +227,7 @@ jobs:
           }
           
           echo "Testing API documentation endpoint..."
-          curl -f -v http://localhost:3000/docs || {
+          curl -f -v http://localhost:3001/docs || {
             echo "API docs check failed"
             docker compose -f infra/docker-compose.yml logs api
             exit 1
