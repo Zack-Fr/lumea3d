@@ -52,7 +52,7 @@ jobs:
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       - name: Setup pnpm cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -111,7 +111,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Cache Python dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
@@ -143,7 +143,7 @@ jobs:
   docker-build:
     name: Docker Build Verification
     runs-on: ubuntu-latest
-    needs: [quality, solver-tests]
+    needs: [quality]  # Remove solver-tests dependency as it's not needed for Docker builds
     
     strategy:
       matrix:
@@ -170,7 +170,7 @@ jobs:
   integration:
     name: Integration Tests
     runs-on: ubuntu-latest
-    needs: [quality, solver-tests]
+    needs: [docker-build]  # Run after Docker build to ensure images work
     
     steps:
       - name: Checkout code
@@ -179,7 +179,7 @@ jobs:
       - name: Setup Docker Compose
         run: |
           sudo apt-get update
-          sudo apt-get install -y docker-compose
+          sudo apt-get install -y docker-compose-plugin
 
       - name: Create test environment file
         run: |
@@ -189,30 +189,62 @@ jobs:
       - name: Start services
         working-directory: infra
         run: |
-          docker-compose -f docker-compose.yml --env-file .env.test up -d --build
+          docker compose -f docker-compose.yml --env-file .env.test up -d --build
 
       - name: Wait for services
         run: |
-          timeout 120 bash -c 'until curl -f http://localhost:3000/monitoring/health; do sleep 2; done'
-          timeout 120 bash -c 'until curl -f http://localhost:8000/health; do sleep 2; done'
+          echo "Waiting for API service..."
+          timeout 120 bash -c 'until curl -f http://localhost:3000/monitoring/health; do 
+            echo "API not ready, waiting..."; 
+            docker compose -f infra/docker-compose.yml logs api || true; 
+            sleep 5; 
+          done'
+          echo "API is ready!"
+          
+          echo "Waiting for Solver service..."
+          timeout 120 bash -c 'until curl -f http://localhost:8000/health; do 
+            echo "Solver not ready, waiting..."; 
+            docker compose -f infra/docker-compose.yml logs solver || true; 
+            sleep 5; 
+          done'
+          echo "Solver is ready!"
 
       - name: Run integration tests
         run: |
-          # Test API health
-          curl -f http://localhost:3000/monitoring/health
-          # Test Solver health  
-          curl -f http://localhost:8000/health
-          # Test API docs
-          curl -f http://localhost:3000/docs
+          set -e
+          echo "Testing API health endpoint..."
+          curl -f -v http://localhost:3000/monitoring/health || {
+            echo "API health check failed"
+            docker compose -f infra/docker-compose.yml logs api
+            exit 1
+          }
+          
+          echo "Testing Solver health endpoint..."
+          curl -f -v http://localhost:8000/health || {
+            echo "Solver health check failed"
+            docker compose -f infra/docker-compose.yml logs solver
+            exit 1
+          }
+          
+          echo "Testing API documentation endpoint..."
+          curl -f -v http://localhost:3000/docs || {
+            echo "API docs check failed"
+            docker compose -f infra/docker-compose.yml logs api
+            exit 1
+          }
+          
+          echo "All integration tests passed!"
 
       - name: Stop services
         working-directory: infra
-        run: docker-compose down
+        if: always()
+        run: docker compose down
 
   # Job 5: Security Scanning
   security:
     name: Security Scanning
     runs-on: ubuntu-latest
+    # Run in parallel with other jobs as it doesn't depend on build/test results
     
     steps:
       - name: Checkout code

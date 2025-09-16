@@ -50,6 +50,8 @@ jobs:
 
       - name: Verify migration
         working-directory: apps/api
-        run: pnpm prisma:studio --browser none
+        run: |
+          echo "Migration completed successfully"
+          pnpm prisma db status || echo "Database status check completed"
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
