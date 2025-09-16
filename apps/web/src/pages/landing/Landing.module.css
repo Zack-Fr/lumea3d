@@ -173,12 +173,13 @@
 }
 
 .scene3d {
-  width: 600px;
-  height: 400px;
+  width: 800px;
+  height: 600px;
   position: relative;
   overflow: hidden;
   border-radius: 1rem;
-  background: linear-gradient(135deg, var(--glass-black) 0%, rgba(245, 200, 66, 0.05) 50%, rgba(147, 51, 234, 0.05) 100%);
+  /* background: linear-gradient(135deg, var(--glass-black) 0%, rgba(245, 200, 66, 0.05) 50%, rgba(147, 51, 234, 0.05) 100%); */
+  /* background-image: url(); */
   border: 1px solid rgba(245, 200, 66, 0.1);
 }
 

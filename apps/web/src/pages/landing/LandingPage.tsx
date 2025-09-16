@@ -7,6 +7,7 @@ import { useMouse } from "../../hooks/useMouse";
 import { usePanels } from "../../hooks/usePanels";
 import { useAudio } from "../../hooks/useAudio";
 import { useStyleCarousel } from "../../hooks/useStyleCarousel";
+import { useAuth } from "../../providers/AuthProvider";
 import { MenuItem } from "../../types/landing";
 import { MENU_ITEMS, ACHIEVEMENTS, DESIGN_STYLES, COMMUNITY_STATS, FEATURE_PILLS } from "../../data/landingData";
 import MenuPanel from "../../components/landing/MenuPanel";
@@ -25,6 +26,7 @@ const LandingPage = memo(({}: LandingPageProps) => {
   const { leftPanelOpen, rightPanelOpen, setLeftPanelOpen, setRightPanelOpen } = usePanels();
   const { soundEnabled, toggleSound } = useAudio();
   const { currentIndex: currentStyleIndex } = useStyleCarousel(DESIGN_STYLES);
+  const { isAuthenticated } = useAuth();
 
   const handleMenuItemClick = useCallback((item: MenuItem) => {
     if (!item.unlocked) return;
@@ -65,6 +67,7 @@ const LandingPage = memo(({}: LandingPageProps) => {
         menuItems={MENU_ITEMS}
         selectedMenuItem={selectedMenuItem}
         onMenuItemClick={handleMenuItemClick}
+        isAuthenticated={isAuthenticated}
       />
 
       {/* Central 3D Scene Area */}
@@ -77,7 +80,8 @@ const LandingPage = memo(({}: LandingPageProps) => {
       <ProgressPanel
         isOpen={rightPanelOpen}
         onClose={() => setRightPanelOpen(false)}
-        achievements={ACHIEVEMENTS}
+        isAuthenticated={isAuthenticated}
+        // achievements={ACHIEVEMENTS}
         designStyles={DESIGN_STYLES}
         currentStyleIndex={currentStyleIndex}
         communityStats={COMMUNITY_STATS}
@@ -88,13 +92,14 @@ const LandingPage = memo(({}: LandingPageProps) => {
         leftPanelOpen={leftPanelOpen}
         rightPanelOpen={rightPanelOpen}
         soundEnabled={soundEnabled}
+        isAuthenticated={isAuthenticated}
         onToggleLeftPanel={() => setLeftPanelOpen(true)}
         onToggleRightPanel={() => setRightPanelOpen(true)}
         onToggleSound={toggleSound}
       />
 
       {/* Feature Pills at Bottom */}
-      <FeaturePillsRow />
+      {/* <FeaturePillsRow /> */}
     </div>
   );
 });
@@ -159,20 +164,6 @@ interface HeroContentProps {
 
 const HeroContent = memo(({ onNavigate }: HeroContentProps) => (
   <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-    <motion.div
-      animate={{ 
-        scale: [1, 1.1, 1],
-        rotate: [0, 5, -5, 0] 
-      }}
-      transition={{ 
-        duration: 6, 
-        repeat: Infinity, 
-        ease: "easeInOut" 
-      }}
-      className={s.gameIcon}
-    >
-      <Gamepad2 className="w-10 h-10 text-[var(--glass-black)]" />
-    </motion.div>
     
     <h1 className="text-6xl font-bold text-white mb-4 leading-tight">
       Design Your
@@ -237,6 +228,7 @@ interface FloatingControlsProps {
   leftPanelOpen: boolean;
   rightPanelOpen: boolean;
   soundEnabled: boolean;
+  isAuthenticated: boolean;
   onToggleLeftPanel: () => void;
   onToggleRightPanel: () => void;
   onToggleSound: () => void;
@@ -245,7 +237,8 @@ interface FloatingControlsProps {
 const FloatingControls = memo(({ 
   leftPanelOpen, 
   rightPanelOpen, 
-  soundEnabled, 
+  soundEnabled,
+  isAuthenticated,
   onToggleLeftPanel, 
   onToggleRightPanel, 
   onToggleSound 

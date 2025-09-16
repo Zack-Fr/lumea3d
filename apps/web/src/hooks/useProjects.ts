@@ -6,7 +6,8 @@ import {
   projectsApi, 
   CreateProjectDto, 
   ProjectCreationResult, 
-  ProjectApiError 
+  ProjectApiError,
+  ProjectWithScenes as ProjectWithScenesApi
 } from '../services/projectsApi';
 
 export interface Project {
@@ -18,6 +19,9 @@ export interface Project {
   dueDate: string;
   thumbnail: string;
 }
+
+// Re-export the actual project type from the API
+export type { ProjectWithScenes } from '../services/projectsApi';
 
 // Legacy hook for dashboard compatibility
 export const useProjects = () => {
