@@ -50,7 +50,7 @@ const MenuPanel = memo(({
                   </div>
                   <div>
                     <h2 className="font-bold text-white">Lumea Studio</h2>
-                    <p className="text-xs text-[var(--glass-gray)]">Design Platform</p>
+                    <p className="text-xs text-[var(--glass-gray)]">Zack Designs</p>
                   </div>
                 </div>
                 <Button

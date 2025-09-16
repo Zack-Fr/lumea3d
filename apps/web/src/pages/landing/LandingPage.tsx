@@ -165,16 +165,12 @@ interface HeroContentProps {
 const HeroContent = memo(({ onNavigate }: HeroContentProps) => (
   <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
     
-    <h1 className="text-6xl font-bold text-white mb-4 leading-tight">
-      Design Your
+    <h1 className="text-6xl font-bold text-black mb-4 leading-tight">
+      Your Design
       <span className={s.titleGradient + " block"}>
-        Dream Space
+        In Realtime
       </span>
     </h1>
-    
-    <p className="text-xl text-[var(--glass-gray)] mb-8 max-w-lg leading-relaxed">
-      Immersive 3D interior design powered by AI. Create, explore, and bring your vision to life.
-    </p>
 
     <div className="flex gap-4">
       <Button 
@@ -185,7 +181,7 @@ const HeroContent = memo(({ onNavigate }: HeroContentProps) => (
         Start Creating
         <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
       </Button>
-      <Button 
+      {/* <Button 
         variant="outline"
         size="lg"
         className="glass border-glow text-white hover:bg-white/10 px-8 py-6 text-lg group"
@@ -193,7 +189,7 @@ const HeroContent = memo(({ onNavigate }: HeroContentProps) => (
       >
         <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
         Watch Demo
-      </Button>
+      </Button> */}
     </div>
   </div>
 ));
