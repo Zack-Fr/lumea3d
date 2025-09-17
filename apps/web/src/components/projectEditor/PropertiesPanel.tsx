@@ -21,6 +21,7 @@ import { useSceneContext } from '../../contexts/SceneContext';
 import { useSelection } from '../../features/scenes/SelectionContext';
 import { useLightingControls } from '../../hooks/useLightingControls';
 import { applyMaterialOverride, PBRMaterialOverride } from '../../utils/textureSystem';
+import { useSaveQueueStore } from '../../stores/saveQueueStore';
 
 interface PropertiesPanelProps {
   show: boolean;
@@ -69,15 +70,16 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   const { manifest, refreshScene, sceneId: contextSceneId } = useSceneContext();
   const { selection, deselectObject } = useSelection();
   const { defaultLightEnabled, setDefaultLightEnabled } = useLightingControls();
+  const { stage: stageOperation } = useSaveQueueStore();
   
-  // Use contextSceneId as fallback if prop sceneId is not available
   const activeSceneId = sceneId || contextSceneId;
   
-  console.log('🏠 PropertiesPanel: Scene ID debug', {
+  console.log({
     propSceneId: sceneId,
     contextSceneId: contextSceneId,
     activeSceneId: activeSceneId,
-    hasManifest: !!manifest
+    hasManifest: !!manifest,
+    sceneIdSource: sceneId ? 'prop' : contextSceneId ? 'context' : 'none'
   });
   
   // Shell shadow state
@@ -151,21 +153,21 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       setLocalEmission(selectedItem.material.emission);
       setLocalColor(selectedItem.material.color);
     }
-  }, [selectedItem?.id]); // Only sync when item changes, not on every material change
+  }, [selectedItem?.id]);
   
   // Use a simple timer to periodically update light positions while transforming
   useEffect(() => {
     let intervalId: number;
     
     if (selection.isTransforming) {
-      console.log('💡 PropertiesPanel: Starting live position updates (transforming)'); 
+      console.log('PropertiesPanel: Starting live position updates (transforming)'); 
       // Update positions every 50ms while transforming for live feedback
       intervalId = window.setInterval(() => {
         console.log('💡 PropertiesPanel: Live position update tick');
         setCreatedLights(prev => [...prev]); // This will cause a re-render with current positions
       }, 50);
     } else {
-      console.log('💡 PropertiesPanel: Stopping live position updates (not transforming)');
+      console.log('PropertiesPanel: Stopping live position updates (not transforming)');
     }
     
     return () => {
@@ -200,7 +202,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
         if (prevSettings.intensity !== newSettings.intensity || 
             prevSettings.exposure !== newSettings.exposure ||
             prevSettings.shadowStrength !== newSettings.shadowStrength) {
-          console.log('✨ Environment: Loading settings from manifest:', newSettings);
+          console.log('Environment: Loading settings from manifest:', newSettings);
           return newSettings;
         }
         return prevSettings;
@@ -314,7 +316,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                 
                 // Create a placeholder or fallback URL for UUID textures
                 // You could also try to reconstruct the original URL if you know the pattern
-                console.log('🎨 Found texture with UUID reference:', texture.name, 'UUID:', texture.image);
+                console.log('Found texture with UUID reference:', texture.name, 'UUID:', texture.image);
                 
                 // Try to render the texture to a canvas to get a data URL
                 try {
@@ -329,7 +331,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                     if (imageData instanceof HTMLImageElement || imageData instanceof HTMLCanvasElement) {
                       ctx?.drawImage(imageData, 0, 0, 128, 128);
                       const dataUrl = canvas.toDataURL('image/png');
-                      console.log('🎨 Created data URL from texture:', texture.name);
+                      console.log('Created data URL from texture:', texture.name);
                       return { url: dataUrl, name: textureName };
                     }
                   }
@@ -359,11 +361,11 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                     ctx.fillText(displayName, 64, 112);
                     
                     const dataUrl = canvas.toDataURL('image/png');
-                    console.log('🎨 Created fallback data URL for texture:', texture.name);
+                    console.log('Created fallback data URL for texture:', texture.name);
                     return { url: dataUrl, name: textureName };
                   }
                 } catch (error) {
-                  console.warn('⚠️ Failed to create canvas data URL for texture:', error);
+                  console.warn('Failed to create canvas data URL for texture:', error);
                 }
                 
                 // Ultimate fallback - enhanced SVG placeholder
@@ -790,142 +792,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   }, [selection, deselectObject]);
   
   
-  // Update item material properties
-  const updateItemMaterial = useCallback(async (material: Partial<SelectedItemState['material']>) => {
-    console.log('🔍 Material update debug info:', {
-      selectedItemId,
-      sceneId,
-      activeSceneId,
-      selectedObject: selection.selectedObject?.itemId,
-      manifestVersion: manifest?.scene?.version,
-      materialChanges: material
-    });
-    
-    if (!selectedItemId || !sceneId) {
-      console.warn('Cannot update material - missing selectedItemId or sceneId', {
-        selectedItemId,
-        sceneId,
-        hasSelectedObject: !!selection.selectedObject
-      });
-      return;
-    }
-    
-    setIsUpdatingItem(true);
-    try {
-      // Build material overrides in the correct format
-      const materialOverrides: PBRMaterialOverride = {
-        pbr: {}
-      };
-      
-      if (material.roughness !== undefined) materialOverrides.pbr!.roughnessFactor = material.roughness / 100;
-      if (material.metallic !== undefined) materialOverrides.pbr!.metallicFactor = material.metallic / 100;
-      if (material.emission !== undefined) {
-        const emissiveFactor = material.emission / 100;
-        materialOverrides.pbr!.emissiveFactor = [emissiveFactor, emissiveFactor, emissiveFactor];
-      }
-      if (material.color) {
-        // Convert hex color to RGB array
-        const hex = material.color.replace('#', '');
-        const r = parseInt(hex.substr(0, 2), 16) / 255;
-        const g = parseInt(hex.substr(2, 2), 16) / 255;
-        const b = parseInt(hex.substr(4, 2), 16) / 255;
-        materialOverrides.pbr!.baseColorFactor = [r, g, b, 1];
-      }
-      
-      // STEP 1: Apply changes immediately to the 3D object for instant feedback
-      if (selection.selectedObject?.object) {
-        console.log('🎨 Applying immediate material update to 3D object:', selectedItemId);
-        
-        // Apply material changes directly to all materials in the selected object
-        try {
-          const ktx2Loader = (window as any).__lumea_ktx2_loader;
-          const materialPromises: Promise<void>[] = [];
-          
-          selection.selectedObject.object.traverse((child) => {
-            if (child instanceof THREE.Mesh && child.material) {
-              const materials = Array.isArray(child.material) ? child.material : [child.material];
-              
-              materials.forEach((mat) => {
-                if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhysicalMaterial) {
-                  const promise = applyMaterialOverride(mat, materialOverrides, ktx2Loader)
-                    .catch((matError) => {
-                      console.warn('⚠️ Failed to apply override to material:', mat.name, matError);
-                    });
-                  materialPromises.push(promise);
-                }
-              });
-            }
-          });
-          
-          // Wait for all material applications to complete
-          await Promise.all(materialPromises);
-          console.log(`✅ Immediate material updates applied to ${materialPromises.length} materials`);
-        } catch (error) {
-          console.warn('⚠️ Failed to apply immediate material update:', error);
-        }
-      }
-      
-      // STEP 2: Build API request format (legacy format for backend)
-      const apiMaterialOverrides: any = {};
-      if (material.roughness !== undefined) apiMaterialOverrides.roughness = material.roughness / 100;
-      if (material.metallic !== undefined) apiMaterialOverrides.metallic = material.metallic / 100;
-      if (material.emission !== undefined) apiMaterialOverrides.emissive = material.emission / 100;
-      if (material.color) apiMaterialOverrides.baseColor = material.color;
-      
-      const updateRequest: SceneItemUpdateRequest = {
-        materialOverrides: apiMaterialOverrides
-      } as any;
-      
-      console.log('🚀 API Request debug:', {
-        sceneId,
-        selectedItemId,
-        updateRequest,
-        version: manifest?.scene?.version?.toString(),
-        apiMaterialOverrides
-      });
-      
-      // STEP 3: Call the backend API to persist changes (TEMPORARILY DISABLED FOR DEBUGGING)
-      console.log('⏸️ SKIPPING backend API call for debugging - would call:', {
-        endpoint: 'scenesApi.updateItem',
-        sceneId,
-        selectedItemId,
-        updateRequest,
-        version: manifest?.scene?.version?.toString()
-      });
-      
-      // TODO: Re-enable this once we fix the selection/itemId issue
-      // await scenesApi.updateItem(sceneId, selectedItemId, updateRequest, manifest?.scene?.version?.toString());
-      
-      console.log(`Material update applied locally (backend call skipped for debugging)`);
-      
-      // STEP 4: Update local state and sync UI with actual 3D object properties
-      setSelectedItem(prev => {
-        if (!prev) return null;
-        
-        // If we have a selected 3D object, extract its updated material properties
-        let updatedMaterial = { ...prev.material, ...material };
-        
-        if (selection.selectedObject?.object) {
-          // Extract the actual material properties after our changes
-          const actualMaterial = extractMaterialProperties(selection.selectedObject.object);
-          updatedMaterial = { ...actualMaterial };
-          console.log('🔄 Synchronized UI with actual 3D material properties:', updatedMaterial);
-        }
-        
-        return { ...prev, material: updatedMaterial };
-      });
-      
-      // Note: We don't call refreshScene() anymore since we applied changes immediately
-      
-    } catch (error) {
-      console.error('Failed to update item material:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      setLastError(`Failed to update material: ${errorMessage}`);
-      setTimeout(() => setLastError(null), 5000);
-    } finally {
-      setIsUpdatingItem(false);
-    }
-  }, [selectedItemId, sceneId, manifest?.scene?.version, selection.selectedObject, extractMaterialProperties]);
   
   // Debounced material update for smooth slider interaction
   const materialUpdateTimeoutRef = useRef<number | null>(null);
@@ -981,10 +847,29 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       pendingMaterialUpdatesRef.current = {};
       materialUpdateTimeoutRef.current = null;
       
-      // Call the full update function with accumulated changes
-      updateItemMaterial(pendingUpdates);
+      // Stage material update as delta operation if we have a selected item
+      if (selection.selectedObject?.itemId && Object.keys(pendingUpdates).length > 0) {
+        // Build API material overrides format
+        const apiMaterialOverrides: any = {};
+        if (pendingUpdates.roughness !== undefined) apiMaterialOverrides.roughness = pendingUpdates.roughness / 100;
+        if (pendingUpdates.metallic !== undefined) apiMaterialOverrides.metallic = pendingUpdates.metallic / 100;
+        if (pendingUpdates.emission !== undefined) apiMaterialOverrides.emissive = pendingUpdates.emission / 100;
+        if (pendingUpdates.color) apiMaterialOverrides.baseColor = pendingUpdates.color;
+        
+        console.log('📤 Staging debounced material update:', {
+          itemId: selection.selectedObject.itemId,
+          pendingUpdates,
+          apiMaterialOverrides
+        });
+        
+        stageOperation({
+          op: 'update_material',
+          id: selection.selectedObject.itemId,
+          materialOverrides: apiMaterialOverrides
+        });
+      }
     }, 300); // 300ms debounce
-  }, [selection.selectedObject, updateItemMaterial]);
+  }, [selection.selectedObject, stageOperation]);
   
   // Handle material slot selection
   const handleMaterialSlotSelected = useCallback((materialIndex: number) => {
@@ -1027,7 +912,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
         setCurrentTextures(textures);
       }
     }
-  }, [availableMaterials]);
+  }, [availableMaterials, selection.selectedObject, extractCurrentTextures]);
   
   // Handle texture selection from texture manager
   const handleTextureSelected = useCallback(async (url: string, type: TextureMapType) => {
@@ -1097,14 +982,53 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
             [type]: undefined
           }));
           
-          console.log(`✅ Removed ${type} texture from material`);
+          // STEP: Stage texture removal as delta operation for backend saving
+          if (selection.selectedObject?.itemId) {
+            console.log('Staging texture removal as delta operation:', {
+              itemId: selection.selectedObject.itemId,
+              textureType: type
+            });
+            
+            // Build texture removal material overrides for backend
+            const materialOverrides: any = {};
+            
+            // Map texture types to backend field names (set to null for removal)
+            switch (type) {
+              case 'baseColor':
+                materialOverrides.baseColorTexture = null;
+                break;
+              case 'normal':
+                materialOverrides.normalTexture = null;
+                break;
+              case 'metallicRoughness':
+                materialOverrides.metallicRoughnessTexture = null;
+                break;
+              case 'emissive':
+                materialOverrides.emissiveTexture = null;
+                break;
+              case 'occlusion':
+                materialOverrides.occlusionTexture = null;
+                break;
+              case 'opacity':
+                materialOverrides.opacityTexture = null;
+                break;
+            }
+            
+            stageOperation({
+              op: 'update_material',
+              id: selection.selectedObject.itemId,
+              materialOverrides
+            });
+          }
+          
+          console.log(`Removed ${type} texture from material`);
         }
         
         setShowTextureManager(false);
         return;
         
       } catch (error) {
-        console.error('❌ Failed to remove texture:', error);
+        console.error('Failed to remove texture:', error);
       } finally {
         setIsUpdatingItem(false);
       }
@@ -1171,6 +1095,46 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
         [type]: { url, name: appliedTextureName }
       }));
       
+      // STEP: Stage texture update as delta operation for backend saving
+      if (selection.selectedObject?.itemId) {
+        console.log('Staging texture update as delta operation:', {
+          itemId: selection.selectedObject.itemId,
+          textureType: type,
+          textureUrl: url
+        });
+        
+        // Build texture material overrides for backend
+        const materialOverrides: any = {};
+        
+        // Map texture types to backend field names
+        switch (type) {
+          case 'baseColor':
+            materialOverrides.baseColorTexture = url;
+            break;
+          case 'normal':
+            materialOverrides.normalTexture = url;
+            break;
+          case 'metallicRoughness':
+            materialOverrides.metallicRoughnessTexture = url;
+            break;
+          case 'emissive':
+            materialOverrides.emissiveTexture = url;
+            break;
+          case 'occlusion':
+            materialOverrides.occlusionTexture = url;
+            break;
+          case 'opacity':
+            materialOverrides.opacityTexture = url;
+            break;
+        }
+        
+        stageOperation({
+          op: 'update_material',
+          id: selection.selectedObject.itemId,
+          materialOverrides
+        });
+      }
+      
       // Close texture manager
       setShowTextureManager(false);
       
@@ -1178,7 +1142,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       console.error('❌ Failed to apply texture:', error);
       throw error;
     }
-  }, [selection.selectedObject]);
+  }, [selection.selectedObject, stageOperation]);
   
   // Open texture manager for specific texture type
   const openTextureManager = useCallback((textureType: TextureMapType) => {
@@ -1296,16 +1260,44 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
         }
       });
       
-      console.log('✅ Material reset to default values');
+      // STEP: Stage material reset as delta operation for backend saving
+      if (selection.selectedObject?.itemId) {
+        console.log('📤 Staging material reset as delta operation:', {
+          itemId: selection.selectedObject.itemId
+        });
+        
+        // Build material reset overrides for backend (default values)
+        const materialOverrides: any = {
+          roughness: 0.5,
+          metallic: 0,
+          emissive: 0,
+          baseColor: '#ffffff',
+          // Remove all textures by setting to null
+          baseColorTexture: null,
+          normalTexture: null,
+          metallicRoughnessTexture: null,
+          emissiveTexture: null,
+          occlusionTexture: null,
+          opacityTexture: null
+        };
+        
+        stageOperation({
+          op: 'update_material',
+          id: selection.selectedObject.itemId,
+          materialOverrides
+        });
+      }
+      
+      console.log('Material reset to default values');
       
     } catch (error) {
-      console.error('❌ Failed to reset material:', error);
+      console.error('Failed to reset material:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to reset material';
       setLastError(errorMessage);
     } finally {
       setIsUpdatingItem(false);
     }
-  }, [selection.selectedObject]);
+  }, [selection.selectedObject, stageOperation]);
   
   // Update environment lighting
   const updateEnvironmentLighting = useCallback(async (settings: Partial<EnvironmentSettings>) => {
