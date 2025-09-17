@@ -41,11 +41,36 @@ export interface ObjectTransform {
   userId: string;
 }
 
+// Server → Client events (matching backend RtSrvEvent)
+export type RtSrvEvent =
+  | { t: 'HELLO'; sceneId: string; version: number; serverTime: number }
+  | { t: 'PRESENCE'; users: Array<{ id: string; name: string; color?: string; status?: string }> }
+  | { t: 'CAMERA'; from: string; pose: { p: [number, number, number]; q: [number, number, number, number] } }
+  | { t: 'CHAT'; from: string; msg: string; ts: number }
+  | { t: 'DELTA'; version: number; ops: any[] }
+  | { t: 'JOB_STATUS'; jobId: string; status: 'queued' | 'running' | 'completed' | 'failed' }
+  // Collaboration events
+  | { t: 'INVITE_RECEIVED'; invitation: CollaborationInvitation }
+  | { t: 'INVITE_RESPONSE'; inviteId: string; status: 'accepted' | 'declined'; userId: string }
+  | { t: 'SESSION_STARTED'; session: CollaborationSession }
+  | { t: 'SESSION_ENDED'; sessionId: string; reason?: string }
+  | { t: 'SESSION_PARTICIPANT_JOINED'; sessionId: string; participant: SessionParticipant }
+  | { t: 'SESSION_PARTICIPANT_LEFT'; sessionId: string; userId: string; reason?: string }
+  | { t: 'VIEWPORT_SYNC'; from: string; viewport: ViewportState }
+  | { t: 'NOTIFICATION'; notification: RealtimeNotification };
+
+// Client → Server events (matching backend RtCliEvent)
+export type RtCliEvent =
+  | { t: 'SUB'; sceneId: string }
+  | { t: 'UNSUB'; sceneId: string }
+  | { t: 'PING'; ts: number }
+  | { t: 'CAMERA'; pose: { p: [number, number, number]; q: [number, number, number, number] } }
+  | { t: 'CHAT'; msg: string }
+  | { t: 'VIEWPORT_SYNC'; viewport: ViewportState };
+
+// Legacy event interface for backward compatibility
 export interface RealtimeEvent {
-  t: 'HELLO' | 'PRESENCE' | 'CHAT' | 'CAMERA' | 'PING' | 'PONG' | 
-     'OBJECT_TRANSFORM' | 'OBJECT_SELECT' | 'SCENE_UPDATE' | 'USER_JOIN' | 'USER_LEAVE' |
-     'INVITE_RECEIVED' | 'INVITE_ACCEPTED' | 'INVITE_DECLINED' | 'SESSION_STARTED' | 
-     'SESSION_ENDED' | 'VIEWPORT_SYNC' | 'NOTIFICATION';
+  t: string;
   userId?: string;
   timestamp?: number;
   [key: string]: any;
@@ -104,7 +129,51 @@ export interface RealtimeConfig {
   messageQueueSize: number;
 }
 
-// New interfaces for invitations and notifications
+// Collaboration types (matching backend)
+export interface CollaborationInvitation {
+  id: string;
+  projectId: string;
+  projectName: string;
+  fromUserId: string;
+  fromUserName: string;
+  fromUserEmail: string;
+  toUserEmail: string;
+  token: string;
+  message?: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface CollaborationSession {
+  id: string;
+  projectId: string;
+  projectName: string;
+  ownerId: string;
+  ownerName: string;
+  name?: string;
+  status: 'ACTIVE' | 'ENDED';
+  createdAt: string;
+  participants: SessionParticipant[];
+}
+
+export interface SessionParticipant {
+  id: string;
+  name: string;
+  email: string;
+  joinedAt: string;
+  isActive: boolean;
+}
+
+export interface RealtimeNotification {
+  id: string;
+  type: 'info' | 'success' | 'warning' | 'error' | 'invitation';
+  title: string;
+  message: string;
+  data?: any;
+  timestamp: number;
+}
+
+// Legacy interfaces for backward compatibility
 export interface Invitation {
   id: string;
   sessionId: string;
