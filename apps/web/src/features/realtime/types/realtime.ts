@@ -43,7 +43,9 @@ export interface ObjectTransform {
 
 export interface RealtimeEvent {
   t: 'HELLO' | 'PRESENCE' | 'CHAT' | 'CAMERA' | 'PING' | 'PONG' | 
-     'OBJECT_TRANSFORM' | 'OBJECT_SELECT' | 'SCENE_UPDATE' | 'USER_JOIN' | 'USER_LEAVE';
+     'OBJECT_TRANSFORM' | 'OBJECT_SELECT' | 'SCENE_UPDATE' | 'USER_JOIN' | 'USER_LEAVE' |
+     'INVITE_RECEIVED' | 'INVITE_ACCEPTED' | 'INVITE_DECLINED' | 'SESSION_STARTED' | 
+     'SESSION_ENDED' | 'VIEWPORT_SYNC' | 'NOTIFICATION';
   userId?: string;
   timestamp?: number;
   [key: string]: any;
@@ -100,4 +102,101 @@ export interface RealtimeConfig {
   maxReconnectAttempts: number;
   heartbeatInterval: number;
   messageQueueSize: number;
+}
+
+// New interfaces for invitations and notifications
+export interface Invitation {
+  id: string;
+  sessionId: string;
+  fromUserId: string;
+  fromUserName: string;
+  toUserId: string;
+  toUserEmail: string;
+  projectId: string;
+  projectName: string;
+  token: string;
+  expiresAt: number;
+  status: 'pending' | 'accepted' | 'declined' | 'expired';
+  createdAt: number;
+  message?: string;
+}
+
+export interface SessionInfo {
+  id: string;
+  projectId: string;
+  projectName: string;
+  ownerId: string;
+  ownerName: string;
+  participants: RealtimeUser[];
+  status: 'active' | 'ended';
+  createdAt: number;
+  endedAt?: number;
+  maxParticipants?: number;
+}
+
+export interface ViewportState {
+  camera: {
+    position: [number, number, number];
+    rotation: [number, number, number];
+    target?: [number, number, number];
+    zoom?: number;
+  };
+  viewport: {
+    width: number;
+    height: number;
+    bounds?: {
+      min: [number, number];
+      max: [number, number];
+    };
+  };
+  cursor?: {
+    position: [number, number];
+    isVisible: boolean;
+  };
+}
+
+export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'invitation';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  timestamp: number;
+  isRead: boolean;
+  data?: any;
+  actions?: Array<{
+    id: string;
+    label: string;
+    type: 'primary' | 'secondary' | 'danger';
+  }>;
+}
+
+// Extended event interfaces
+export interface InviteReceivedEvent extends RealtimeEvent {
+  t: 'INVITE_RECEIVED';
+  invitation: Invitation;
+}
+
+export interface InviteResponseEvent extends RealtimeEvent {
+  t: 'INVITE_ACCEPTED' | 'INVITE_DECLINED';
+  invitationId: string;
+  userId: string;
+  userName: string;
+}
+
+export interface SessionEvent extends RealtimeEvent {
+  t: 'SESSION_STARTED' | 'SESSION_ENDED';
+  session: SessionInfo;
+}
+
+export interface ViewportSyncEvent extends RealtimeEvent {
+  t: 'VIEWPORT_SYNC';
+  from: string;
+  viewport: ViewportState;
+}
+
+export interface NotificationEvent extends RealtimeEvent {
+  t: 'NOTIFICATION';
+  notification: Notification;
 }
