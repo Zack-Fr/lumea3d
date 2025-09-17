@@ -7,13 +7,23 @@ import type {
   RealtimeConnectionState,
   ChatMessage,
   CameraUpdateEvent,
-  PresenceEvent 
+  PresenceEvent,
+  InviteReceivedEvent,
+  InviteResponseEvent,
+  SessionEvent,
+  ViewportSyncEvent,
+  NotificationEvent
 } from '../types/realtime';
 
 interface UseRealtimeConnectionProps {
   token: string | null;
   sceneId: string | null;
   enabled?: boolean;
+  onInviteReceived?: (event: InviteReceivedEvent) => void;
+  onInviteResponse?: (event: InviteResponseEvent) => void;
+  onSessionEvent?: (event: SessionEvent) => void;
+  onViewportSync?: (event: ViewportSyncEvent) => void;
+  onNotification?: (event: NotificationEvent) => void;
 }
 
 interface UseRealtimeConnectionReturn {
@@ -39,7 +49,12 @@ const USER_COLORS = [
 export const useRealtimeConnection = ({
   token,
   sceneId,
-  enabled = true
+  enabled = true,
+  onInviteReceived,
+  onInviteResponse,
+  onSessionEvent,
+  onViewportSync,
+  onNotification
 }: UseRealtimeConnectionProps): UseRealtimeConnectionReturn => {
   const [connectionState, setConnectionState] = useState<RealtimeConnectionState>({
     isConnected: false,
@@ -314,6 +329,48 @@ export const useRealtimeConnection = ({
             setConnectionState(prev => ({ ...prev, latency }));
             pingStartTime.current = 0;
           }
+          break;
+
+        case 'INVITE_RECEIVED':
+          const inviteEvent = data as InviteReceivedEvent;
+          onInviteReceived?.(inviteEvent);
+          log('info', 'Invitation received', inviteEvent.invitation);
+          break;
+
+        case 'INVITE_ACCEPTED':
+        case 'INVITE_DECLINED':
+          const responseEvent = data as InviteResponseEvent;
+          onInviteResponse?.(responseEvent);
+          log('info', 'Invitation response received', {
+            type: data.t,
+            userId: responseEvent.userId,
+            userName: responseEvent.userName
+          });
+          break;
+
+        case 'SESSION_STARTED':
+        case 'SESSION_ENDED':
+          const sessionEvent = data as SessionEvent;
+          onSessionEvent?.(sessionEvent);
+          log('info', 'Session event received', {
+            type: data.t,
+            session: sessionEvent.session
+          });
+          break;
+
+        case 'VIEWPORT_SYNC':
+          const viewportEvent = data as ViewportSyncEvent;
+          onViewportSync?.(viewportEvent);
+          log('debug', 'Viewport sync received', {
+            from: viewportEvent.from,
+            viewport: viewportEvent.viewport
+          });
+          break;
+
+        case 'NOTIFICATION':
+          const notificationEvent = data as NotificationEvent;
+          onNotification?.(notificationEvent);
+          log('info', 'Notification received', notificationEvent.notification);
           break;
 
         default:
