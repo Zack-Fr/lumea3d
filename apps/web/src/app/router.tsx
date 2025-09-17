@@ -9,6 +9,7 @@ import ProjectEditor from "@/pages/projectEditor/ProjectEditorPage";
 import ProjectCreationPage from "@/pages/projects/ProjectCreationPage";
 import ViewerPage from "@/pages/viewer/ViewerPage";
 import LandingPage from "@/pages/landing/LandingPage";
+import CollaborationDemo from "@/pages/test/CollaborationDemo";
 // import PreviewPage from "@/pages/PreviewPage";
 
 // 404(need to change)
@@ -30,6 +31,9 @@ const router = createBrowserRouter([
 
   // Public viewer (for development/demos)
   { path: "/viewer/:sceneId", element: <ViewerPage /> },
+  
+  // Test pages (for development)
+  { path: "/test/collaboration-demo", element: <CollaborationDemo /> },
 
   // Auth routes: visible only to guests; authenticated users are redirected away by GuestOnly
   {
