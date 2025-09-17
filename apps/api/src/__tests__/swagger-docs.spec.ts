@@ -24,12 +24,12 @@ describe('Swagger docs visibility', () => {
       const globalPrefix = (app as any).getGlobalPrefix?.();
       if (!swaggerBase && globalPrefix) {
         const prefix = globalPrefix.startsWith('/') ? globalPrefix : `/${globalPrefix}`;
-        swaggerBase = `http://localhost:3001${prefix}`;
+        swaggerBase = `http://localhost:3000${prefix}`;
       }
     } catch (e) {
       // ignore
     }
-    if (!swaggerBase) swaggerBase = 'http://localhost:3001';
+    if (!swaggerBase) swaggerBase = 'http://localhost:3000';
 
     const config = new DocumentBuilder()
       .setTitle('Lumea API')
@@ -44,7 +44,7 @@ describe('Swagger docs visibility', () => {
     const servers = doc.servers || [];
     expect(servers.length).toBeGreaterThan(0);
     const urls = servers.map((s: any) => s.url);
-    const ok = urls.some((u: string) => u.includes('localhost:3001') || (process.env.API_PUBLIC_URL && u.includes(process.env.API_PUBLIC_URL)) );
+    const ok = urls.some((u: string) => u.includes('localhost:3000') || (process.env.API_PUBLIC_URL && u.includes(process.env.API_PUBLIC_URL)) );
     expect(ok).toBeTruthy();
   }, 20000);
 });

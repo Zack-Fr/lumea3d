@@ -88,7 +88,7 @@ async function bootstrap() {
   app.enableCors({
     origin: process.env.NODE_ENV === 'production' 
       ? process.env.ALLOWED_ORIGINS?.split(',') || false
-      : ['http://localhost:3001', 'http://localhost:5173', 'http://localhost:5174'],
+      : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'If-Match'],
@@ -96,8 +96,6 @@ async function bootstrap() {
   });
 
   // Swagger documentation
-  // Compute Swagger base URL. Prefer explicit environment variable when present.
-  // If not set, use app.getGlobalPrefix() if available, otherwise fall back to localhost:3001
   let swaggerBase = process.env.API_PUBLIC_URL;
 
   if (!swaggerBase) {
@@ -107,14 +105,14 @@ async function bootstrap() {
       const globalPrefix = (app as any).getGlobalPrefix?.();
       if (globalPrefix) {
         const prefix = globalPrefix.startsWith('/') ? globalPrefix : `/${globalPrefix}`;
-        swaggerBase = `http://localhost:3001${prefix}`;
+        swaggerBase = `http://localhost:3000${prefix}`;
       }
     } catch (e) {
       // ignore and fallback
     }
   }
 
-  if (!swaggerBase) swaggerBase = 'http://localhost:3001';
+  if (!swaggerBase) swaggerBase = 'http://localhost:3000';
 
   const config = new DocumentBuilder()
     .setTitle('Lumea API')
@@ -199,7 +197,7 @@ async function bootstrap() {
     ],
   });
 
-  const port = process.env.PORT || 3001;
+  const port = process.env.PORT || 3000;
   await app.listen(port);
   console.log(`🚀 Lumea API running on port ${port}`);
   console.log(`📚 API documentation available at http://localhost:${port}/docs (Swagger server: ${swaggerBase})`);

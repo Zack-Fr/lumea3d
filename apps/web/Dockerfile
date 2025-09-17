@@ -12,8 +12,9 @@ WORKDIR /app
 COPY pnpm-workspace.yaml ./
 COPY package.json ./
 
-# Copy shared package
+# Copy shared package and api-client
 COPY packages/shared ./packages/shared
+COPY packages/api-client ./packages/api-client
 # Copy Web package files
 COPY apps/web/package.json ./apps/web/package.json
 COPY pnpm-lock.yaml ./
@@ -27,8 +28,11 @@ COPY apps/web ./apps/web/
 # Build shared package first
 RUN pnpm --filter @lumea/shared build
 
+# Build api-client package
+RUN pnpm --filter @lumea/api-client build
+
 # Build arguments
-ARG VITE_API_URL=http://localhost:3001
+ARG VITE_API_URL=http://localhost:3000
 ENV VITE_API_URL=$VITE_API_URL
 
 # Build application

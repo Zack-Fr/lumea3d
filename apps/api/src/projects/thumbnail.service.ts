@@ -18,7 +18,7 @@ export class ThumbnailService {
   constructor(private prisma: PrismaService) {}
 
   private readonly THUMBNAILS_DIR = process.env.THUMBNAILS_STORAGE_PATH || './storage/thumbnails';
-  private readonly BASE_URL = process.env.THUMBNAILS_BASE_URL || 'http://localhost:3001/storage/thumbnails';
+  private readonly BASE_URL = process.env.THUMBNAILS_BASE_URL || 'http://localhost:3000/storage/thumbnails';
   private readonly MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
   private readonly THUMBNAIL_SIZE = { width: 400, height: 300 };
 

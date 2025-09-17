@@ -81,7 +81,7 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
           }
           
           // Fetch current scene version
-          const response = await fetch(`http://localhost:3001/scenes/${sceneId}/version`, {
+          const response = await fetch(`http://localhost:3000/scenes/${sceneId}/version`, {
             headers: {
               'Authorization': `Bearer ${token}`,
             },

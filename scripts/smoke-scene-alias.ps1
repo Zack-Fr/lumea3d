@@ -11,7 +11,7 @@ if (-not $SID -or -not $ProjectId) {
   exit 1
 }
 
-$BASE = if ($API_URL) { $API_URL } else { 'http://localhost:3001' }
+$BASE = if ($API_URL) { $API_URL } else { 'http://localhost:3000' }
 
 Write-Host "Using base URL: $BASE"
 

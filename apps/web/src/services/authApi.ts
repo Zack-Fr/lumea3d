@@ -128,13 +128,44 @@ export const authApi = {
   },
 
   async register(userData: RegisterRequest): Promise<AuthResponse> {
-    return apiRequest<AuthResponse>('/auth/register', {
+    logOnce('auth:register:start', 'info', `🌐 AUTH_API: Making register request to: ${API_BASE_URL}/auth/register (logged once)`);
+    log('debug', 'AUTH_API: Register payload', { email: userData.email });
+    
+    // Step 1: Get tokens from register endpoint
+    const tokensResponse = await apiRequest<BackendAuthResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({
         ...userData,
-        role:  (userData.role ?? RoleEnum.CLIENT), // Default role as per spec
+        role: (userData.role ?? RoleEnum.CLIENT), // Default role as per spec
       }),
-    })
+    });
+    
+    logOnce('auth:register:tokens', 'info', '🌐 AUTH_API: Register tokens received (logged once)');
+    log('debug', 'AUTH_API: token details', { hasAccessToken: !!tokensResponse.accessToken, hasRefreshToken: !!tokensResponse.refreshToken });
+    
+    // Step 2: Get user profile using the access token
+    logOnce('auth:register:fetch-profile', 'info', '🌐 AUTH_API: Fetching user profile...');
+    const userResponse = await apiRequest<User>('/auth/profile', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${tokensResponse.accessToken}`,
+      },
+    });
+    
+    logOnce('auth:register:user-received', 'info', '🌐 AUTH_API: User profile received (logged once)');
+    log('debug', 'AUTH_API: user details', { userId: userResponse.id, userEmail: userResponse.email });
+    
+    // Step 3: Combine into expected format
+    const response: AuthResponse = {
+      user: userResponse,
+      token: tokensResponse.accessToken,
+      refreshToken: tokensResponse.refreshToken
+    };
+    
+    logOnce('auth:register:ready', 'info', '🌐 AUTH_API: Combined response ready (logged once)');
+    log('debug', 'AUTH_API: combined response', { hasUser: !!response.user, hasToken: !!response.token, userId: response.user?.id });
+    
+    return response;
   },
 
   async logout(token: string): Promise<void> {

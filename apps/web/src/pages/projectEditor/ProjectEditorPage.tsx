@@ -423,10 +423,10 @@ const ProjectEditorContent: React.FC = () => {
               assetUrl = category.url;
               console.log('🔍 ProjectEditor: Using category URL:', assetUrl);
             } else if (category?.asset?.meshoptUrl) {
-              assetUrl = `http://localhost:3001/public/storage/serve/lumea-assets/${category.asset.meshoptUrl}`;
+              assetUrl = `http://localhost:3000/public/storage/serve/lumea-assets/${category.asset.meshoptUrl}`;
               console.log('🔍 ProjectEditor: Constructed meshopt URL:', assetUrl);
             } else if (category?.asset?.originalUrl) {
-              assetUrl = `http://localhost:3001/public/storage/serve/lumea-assets/${category.asset.originalUrl}`;
+              assetUrl = `http://localhost:3000/public/storage/serve/lumea-assets/${category.asset.originalUrl}`;
               console.log('🔍 ProjectEditor: Constructed original URL:', assetUrl);
             }
           }
@@ -706,7 +706,7 @@ const ProjectEditorContent: React.FC = () => {
                   onClose={() => setShowProperties(false)}
                   
                   // Properties panel props
-                  sceneId={contextSceneId || undefined}
+                  sceneId={contextSceneId || urlSceneId || undefined}
                   selectedItemId={selectedItemId || undefined}
                   
                   // Camera controls props

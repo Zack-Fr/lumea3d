@@ -139,7 +139,7 @@ export async function runAuthDiagnostics(projectId: string): Promise<AuthDiagnos
 
   // Test without auth first
   try {
-    const responseWithoutAuth = await fetch(`http://localhost:3001/projects/${projectId}/scenes`);
+    const responseWithoutAuth = await fetch(`http://localhost:3000/projects/${projectId}/scenes`);
     results.networkTest.withoutAuth.status = responseWithoutAuth.status;
     results.networkTest.withoutAuth.message = responseWithoutAuth.statusText;
     console.log('🌐 Request without auth:', results.networkTest.withoutAuth);
@@ -161,7 +161,7 @@ export async function runAuthDiagnostics(projectId: string): Promise<AuthDiagnos
         tokenPreview: storedToken.substring(0, 30) + '...',
       });
 
-      const responseWithAuth = await fetch(`http://localhost:3001/projects/${projectId}/scenes`, {
+      const responseWithAuth = await fetch(`http://localhost:3000/projects/${projectId}/scenes`, {
         headers,
       });
 
