@@ -20,6 +20,10 @@ import {
   RtCliEvent,
   AuthenticatedRealtimeSocket,
   DeltaOp,
+  ViewportState,
+  RealtimeNotification,
+  CollaborationInvitation,
+  CollaborationSession
 } from './dto/rt-events';
 
 @Injectable()
@@ -94,9 +98,10 @@ export class RtGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
         client.userId = uid;
         client.sceneId = sceneIdFromHandshake;
 
-        // Try to populate a display name for presence
-        const user = await this.prisma.user.findUnique({ where: { id: uid }, select: { displayName: true } });
+        // Try to populate user info for presence
+        const user = await this.prisma.user.findUnique({ where: { id: uid }, select: { displayName: true, email: true } });
         client.userName = user?.displayName || 'Unknown User';
+        client.userEmail = user?.email;
 
         userId = uid;
         sceneId = sceneIdFromHandshake;
@@ -200,6 +205,10 @@ export class RtGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
 
         case 'CHAT':
           await this.handleChat(client, message);
+          break;
+
+        case 'VIEWPORT_SYNC':
+          await this.handleViewportSync(client, message);
           break;
 
         default:
@@ -324,6 +333,28 @@ export class RtGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     this.incrementMetric('messagesOut', 'CHAT');
   }
 
+  private async handleViewportSync(
+    client: Socket & AuthenticatedRealtimeSocket,
+    message: RtCliEvent & { t: 'VIEWPORT_SYNC' },
+  ): Promise<void> {
+    const { userId, sceneId } = client;
+
+    if (!this.presence.maySend(userId, 'viewport')) {
+      this.incrementMetric('droppedMessages', 'viewport_throttled');
+      return;
+    }
+
+    // Broadcast viewport sync to other clients in scene (excluding sender)
+    const viewportEvent: RtSrvEvent = {
+      t: 'VIEWPORT_SYNC',
+      from: userId,
+      viewport: message.viewport,
+    };
+
+    client.to(`scene:${sceneId}`).emit('evt', viewportEvent);
+    this.incrementMetric('messagesOut', 'VIEWPORT_SYNC');
+  }
+
   /**
    * Broadcast delta updates to scene (called from external services)
    */
@@ -355,6 +386,194 @@ export class RtGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
 
     this.server.to(`scene:${sceneId}`).emit('evt', jobStatusEvent);
     this.incrementMetric('messagesOut', 'JOB_STATUS');
+  }
+
+  /**
+   * Broadcast collaboration invitation to specific user
+   */
+  broadcastInvitationReceived(userEmail: string, invitation: CollaborationInvitation): void {
+    const inviteEvent: RtSrvEvent = {
+      t: 'INVITE_RECEIVED',
+      invitation,
+    };
+
+    // Broadcast to all sockets of the invited user
+    this.server.sockets.sockets.forEach((socket) => {
+      const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
+      if (authSocket.userEmail === userEmail) {
+        socket.emit('evt', inviteEvent);
+      }
+    });
+    
+    this.incrementMetric('messagesOut', 'INVITE_RECEIVED');
+  }
+
+  /**
+   * Broadcast invitation response to the sender
+   */
+  broadcastInvitationResponse(
+    inviteId: string, 
+    status: 'accepted' | 'declined', 
+    userId: string,
+    toUserId: string
+  ): void {
+    const responseEvent: RtSrvEvent = {
+      t: 'INVITE_RESPONSE',
+      inviteId,
+      status,
+      userId,
+    };
+
+    // Broadcast to all sockets of the invite sender
+    this.server.sockets.sockets.forEach((socket) => {
+      const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
+      if (authSocket.userId === toUserId) {
+        socket.emit('evt', responseEvent);
+      }
+    });
+    
+    this.incrementMetric('messagesOut', 'INVITE_RESPONSE');
+  }
+
+  /**
+   * Broadcast session started event to all participants
+   */
+  broadcastSessionStarted(session: CollaborationSession): void {
+    const sessionEvent: RtSrvEvent = {
+      t: 'SESSION_STARTED',
+      session,
+    };
+
+    // Broadcast to all participants
+    session.participants.forEach((participant) => {
+      this.server.sockets.sockets.forEach((socket) => {
+        const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
+        if (authSocket.userId === participant.id) {
+          socket.emit('evt', sessionEvent);
+        }
+      });
+    });
+    
+    this.incrementMetric('messagesOut', 'SESSION_STARTED');
+  }
+
+  /**
+   * Broadcast session ended event
+   */
+  broadcastSessionEnded(sessionId: string, participantUserIds: string[], reason?: string): void {
+    const sessionEndedEvent: RtSrvEvent = {
+      t: 'SESSION_ENDED',
+      sessionId,
+      reason,
+    };
+
+    // Broadcast to all participants
+    participantUserIds.forEach((userId) => {
+      this.server.sockets.sockets.forEach((socket) => {
+        const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
+        if (authSocket.userId === userId) {
+          socket.emit('evt', sessionEndedEvent);
+        }
+      });
+    });
+    
+    this.incrementMetric('messagesOut', 'SESSION_ENDED');
+  }
+
+  /**
+   * Broadcast participant joined session
+   */
+  broadcastParticipantJoined(
+    sessionId: string, 
+    participant: { id: string; name: string; email: string; joinedAt: string; isActive: boolean },
+    participantUserIds: string[]
+  ): void {
+    const participantEvent: RtSrvEvent = {
+      t: 'SESSION_PARTICIPANT_JOINED',
+      sessionId,
+      participant,
+    };
+
+    // Broadcast to all other participants
+    participantUserIds.forEach((userId) => {
+      if (userId !== participant.id) { // Don't send to the participant who just joined
+        this.server.sockets.sockets.forEach((socket) => {
+          const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
+          if (authSocket.userId === userId) {
+            socket.emit('evt', participantEvent);
+          }
+        });
+      }
+    });
+    
+    this.incrementMetric('messagesOut', 'SESSION_PARTICIPANT_JOINED');
+  }
+
+  /**
+   * Broadcast participant left session
+   */
+  broadcastParticipantLeft(
+    sessionId: string, 
+    userId: string, 
+    participantUserIds: string[],
+    reason?: string
+  ): void {
+    const participantLeftEvent: RtSrvEvent = {
+      t: 'SESSION_PARTICIPANT_LEFT',
+      sessionId,
+      userId,
+      reason,
+    };
+
+    // Broadcast to all other participants
+    participantUserIds.forEach((participantUserId) => {
+      if (participantUserId !== userId) { // Don't send to the participant who left
+        this.server.sockets.sockets.forEach((socket) => {
+          const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
+          if (authSocket.userId === participantUserId) {
+            socket.emit('evt', participantLeftEvent);
+          }
+        });
+      }
+    });
+    
+    this.incrementMetric('messagesOut', 'SESSION_PARTICIPANT_LEFT');
+  }
+
+  /**
+   * Send notification to specific user
+   */
+  sendNotificationToUser(userId: string, notification: RealtimeNotification): void {
+    const notificationEvent: RtSrvEvent = {
+      t: 'NOTIFICATION',
+      notification,
+    };
+
+    // Send to all sockets of the user
+    this.server.sockets.sockets.forEach((socket) => {
+      const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
+      if (authSocket.userId === userId) {
+        socket.emit('evt', notificationEvent);
+      }
+    });
+    
+    this.incrementMetric('messagesOut', 'NOTIFICATION');
+  }
+
+  /**
+   * Broadcast notification to all users in a project
+   */
+  broadcastNotificationToProject(projectId: string, notification: RealtimeNotification): void {
+    const notificationEvent: RtSrvEvent = {
+      t: 'NOTIFICATION',
+      notification,
+    };
+
+    // For now, we broadcast to all connected users
+    // In a more sophisticated implementation, we'd track project memberships
+    this.server.emit('evt', notificationEvent);
+    
+    this.incrementMetric('messagesOut', 'NOTIFICATION');
   }
 
   /**

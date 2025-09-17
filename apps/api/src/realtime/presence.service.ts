@@ -40,6 +40,11 @@ export class PresenceService {
       maxMessages: 3,
       windowMs: 1000, // 3 per second
     },
+    viewport: {
+      maxMessages: 1,
+      windowMs: 100, // 100ms coalescing (10fps max)
+      coalesceMs: 100,
+    },
   };
 
   // Flood protection configuration
