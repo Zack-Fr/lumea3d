@@ -4,6 +4,38 @@
  */
 
 export interface paths {
+    "/debug/env": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DebugController_getEnvironmentInfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/debug/user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DebugController_getCurrentUser"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/monitoring/health": {
         parameters: {
             query?: never;
@@ -92,6 +124,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["MonitoringController_getLiveness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/healthz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["MonitoringController_getHealthz"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/readyz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["MonitoringController_getReadyz"];
         put?: never;
         post?: never;
         delete?: never;
@@ -269,6 +333,57 @@ export interface paths {
         post?: never;
         /** Delete user by ID (Admin only) */
         delete: operations["UsersController_deleteUser"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/storage/assets/{assetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get presigned download URL for an asset */
+        get: operations["StorageController_getAssetDownloadUrl"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/storage/assets/{assetId}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download asset file directly */
+        get: operations["StorageController_downloadAsset"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/storage/serve/{bucketName}/{objectKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve asset file directly (public endpoint for 3D viewer) */
+        get: operations["PublicStorageController_serveAsset"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -643,6 +758,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/scenes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a new 3D scene
+         * @description Creates a scene within a project. The projectId must be provided in the request body.
+         */
+        post: operations["FlatScenesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/scenes/{sceneId}": {
         parameters: {
             query?: never;
@@ -688,7 +823,11 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Apply batch delta operations to scene items
+         * @description Flat route - applies multiple delta operations atomically. Requires If-Match header for optimistic locking.
+         */
+        patch: operations["FlatScenesController_applyDeltaOperations"];
         trace?: never;
     };
     "/scenes/{sceneId}/items/{itemId}": {
@@ -795,6 +934,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/scenes/{sceneId}/snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List scene snapshots
+         * @description Flat route - returns all snapshots for the scene
+         */
+        get: operations["FlatScenesController_listSnapshots"];
+        put?: never;
+        /**
+         * Create a scene snapshot
+         * @description Flat route - creates a manual save snapshot with the current scene state
+         */
+        post: operations["FlatScenesController_createSnapshot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/scenes/{sceneId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore scene from snapshot
+         * @description Flat route - restores the scene to a previous snapshot state
+         */
+        post: operations["FlatScenesController_restoreFromSnapshot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectId}/scenes/{sceneId}/events": {
         parameters: {
             query?: never;
@@ -822,11 +1005,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Connect to scene events via Server-Sent Events (SSE) - Flat Route
-         * @description Flat route alias for realtime scene updates when WebSockets are not available. Supports Last-Event-ID for reconnection.
-         */
-        get: operations["FlatScenesSSEController_streamSceneEvents"];
+        get: operations["SseController_events"];
         put?: never;
         post?: never;
         delete?: never;
@@ -971,9 +1150,57 @@ export interface paths {
          * @description Retrieves detailed information about a specific project (only if user is a member)
          */
         get: operations["ProjectsController_findOne"];
+        /**
+         * Update project
+         * @description Updates project information including name and thumbnails
+         */
+        put: operations["ProjectsController_update"];
+        post?: never;
+        /**
+         * Delete project
+         * @description Permanently delete a project and all its associated data (scenes, thumbnails, etc.)
+         */
+        delete: operations["ProjectsController_deleteProject"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/thumbnail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload project thumbnail
+         * @description Upload a custom thumbnail or save canvas screenshot for a project
+         */
+        post: operations["ProjectsController_uploadThumbnail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/thumbnail/{type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete project thumbnail
+         * @description Delete auto-generated or custom thumbnail for a project
+         */
+        delete: operations["ProjectsController_deleteThumbnail"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1453,6 +1680,68 @@ export interface components {
             /** @description Delta generation timestamp */
             timestamp: string;
         };
+        BatchDeltaDto: {
+            /** @description Array of delta operations to apply */
+            operations: unknown[];
+        };
+        BatchDeltaResponseDto: {
+            /** @description New scene version after applying operations */
+            version: number;
+            /** @description ETag for the new version */
+            etag: string;
+        };
+        SceneManifestFrontend: {
+            /** @description Scene metadata */
+            scene: Record<string, never>;
+            /** @description Scene items with transforms and materials */
+            items: string[];
+            /** @description Asset categories referenced in the scene */
+            categories: Record<string, never>;
+            /** @description Generation timestamp */
+            generatedAt: string;
+            /** @description Spawn point configuration */
+            spawn?: Record<string, never>;
+            /** @description Environment configuration */
+            env?: Record<string, never>;
+            /** @description Navmesh URL */
+            navmesh_url?: string;
+        };
+        CreateSnapshotDto: {
+            /**
+             * @description Label for the snapshot (e.g., "Manual Save")
+             * @example Manual Save
+             */
+            label: string;
+        };
+        CreateSnapshotResponseDto: {
+            /** @description ID of the created snapshot */
+            snapshotId: string;
+            /** @description Label of the created snapshot */
+            label: string;
+            /** @description Timestamp when snapshot was created */
+            createdAt: string;
+        };
+        ListSnapshotsResponseDto: {
+            /** @description List of available snapshots */
+            snapshots: {
+                id?: string;
+                label?: string;
+                /** Format: date-time */
+                createdAt?: string;
+            }[];
+        };
+        RestoreSnapshotDto: {
+            /** @description ID of the snapshot to restore */
+            snapshotId: string;
+        };
+        RestoreSnapshotResponseDto: {
+            /** @description New scene version after restoration */
+            version: number;
+            /** @description ETag for the new version */
+            etag: string;
+            /** @description Label of the restored snapshot */
+            restoredLabel: string;
+        };
         AssetDownloadInfo: {
             /**
              * @description Asset ID
@@ -1617,6 +1906,58 @@ export interface components {
             scene?: Record<string, never>;
             membership?: Record<string, never>;
         };
+        UpdateProjectDto: {
+            /**
+             * @description Project name
+             * @example Updated Project Name
+             */
+            name?: string;
+            /**
+             * @description Auto-generated thumbnail URL from canvas screenshot
+             * @example https://storage.example.com/thumbnails/project-123-auto.jpg
+             */
+            thumbnailUrl?: string;
+            /**
+             * @description Custom user-uploaded thumbnail URL
+             * @example https://storage.example.com/thumbnails/project-123-custom.jpg
+             */
+            customThumbnailUrl?: string;
+        };
+        ThumbnailUploadDto: {
+            /**
+             * @description Base64 encoded image data or screenshot data from canvas
+             * @example data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==
+             */
+            imageData: string;
+            /**
+             * @description Type of thumbnail: auto (from canvas) or custom (user upload)
+             * @example auto
+             * @enum {string}
+             */
+            type?: "auto" | "custom";
+            /**
+             * @description Original filename (for custom uploads)
+             * @example my-thumbnail.jpg
+             */
+            originalFilename?: string;
+        };
+        ThumbnailUploadResponseDto: {
+            /**
+             * @description URL of the uploaded thumbnail
+             * @example https://storage.example.com/thumbnails/project-123-custom-1634567890.jpg
+             */
+            thumbnailUrl: string;
+            /**
+             * @description Type of thumbnail that was uploaded
+             * @example custom
+             */
+            type: string;
+            /**
+             * @description Timestamp when the thumbnail was created
+             * @example 2023-10-18T15:30:00Z
+             */
+            createdAt: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -1626,6 +1967,40 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    DebugController_getEnvironmentInfo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DebugController_getCurrentUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     MonitoringController_getHealth: {
         parameters: {
             query?: never;
@@ -1712,6 +2087,40 @@ export interface operations {
         };
     };
     MonitoringController_getLiveness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MonitoringController_getHealthz: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MonitoringController_getReadyz: {
         parameters: {
             query?: never;
             header?: never;
@@ -2269,6 +2678,92 @@ export interface operations {
                 content?: never;
             };
             /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StorageController_getAssetDownloadUrl: {
+        parameters: {
+            query: {
+                variant: string;
+            };
+            header?: never;
+            path: {
+                assetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Presigned URL generated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Asset not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StorageController_downloadAsset: {
+        parameters: {
+            query: {
+                variant: string;
+            };
+            header?: never;
+            path: {
+                assetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Asset file stream */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Asset not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicStorageController_serveAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bucketName: string;
+                objectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Asset file content */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Asset not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -3184,6 +3679,45 @@ export interface operations {
             };
         };
     };
+    FlatScenesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Scene created successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid scene data or missing projectId */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Project not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     FlatScenesController_findOne: {
         parameters: {
             query?: never;
@@ -3368,6 +3902,68 @@ export interface operations {
             };
         };
     };
+    FlatScenesController_applyDeltaOperations: {
+        parameters: {
+            query?: never;
+            header: {
+                "if-match": string;
+                "idempotency-key": string;
+                /** @description Unique key for idempotent operations */
+                "Idempotency-Key"?: string;
+                /** @description Expected scene version for optimistic locking */
+                "If-Match": string;
+            };
+            path: {
+                /** @description Scene ID */
+                sceneId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchDeltaDto"];
+            };
+        };
+        responses: {
+            /** @description Delta operations applied successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchDeltaResponseDto"];
+                };
+            };
+            /** @description If-Match header missing or invalid operations */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Scene not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Precondition Failed - version conflict */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     FlatScenesController_removeItem: {
         parameters: {
             query?: never;
@@ -3505,7 +4101,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SceneManifestV2"];
+                    "application/json": components["schemas"]["SceneManifestFrontend"];
                 };
             };
             /** @description Insufficient permissions */
@@ -3657,6 +4253,125 @@ export interface operations {
             };
         };
     };
+    FlatScenesController_listSnapshots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Scene ID */
+                sceneId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Snapshots listed successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListSnapshotsResponseDto"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Scene not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    FlatScenesController_createSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Scene ID */
+                sceneId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSnapshotDto"];
+            };
+        };
+        responses: {
+            /** @description Snapshot created successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateSnapshotResponseDto"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Scene not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    FlatScenesController_restoreFromSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Scene ID */
+                sceneId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestoreSnapshotDto"];
+            };
+        };
+        responses: {
+            /** @description Scene restored successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreSnapshotResponseDto"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Scene or snapshot not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ScenesSSEController_streamSceneEvents: {
         parameters: {
             query: {
@@ -3681,19 +4396,11 @@ export interface operations {
             };
         };
     };
-    FlatScenesSSEController_streamSceneEvents: {
+    SseController_events: {
         parameters: {
-            query?: {
-                /** @description Optional client identifier for reconnection */
-                clientId?: string;
-            };
-            header: {
-                "last-event-id": string;
-                /** @description Last received event ID for resuming connection */
-                "Last-Event-ID"?: string;
-            };
+            query?: never;
+            header?: never;
             path: {
-                /** @description Scene ID */
                 sceneId: string;
             };
             cookie?: never;
@@ -4036,6 +4743,158 @@ export interface operations {
             };
             /** @description Project not found or access denied */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project UUID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProjectDto"];
+            };
+        };
+        responses: {
+            /** @description Project updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Project not found or access denied */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectsController_deleteProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project UUID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Project deleted successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Project not found or access denied */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectsController_uploadThumbnail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project UUID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ThumbnailUploadDto"];
+            };
+        };
+        responses: {
+            /** @description Thumbnail uploaded successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThumbnailUploadResponseDto"];
+                };
+            };
+            /** @description Invalid image data or project not found */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectsController_deleteThumbnail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project UUID */
+                id: string;
+                /** @description Thumbnail type to delete */
+                type: "auto" | "custom" | "all";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Thumbnail deleted successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid thumbnail type or project not found */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

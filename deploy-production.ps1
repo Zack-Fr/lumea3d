@@ -230,7 +230,7 @@ function Show-DeploymentStatus {
     
     Write-Host ""
     Write-Info "Service URLs:"
-    Write-Host "🌐 Frontend (Web):     http://localhost:3001" -ForegroundColor White
+    Write-Host "🌐 Frontend (Web):     http://localhost:3000" -ForegroundColor White
     Write-Host "🔌 API (Direct):       http://localhost:3002" -ForegroundColor White
     Write-Host "⚖️  Load Balancer:     http://localhost:8080" -ForegroundColor White
     Write-Host "🔒 HTTPS Load Balancer: https://localhost:8443" -ForegroundColor White

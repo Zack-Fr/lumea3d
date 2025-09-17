@@ -47,7 +47,7 @@ async function fetchOpenAPISpec() {
     try {
       console.log(`📡 Attempting to fetch OpenAPI spec (attempt ${retries + 1}/${maxRetries})...`);
       
-      const response = await fetch('http://localhost:3001/docs-json', {
+      const response = await fetch('http://localhost:3000/docs-json', {
         timeout: 5000,
       });
       
@@ -84,7 +84,7 @@ Scene operations support optimistic locking via If-Match headers for safe concur
         // Add server information
         openApiSpec.servers = [
           {
-            url: 'http://localhost:3001',
+            url: 'http://localhost:3000',
             description: 'Development Server'
           },
           {

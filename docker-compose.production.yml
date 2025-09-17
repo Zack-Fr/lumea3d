@@ -78,9 +78,9 @@ services:
       STORAGE_PORT: 9000
       JWT_SECRET: super-secure-production-secret-key-that-should-be-changed-in-real-production
       ALLOWED_ORIGINS: https://app.lumea.com,https://admin.lumea.com
-      PORT: 3001
+      PORT: 3000
     ports:
-      - "3002:3001"  # Different port to avoid conflicts
+      - "3000:3000"  # Different port to avoid conflicts
     depends_on:
       postgres_prod:
         condition: service_healthy
@@ -89,7 +89,7 @@ services:
       minio_prod:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -109,9 +109,9 @@ services:
     container_name: lumea_web_prod
     environment:
       NODE_ENV: production
-      VITE_API_URL: http://localhost:3002
+      VITE_API_URL: http://localhost:3000
     ports:
-      - "3001:80"  # Nginx serves on port 80 inside container
+      - "3000:80"  # Nginx serves on port 80 inside container
     depends_on:
       - api_prod
     healthcheck:

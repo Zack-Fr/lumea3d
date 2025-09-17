@@ -177,7 +177,7 @@ show_deployment_status() {
     
     echo ""
     log_info "Service URLs:"
-    echo "🌐 Frontend (Web):     http://localhost:3001"
+    echo "🌐 Frontend (Web):     http://localhost:3000"
     echo "🔌 API (Direct):       http://localhost:3002"
     echo "⚖️  Load Balancer:     http://localhost:8080"
     echo "🔒 HTTPS Load Balancer: https://localhost:8443"

@@ -153,7 +153,7 @@ const UserDashboardPage = memo(() => {
   const handleProjectDelete = useCallback(async (project: any) => {
     try {
       const projectId = project.originalId || project.id.toString();
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const response = await fetch(`${apiUrl}/projects/${projectId}`, {
         method: 'DELETE',
         headers: {

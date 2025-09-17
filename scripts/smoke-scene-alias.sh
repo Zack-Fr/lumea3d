@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 SID="$1"
 PROJECT_ID="$2"
-BASE=${3:-http://localhost:3001}
+BASE=${3:-http://localhost:3000}
 
 if [ -z "$SID" ] || [ -z "$PROJECT_ID" ]; then
   echo "Usage: ./smoke-scene-alias.sh <sceneId> <projectId> [base]"

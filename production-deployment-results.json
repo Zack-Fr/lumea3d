@@ -61,7 +61,7 @@
   "timestamp": "2025-09-01T14:17:57.253Z",
   "environment": {
     "api_url": "http://localhost:3002",
-    "web_url": "http://localhost:3001",
+    "web_url": "http://localhost:3000",
     "nginx_url": "http://localhost:8080"
   }
 }
