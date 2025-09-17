@@ -46,7 +46,7 @@ const MenuPanel = memo(({
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className={s.logoGlow + " w-10 h-10 rounded-xl flex items-center justify-center"}>
-                    <span className="text-[var(--glass-black)] font-bold text-lg">L</span>
+                    
                   </div>
                   <div>
                     <h2 className="font-bold text-white">Lumea Studio</h2>
