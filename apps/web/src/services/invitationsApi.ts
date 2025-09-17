@@ -129,7 +129,7 @@ export const invitationsApi = {
    */
   async createInvitation(dto: CreateInvitationDto, token: string): Promise<InvitationResponse> {
     return invitationApiRequest<InvitationResponse>(
-      '/invitations',
+      '/collaboration/invitations',
       {
         method: 'POST',
         body: JSON.stringify(dto),
@@ -142,34 +142,36 @@ export const invitationsApi = {
    * Get all invitations sent by the current user
    */
   async getSentInvitations(token: string): Promise<InvitationResponse[]> {
-    return invitationApiRequest<InvitationResponse[]>(
-      '/invitations/sent',
+    const response = await invitationApiRequest<{ invitations: InvitationResponse[] }>(
+      '/collaboration/invitations/sent',
       {
         method: 'GET',
       },
       token
     );
+    return response.invitations;
   },
 
   /**
    * Get all invitations received by the current user
    */
   async getReceivedInvitations(token: string): Promise<InvitationResponse[]> {
-    return invitationApiRequest<InvitationResponse[]>(
-      '/invitations/received',
+    const response = await invitationApiRequest<{ invitations: InvitationResponse[] }>(
+      '/collaboration/invitations/received',
       {
         method: 'GET',
       },
       token
     );
+    return response.invitations;
   },
 
   /**
    * Accept an invitation using its token
    */
-  async acceptInvitation(dto: AcceptInvitationDto, token: string): Promise<{ sessionId: string; projectId: string }> {
-    return invitationApiRequest<{ sessionId: string; projectId: string }>(
-      '/invitations/accept',
+  async acceptInvitation(dto: AcceptInvitationDto, token: string): Promise<{ sessionId: string; message: string }> {
+    return invitationApiRequest<{ sessionId: string; message: string }>(
+      '/collaboration/invitations/accept',
       {
         method: 'POST',
         body: JSON.stringify(dto),
@@ -183,7 +185,7 @@ export const invitationsApi = {
    */
   async declineInvitation(invitationId: string, token: string): Promise<void> {
     return invitationApiRequest<void>(
-      `/invitations/${invitationId}/decline`,
+      `/collaboration/invitations/${invitationId}/decline`,
       {
         method: 'POST',
       },
@@ -196,7 +198,7 @@ export const invitationsApi = {
    */
   async revokeInvitation(invitationId: string, token: string): Promise<void> {
     return invitationApiRequest<void>(
-      `/invitations/${invitationId}/revoke`,
+      `/collaboration/invitations/${invitationId}`,
       {
         method: 'DELETE',
       },
@@ -208,13 +210,14 @@ export const invitationsApi = {
    * Get active sessions for the current user
    */
   async getActiveSessions(token: string): Promise<SessionResponse[]> {
-    return invitationApiRequest<SessionResponse[]>(
-      '/sessions/active',
+    const response = await invitationApiRequest<{ sessions: SessionResponse[] }>(
+      '/collaboration/sessions/active',
       {
         method: 'GET',
       },
       token
     );
+    return response.sessions;
   },
 
   /**
@@ -222,7 +225,7 @@ export const invitationsApi = {
    */
   async getSession(sessionId: string, token: string): Promise<SessionResponse> {
     return invitationApiRequest<SessionResponse>(
-      `/sessions/${sessionId}`,
+      `/collaboration/sessions/${sessionId}`,
       {
         method: 'GET',
       },
@@ -235,7 +238,7 @@ export const invitationsApi = {
    */
   async endSession(sessionId: string, token: string): Promise<void> {
     return invitationApiRequest<void>(
-      `/sessions/${sessionId}/end`,
+      `/collaboration/sessions/${sessionId}/end`,
       {
         method: 'POST',
       },
@@ -248,7 +251,7 @@ export const invitationsApi = {
    */
   async leaveSession(sessionId: string, token: string): Promise<void> {
     return invitationApiRequest<void>(
-      `/sessions/${sessionId}/leave`,
+      `/collaboration/sessions/${sessionId}/leave`,
       {
         method: 'POST',
       },
