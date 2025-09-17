@@ -12,13 +12,20 @@ import asyncio
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 import torch
 import uvicorn
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+import jwt
 import logging
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Add current directory to path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -31,34 +38,59 @@ logger = logging.getLogger(__name__)
 
 # Global variables
 inference_engine: Optional[Hunyuan3DInference] = None
+active_jobs: Dict[str, Dict[str, Any]] = {}
 
 class GenerationRequest(BaseModel):
     """Request model for 3D generation"""
-    prompt: str = Field(..., description="Text description of the 3D shape to generate")
-    seed: Optional[int] = Field(None, description="Random seed for reproducible generation")
-    style: Optional[str] = Field("realistic", description="Style preset (realistic, cartoon, etc.)")
-    quality: Optional[str] = Field("standard", description="Quality preset (draft, standard, high)")
+    prompt: str = Field(..., description="Text description of the 3D shape to generate", min_length=1, max_length=500)
+    seed: Optional[int] = Field(None, description="Random seed for reproducible generation", ge=0, le=2**32-1)
+    user_id: Optional[str] = Field(None, description="User identifier for tracking")
 
 class GenerationResponse(BaseModel):
     """Response model for generation results"""
     job_id: str
     status: str
     prompt: str
-    estimated_time: float
-    created_at: float
+    estimated_time: str
+    created_at: datetime
 
 class JobStatus(BaseModel):
     """Job status response"""
     job_id: str
     status: str
     progress: float
+    message: str
     result: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
-    created_at: float
-    completed_at: Optional[float] = None
+    created_at: datetime
+    updated_at: datetime
 
-# In-memory job storage (in production, use Redis/database)
-jobs: Dict[str, Dict[str, Any]] = {}
+class TokenData(BaseModel):
+    user_id: str
+    exp: int
+
+# Authentication dependency
+def verify_token(token: str) -> TokenData:
+    """Verify JWT token and return user data"""
+    try:
+        jwt_secret = os.getenv("JWT_SECRET", "your-secret-key")
+        payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
+        return TokenData(**payload)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+def get_current_user(authorization: str = None) -> TokenData:
+    """Extract and verify JWT token from Authorization header"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization format")
+
+    token = authorization.split(" ")[1]
+    return verify_token(token)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -70,8 +102,15 @@ async def lifespan(app: FastAPI):
     try:
         inference_engine = Hunyuan3DInference()
         if not inference_engine.load_models():
-            logger.error("Failed to load models during startup")
+            logger.error("Failed to load Hunyuan3D models during startup")
             raise RuntimeError("Model loading failed")
+
+        # Load text-to-image model
+        if not inference_engine.load_text_to_image_model():
+            logger.warning("Failed to load text-to-image model")
+        else:
+            logger.info("Text-to-image model loaded successfully")
+
         logger.info("Models loaded successfully")
     except Exception as e:
         logger.error(f"Failed to initialize inference engine: {e}")
@@ -99,20 +138,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-async def process_generation(job_id: str, request: GenerationRequest):
+async def process_generation(job_id: str, request: GenerationRequest, user_id: str):
     """Background task to process 3D generation"""
-    global jobs
-
     try:
         # Update job status
-        jobs[job_id]["status"] = "processing"
-        jobs[job_id]["progress"] = 0.1
+        active_jobs[job_id]["status"] = "processing"
+        active_jobs[job_id]["message"] = "Initializing generation..."
+        active_jobs[job_id]["updated_at"] = datetime.now()
 
         logger.info(f"Starting generation for job {job_id}: {request.prompt}")
-
-        # Simulate progress updates
-        await asyncio.sleep(0.5)
-        jobs[job_id]["progress"] = 0.3
 
         # Generate the 3D shape
         start_time = time.time()
@@ -122,28 +156,32 @@ async def process_generation(job_id: str, request: GenerationRequest):
         )
         generation_time = time.time() - start_time
 
-        # Update job with results
-        jobs[job_id].update({
-            "status": "completed",
-            "progress": 1.0,
-            "result": {
-                **result,
-                "generation_time": generation_time,
-                "style": request.style,
-                "quality": request.quality
-            },
-            "completed_at": time.time()
-        })
-
-        logger.info(f"Generation completed for job {job_id} in {generation_time:.2f}s")
+        if result["success"]:
+            active_jobs[job_id].update({
+                "status": "completed",
+                "progress": 1.0,
+                "message": "Generation completed successfully",
+                "result": {
+                    **result,
+                    "generation_time": generation_time
+                }
+            })
+            logger.info(f"Generation completed for job {job_id} in {generation_time:.2f}s")
+        else:
+            active_jobs[job_id].update({
+                "status": "failed",
+                "message": f"Generation failed: {result.get('error', 'Unknown error')}"
+            })
+            logger.error(f"Generation failed for job {job_id}: {result.get('error', 'Unknown error')}")
 
     except Exception as e:
         logger.error(f"Generation failed for job {job_id}: {e}")
-        jobs[job_id].update({
+        active_jobs[job_id].update({
             "status": "failed",
-            "error": str(e),
-            "completed_at": time.time()
+            "message": f"Generation failed: {str(e)}"
         })
+
+    active_jobs[job_id]["updated_at"] = datetime.now()
 
 @app.get("/")
 async def root():
@@ -166,7 +204,7 @@ async def health_check():
     }
 
 @app.post("/generate", response_model=GenerationResponse)
-async def generate_3d_shape(request: GenerationRequest, background_tasks: BackgroundTasks):
+async def generate_3d_shape(request: GenerationRequest, background_tasks: BackgroundTasks, current_user: TokenData = Depends(get_current_user)):
     """Generate a 3D shape from text prompt"""
     if not inference_engine:
         raise HTTPException(status_code=503, detail="Inference engine not available")
@@ -175,62 +213,161 @@ async def generate_3d_shape(request: GenerationRequest, background_tasks: Backgr
     job_id = str(uuid.uuid4())
     job_data = {
         "job_id": job_id,
-        "status": "queued",
+        "status": "pending",
         "progress": 0.0,
+        "message": "Job queued for processing",
         "prompt": request.prompt,
-        "created_at": time.time()
+        "user_id": current_user.user_id,
+        "created_at": datetime.now(),
+        "updated_at": datetime.now(),
+        "result": None
     }
-    jobs[job_id] = job_data
+    active_jobs[job_id] = job_data
 
     # Start background processing
-    background_tasks.add_task(process_generation, job_id, request)
-
-    # Estimate completion time (placeholder)
-    estimated_time = 30.0  # seconds
+    background_tasks.add_task(process_generation, job_id, request, current_user.user_id)
 
     return GenerationResponse(
         job_id=job_id,
-        status="queued",
+        status="accepted",
         prompt=request.prompt,
-        estimated_time=estimated_time,
+        estimated_time="70-80 seconds",
         created_at=job_data["created_at"]
     )
 
 @app.get("/job/{job_id}", response_model=JobStatus)
-async def get_job_status(job_id: str):
+async def get_job_status(job_id: str, current_user: TokenData = Depends(get_current_user)):
     """Get the status of a generation job"""
-    if job_id not in jobs:
+    if job_id not in active_jobs:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    job = jobs[job_id]
+    job = active_jobs[job_id]
+
+    # Check if user owns this job
+    if job["user_id"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
     return JobStatus(**job)
 
 @app.get("/jobs", response_model=List[JobStatus])
-async def list_jobs():
-    """List all jobs"""
-    return [JobStatus(**job) for job in jobs.values()]
+async def list_user_jobs(current_user: TokenData = Depends(get_current_user)):
+    """List all jobs for the current user"""
+    user_jobs = [
+        JobStatus(**job) for job in active_jobs.values()
+        if job["user_id"] == current_user.user_id
+    ]
+
+    # Sort by creation time (newest first)
+    user_jobs.sort(key=lambda x: x.created_at, reverse=True)
+
+    return user_jobs
 
 @app.delete("/job/{job_id}")
-async def cancel_job(job_id: str):
+async def cancel_job(job_id: str, current_user: TokenData = Depends(get_current_user)):
     """Cancel a job (if still queued or processing)"""
-    if job_id not in jobs:
+    if job_id not in active_jobs:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    job = jobs[job_id]
+    job = active_jobs[job_id]
+
+    # Check if user owns this job
+    if job["user_id"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
     if job["status"] in ["completed", "failed"]:
         raise HTTPException(status_code=400, detail="Cannot cancel completed or failed job")
 
     job["status"] = "cancelled"
-    job["completed_at"] = time.time()
+    job["updated_at"] = datetime.now()
 
     return {"message": f"Job {job_id} cancelled"}
 
-if __name__ == "__main__":
-    # Run the server
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8001,
-        reload=False,
-        log_level="info"
+@app.get("/download/{job_id}")
+async def download_result(job_id: str, current_user: TokenData = Depends(get_current_user)):
+    """Download the generated GLB file"""
+    if job_id not in active_jobs:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    job = active_jobs[job_id]
+
+    # Check if user owns this job
+    if job["user_id"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # Check if job is completed
+    if job["status"] != "completed":
+        raise HTTPException(status_code=400, detail="Job not completed yet")
+
+    # Get file path from result
+    result = job.get("result", {})
+    mesh = result.get("mesh")
+
+    if mesh is None:
+        raise HTTPException(status_code=404, detail="Generated file not found")
+
+    # Create temporary file path
+    temp_dir = Path("temp")
+    temp_dir.mkdir(exist_ok=True)
+    temp_file = temp_dir / f"{job_id}.glb"
+
+    try:
+        # Export mesh to temporary file
+        mesh.export(str(temp_file))
+
+        # Return file response
+        return FileResponse(
+            path=temp_file,
+            media_type="model/gltf-binary",
+            filename=f"shape_{job_id}.glb"
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to export mesh: {e}")
+        raise HTTPException(status_code=500, detail="Failed to prepare download")
+
+@app.get("/stream/{job_id}")
+async def stream_job_status(job_id: str, current_user: TokenData = Depends(get_current_user)):
+    """Stream job status updates using Server-Sent Events"""
+    if job_id not in active_jobs:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    job = active_jobs[job_id]
+
+    # Check if user owns this job
+    if job["user_id"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    async def event_generator():
+        last_update = None
+
+        while True:
+            current_update = job["updated_at"]
+
+            if last_update != current_update:
+                last_update = current_update
+
+                # Send job status update
+                data = {
+                    "job_id": job["job_id"],
+                    "status": job["status"],
+                    "progress": job["progress"],
+                    "message": job["message"],
+                    "timestamp": job["updated_at"].isoformat()
+                }
+
+                yield f"data: {data}\n\n"
+
+                # If job is completed or failed, end the stream
+                if job["status"] in ["completed", "failed", "cancelled"]:
+                    break
+
+            await asyncio.sleep(1)  # Check for updates every second
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        }
     )

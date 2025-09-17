@@ -1,12 +1,38 @@
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-pydantic==2.5.0
-python-multipart==0.0.6
+# Core PyTorch (GPU-enabled)
 torch>=2.0.0
+torchvision
+torchaudio
+
+# ML/AI Libraries
 diffusers>=0.30.0
 transformers>=4.30.0
-huggingface_hub>=0.20.0
-numpy>=1.21.0
-pillow>=9.0.0
 accelerate>=0.20.0
 safetensors>=0.4.0
+huggingface_hub>=0.20.0
+einops
+
+# 3D Processing
+trimesh>=4.0.0
+pygltflib
+
+# Image Processing
+pillow>=9.0.0
+numpy>=1.21.0
+scipy>=1.7.0
+matplotlib
+
+# Utilities
+tqdm
+requests
+pyyaml
+
+# FastAPI Service
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+python-multipart>=0.0.6
+python-jose[cryptography]>=3.3.0
+python-dotenv>=1.0.0
+
+# Hunyuan3D Package (from GitHub)
+git+https://github.com/Tencent-Hunyuan/Hunyuan3D-2.git
