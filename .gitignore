@@ -64,7 +64,9 @@ prisma/migrations/*/migration.sql.backup
 
 #Ai Models
 models/
-
+hunyuan3d/Hunyuan3D-2-main/
+hunyuan3d/hunyuan3d.zip
+hunyuan3d/scripts/outputs/
 #Agents Folder
 apps/web/agentDocs
 apps/api/agentDocs
