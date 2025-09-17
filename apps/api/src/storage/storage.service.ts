@@ -18,15 +18,18 @@ export interface PresignedDownloadUrl {
 export class StorageService {
   private readonly logger = new Logger(StorageService.name);
   private readonly s3Client: S3Client;
+  private readonly externalS3Client: S3Client;
   private readonly bucketName: string;
 
   constructor(private configService: ConfigService) {
     const endpoint = this.configService.get<string>('STORAGE_ENDPOINT');
+    const externalEndpoint = this.configService.get<string>('STORAGE_EXTERNAL_ENDPOINT', endpoint);
     const region = this.configService.get<string>('STORAGE_REGION', 'us-east-1');
     const accessKeyId = this.configService.get<string>('STORAGE_ACCESS_KEY');
     const secretAccessKey = this.configService.get<string>('STORAGE_SECRET_KEY');
     this.bucketName = this.configService.get<string>('STORAGE_BUCKET_NAME', 'lumea-assets');
 
+    // Internal S3 client for server-to-MinIO communication
     this.s3Client = new S3Client({
       endpoint,
       region,
@@ -37,7 +40,20 @@ export class StorageService {
       forcePathStyle: true, // Required for MinIO
     });
 
+    // External S3 client for generating presigned URLs accessible from browsers
+    this.externalS3Client = new S3Client({
+      endpoint: externalEndpoint,
+      region,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+      forcePathStyle: true, // Required for MinIO
+    });
+
     this.logger.log(`Storage service initialized for bucket: ${this.bucketName}`);
+    this.logger.log(`Internal endpoint: ${endpoint}`);
+    this.logger.log(`External endpoint: ${externalEndpoint}`);
   }
 
   /**
@@ -60,9 +76,11 @@ export class StorageService {
     });
 
     const expiresIn = 3600; // 1 hour
-    const uploadUrl = await getSignedUrl(this.s3Client, command, { expiresIn });
+    // Use external S3 client for presigned URLs so browsers can access them
+    const uploadUrl = await getSignedUrl(this.externalS3Client, command, { expiresIn });
 
     this.logger.log(`Generated presigned upload URL for: ${objectKey}`);
+    this.logger.log(`Upload URL: ${uploadUrl}`);
     
     return {
       uploadUrl,
@@ -83,9 +101,11 @@ export class StorageService {
       Key: objectKey,
     });
 
-    const downloadUrl = await getSignedUrl(this.s3Client, command, { expiresIn });
+    // Use external S3 client for presigned URLs so browsers can access them
+    const downloadUrl = await getSignedUrl(this.externalS3Client, command, { expiresIn });
 
     this.logger.log(`Generated presigned download URL for: ${objectKey}`);
+    this.logger.log(`Download URL: ${downloadUrl}`);
     
     return {
       downloadUrl,
@@ -232,8 +252,8 @@ export class StorageService {
    * Generate a public download URL that uses our backend proxy instead of presigned URLs
    */
   generatePublicDownloadUrl(objectKey: string): string {
-    // Get the backend API base URL from config, fallback to localhost:3001
-    const apiBaseUrl = this.configService.get<string>('API_BASE_URL', 'http://localhost:3001');
+    // Get the backend API base URL from config, fallback to localhost:3000
+    const apiBaseUrl = this.configService.get<string>('API_BASE_URL', 'http://localhost:3000');
     
     console.log(`[DEBUG] generatePublicDownloadUrl - Input objectKey: ${objectKey}`);
     console.log(`[DEBUG] generatePublicDownloadUrl - API Base URL: ${apiBaseUrl}`);

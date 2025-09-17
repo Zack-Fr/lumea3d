@@ -239,8 +239,8 @@ export const useSaveQueueStore = create<SaveQueueState>()(
           set(prevState => ({
             saveState: { ...prevState.saveState, isSaving: true }
           }));
-
-          const response = await fetch(`http://localhost:3000/scenes/${sceneId}/snapshots`, {
+          const base = import.meta?.env?.VITE_API_URL || 'http://localhost:3000';
+          const response = await fetch(`${base}/scenes/${sceneId}/snapshots`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

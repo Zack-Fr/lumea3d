@@ -55,13 +55,14 @@ RUN ls -la prisma/ && pnpm prisma:generate
 # Build application
 RUN pnpm build
 
-EXPOSE 3001
+EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3001/health || exit 1
+  CMD curl -f http://localhost:3000/health || exit 1
 
-CMD ["pnpm", "start:dev"]
+# Run migrations and start the app
+CMD ["sh", "-c", "pnpm prisma:deploy && pnpm start:dev"]
 
 # Production stage
 FROM node:22-bullseye-slim AS production
@@ -81,42 +82,48 @@ RUN wget -O /tmp/ktx.deb https://github.com/KhronosGroup/KTX-Software/releases/d
  && apt-get install -y /tmp/ktx.deb \
  && rm -f /tmp/ktx.deb
 
-# Create non-root user for security
-RUN groupadd -r lumea && useradd -r -g lumea lumea
-
 # Install pnpm
 RUN npm install -g pnpm@10
 
 WORKDIR /app
 
-# Copy built application from development stage
-COPY --from=development /app/packages/shared/dist ./packages/shared/dist
-COPY --from=development /app/packages/shared/package.json ./packages/shared/package.json
-COPY --from=development /app/apps/api/dist ./apps/api/dist
-COPY --from=development /app/apps/api/package.json ./apps/api/package.json
-COPY --from=development /app/apps/api/prisma ./apps/api/prisma
-COPY --from=development /app/node_modules ./node_modules
+# Copy workspace configuration and package files first
 COPY --from=development /app/package.json ./package.json
 COPY --from=development /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=development /app/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=development /app/packages/shared/package.json ./packages/shared/package.json
+COPY --from=development /app/apps/api/package.json ./apps/api/package.json
 
-# Set proper ownership
-RUN chown -R lumea:lumea /app
+# Install all dependencies (including dev deps for runtime)
+RUN pnpm install --frozen-lockfile
 
-# Switch to non-root user
-USER lumea
+# Copy built application from development stage
+COPY --from=development /app/packages/shared/dist ./packages/shared/dist
+COPY --from=development /app/apps/api/dist ./apps/api/dist
+COPY --from=development /app/apps/api/prisma ./apps/api/prisma
+
+# Generate Prisma client for production
+WORKDIR /app/apps/api
+RUN pnpm prisma:generate
+
+# Return to app root
+WORKDIR /app
+
+# Keep running as root for pnpm compatibility
+# In production containerized environment, this is acceptable
 
 # Set working directory to root so node_modules are accessible
 WORKDIR /app
 
 # Set production environment
 ENV NODE_ENV=production
-ENV PORT=3001
+ENV PORT=3000
 
-EXPOSE 3001
+EXPOSE 3000
 
 # Production health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=5 \
-  CMD curl -f http://localhost:3001/health || exit 1
+  CMD curl -f http://localhost:3000/health || exit 1
 
-# Start production server - compiled main is at apps/api/dist/apps/api/src/main.js
-CMD ["node", "apps/api/dist/apps/api/src/main.js"]
+# Run migrations and start production server
+CMD ["sh", "-c", "cd /app/apps/api && pnpm prisma:deploy && pnpm --filter @lumea/api start:prod"]

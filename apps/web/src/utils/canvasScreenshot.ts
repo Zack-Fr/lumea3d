@@ -113,7 +113,8 @@ export const uploadCanvasScreenshot = async (
   screenshotData: string,
   type: 'auto' | 'custom' = 'auto'
 ): Promise<{ thumbnailUrl: string }> => {
-  const response = await fetch(`http://localhost:3000/projects/${projectId}/thumbnail`, {
+  const base = import.meta?.env?.VITE_API_URL || 'http://localhost:3000';
+  const response = await fetch(`${base}/projects/${projectId}/thumbnail`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
