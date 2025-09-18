@@ -555,4 +555,41 @@ export class CollaborationService {
       }))
     };
   }
+
+  async validateInvitationToken(token: string): Promise<{
+    id: string;
+    projectName: string;
+    inviterName: string;
+    email: string;
+    isValid: boolean;
+    isExpired: boolean;
+    isAccepted: boolean;
+  }> {
+    const invite = await this.prisma.collabInvite.findFirst({
+      where: { token },
+      include: {
+        project: true,
+        fromUser: true
+      }
+    });
+
+    if (!invite) {
+      throw new NotFoundException('Invalid invitation token');
+    }
+
+    const now = new Date();
+    const isExpired = invite.expiresAt < now;
+    const isAccepted = invite.status === InviteStatus.ACCEPTED;
+    const isValid = invite.status === InviteStatus.PENDING && !isExpired;
+
+    return {
+      id: invite.id,
+      projectName: invite.project.name,
+      inviterName: invite.fromUser.displayName || 'Unknown User',
+      email: invite.toUserEmail,
+      isValid,
+      isExpired,
+      isAccepted
+    };
+  }
 }

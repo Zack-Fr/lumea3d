@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './shared/strategies/jwt.strategy';
+import { GoogleStrategy } from './shared/strategies/google.strategy';
 import { PrismaModule } from '../../prisma/prisma.module';
 
 /**
@@ -40,7 +41,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
       inject: [ConfigService],
     }),
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, GoogleStrategy],
   controllers: [AuthController],
 })
 export class AuthModule {}

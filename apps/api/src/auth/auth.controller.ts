@@ -6,7 +6,13 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Query,
+  Req,
+  Res,
+  Param,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { Request, Response } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -167,5 +173,84 @@ export class AuthController {
     // In JWT implementation, logout is handled client-side
     // Here we just return a success message
     return { message: 'Successfully logged out' };
+  }
+
+  /**
+   * Google OAuth login initiation
+   */
+  @Public()
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Initiate Google OAuth login' })
+  @ApiResponse({ status: 302, description: 'Redirect to Google OAuth' })
+  async googleAuth(@Query('invitation') invitationToken?: string) {
+    // This initiates the Google OAuth flow
+    // The invitation token will be preserved in the state
+  }
+
+  /**
+   * Google OAuth callback
+   */
+  @Public()
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Handle Google OAuth callback' })
+  @ApiResponse({ status: 302, description: 'Redirect with tokens' })
+  async googleCallback(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query('state') state?: string
+  ) {
+    const user = req.user as any;
+    
+    // Extract invitation token from state if present
+    let invitationToken: string | undefined;
+    try {
+      if (state) {
+        const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+        invitationToken = stateData.invitation;
+      }
+    } catch (error) {
+      // Invalid state, continue without invitation
+    }
+
+    // Handle invitation signup if token is present
+    let finalUser = user;
+    if (invitationToken) {
+      finalUser = await this.authService.handleInvitationSignup({
+        email: user.email,
+        displayName: user.displayName,
+        googleId: user.googleId || user.id,
+      }, invitationToken);
+    }
+
+    // Generate JWT tokens
+    const tokens = await this.authService.generateTokens(finalUser);
+
+    // Redirect to frontend with tokens
+    const frontendUrl = process.env.WEB_ORIGIN || 'http://localhost:5173';
+    const redirectUrl = `${frontendUrl}/auth/callback?token=${tokens.accessToken}&refresh=${tokens.refreshToken}`;
+    
+    res.redirect(redirectUrl);
+  }
+
+  /**
+   * Google OAuth login with invitation
+   */
+  @Public()
+  @Get('google/invite/:token')
+  @ApiOperation({ summary: 'Google OAuth login with invitation token' })
+  @ApiResponse({ status: 302, description: 'Redirect to Google OAuth with invitation state' })
+  async googleAuthWithInvitation(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Param('token') invitationToken: string
+  ) {
+    // Encode invitation token in state for OAuth callback
+    const state = Buffer.from(JSON.stringify({ invitation: invitationToken })).toString('base64');
+    
+    // Redirect to Google OAuth with state
+    const googleAuthUrl = `/auth/google?state=${state}`;
+    res.redirect(googleAuthUrl);
   }
 }
