@@ -1,5 +1,6 @@
 import { useGLTF } from '@react-three/drei';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'react-toastify';
 import * as THREE from 'three';
 
 interface PerObjectRendererProps {
@@ -41,7 +42,44 @@ interface SingleObjectRendererProps {
 }
 
 function SingleObjectRenderer({ item }: SingleObjectRendererProps) {
-  const { scene: gltfScene } = useGLTF(item.glbUrl);
+  const [hasError, setHasError] = useState(false);
+  const { scene: gltfScene } = useGLTF(item.glbUrl, undefined, undefined, (error: any) => {
+    const msg = (error && error.message) || String(error);
+    const isStorageError = /public\/storage\/serve|ECONNREFUSED|minio|s3/i.test(msg);
+
+    if (isStorageError) {
+      console.warn('SingleObjectRenderer: Storage fetch failed (suppressed):', msg);
+      toast.warn('Some model assets are unavailable (storage offline). Using placeholders.', { position: 'top-right', autoClose: 4000, toastId: `storage-missing-${item.id}` });
+    } else {
+      console.error('Failed to load GLB for SingleObjectRenderer:', error);
+      toast.error('Failed to load 3D model. The asset may be missing or corrupted.', { position: 'top-right', autoClose: 5000 });
+    }
+    setHasError(true);
+  });
+  
+  // Check for placeholder GLB
+  useEffect(() => {
+    if (gltfScene && !hasError) {
+      if (gltfScene.children.length === 0 && 
+          (gltfScene as any).asset?.generator === 'Lumea Placeholder') {
+        console.warn('Detected placeholder GLB for missing asset in SingleObjectRenderer:', item.glbUrl);
+        setHasError(true);
+        toast.error('3D model not found. The asset may have been deleted or moved.', {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
+    }
+  }, [gltfScene, hasError, item.glbUrl]);
+  
+  // If there's an error, don't render anything
+  if (hasError) {
+    return null;
+  }
   
   // Clone the scene to avoid shared references
   const clonedScene = useMemo(() => {

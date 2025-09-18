@@ -1,10 +1,11 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 import { useInstancingPool } from './useInstancingPool';
 import { useSelection, handleInstancedMeshPick } from '../selection/useSelection';
 import { TransformBridge } from '../controls/TransformBridge';
 import { useInstanceBoxHelper } from '../bbox/InstanceBoxHelper';
+import { toast } from 'react-toastify';
 
 interface InstancedRendererProps {
   assetId: string;
@@ -20,7 +21,56 @@ interface InstancedRendererProps {
 
 export function InstancedRenderer({ assetId, glbUrl, items }: InstancedRendererProps) {
   const { scene } = useThree();
-  const gltf = useGLTF(glbUrl);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  
+  const gltf = useGLTF(glbUrl, undefined, undefined, (error: any) => {
+    const msg = (error && error.message) || String(error);
+    const isStorageError = /public\/storage\/serve|ECONNREFUSED|minio|s3/i.test(msg);
+
+    if (isStorageError) {
+      // Storage intentionally offline in some environments — show concise toast and avoid noisy trace
+      console.warn('InstancedRenderer: Storage fetch failed (suppressed):', msg);
+      toast.warn('Some model assets are unavailable (storage offline). Using placeholders.', { position: 'top-right', autoClose: 4000, toastId: `storage-missing-${glbUrl}` });
+    } else {
+      console.error('Failed to load GLB:', error);
+      toast.error('Failed to load 3D model. The asset may be missing or corrupted.', { position: 'top-right', autoClose: 5000 });
+    }
+    setHasError(true);
+    setIsLoading(false);
+  });
+  
+  // Set loading to false when gltf is loaded
+  useEffect(() => {
+    if (gltf && !hasError) {
+      setIsLoading(false);
+      
+      // Check if this is a placeholder GLB from the API
+      if (gltf.scene && gltf.scene.userData && gltf.scene.userData.generator === 'Lumea Placeholder') {
+        console.warn('InstancedRenderer: Detected placeholder GLB for missing asset:', glbUrl);
+        setHasError(true);
+        toast.error('3D model asset is missing from storage. Using error placeholder.', {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
+    }
+  }, [gltf, hasError, glbUrl]);
+  
+  // If there's an error, don't render anything
+  if (hasError) {
+    return null;
+  }
+  
+  // If still loading, don't render the pool yet
+  if (isLoading) {
+    return null;
+  }
+  
   const { getOrCreatePool, addInstance } = useInstancingPool();
   const { selection, selectInstance, deselect } = useSelection();
   const boxHelper = useInstanceBoxHelper(scene);

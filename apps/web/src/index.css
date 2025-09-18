@@ -6616,3 +6616,35 @@ html {
     opacity: 0;
   }
 }
+
+/* Custom Toastify styles to match app theme */
+.Toastify__toast-container {
+  font-family: var(--font-sans);
+}
+
+.Toastify__toast {
+  background: var(--glass-black);
+  color: var(--glass-gray);
+  border: 1px solid var(--glass-border-dim);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.Toastify__toast--error {
+  border-color: var(--glass-yellow);
+  background: linear-gradient(135deg, var(--glass-black) 0%, rgba(248, 204, 62, 0.1) 100%);
+}
+
+.Toastify__toast--error .Toastify__progress-bar {
+  background: var(--glass-yellow);
+}
+
+.Toastify__close-button {
+  color: var(--glass-gray);
+  opacity: 0.7;
+}
+
+.Toastify__close-button:hover {
+  opacity: 1;
+  color: var(--glass-yellow);
+}
