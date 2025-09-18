@@ -54,6 +54,18 @@ enum ProjectRole {
   ADMIN
 }
 
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum SessionStatus {
+  ACTIVE
+  ENDED
+}
+
 // ──────────────────────────────────────────────────────
 // Models
 // ──────────────────────────────────────────────────────
@@ -69,12 +81,17 @@ model User {
   updatedAt    DateTime @updatedAt
 
   // Relations
-  projects     Project[]
-  feedback     Feedback[]
-  sessions     Session[]
-  invites      Invite[]
-  assets       Asset[]
-  projectMembers ProjectMember[]
+  projects              Project[]
+  feedback              Feedback[]
+  sessions              Session[]             // Legacy sessions
+  invites               Invite[]              // Legacy invites
+  assets                Asset[]
+  projectMembers        ProjectMember[]
+  
+  // Collaboration relations
+  ownedSessions         CollabSession[]       @relation("SessionOwner")
+  sessionParticipations CollabParticipant[]
+  sentInvites           CollabInvite[]        @relation("SentInvites")
 }
 
 model ProjectMember {
@@ -105,6 +122,10 @@ model Project {
   categories3D    ProjectCategory3D[]
   scenes3D        Scene3D[]
   members         ProjectMember[]
+  
+  // Collaboration relations
+  collabSessions  CollabSession[]
+  collabInvites   CollabInvite[]
 
   @@index([userId])
 }
@@ -182,6 +203,75 @@ model Feedback {
   @@index([rating])
 }
 
+// Collaboration Sessions - Live collaborative editing sessions
+model CollabSession {
+  id            String        @id @default(cuid())
+  projectId     String
+  ownerId       String        // Session creator
+  name          String?
+  status        SessionStatus @default(ACTIVE)
+  createdAt     DateTime      @default(now())
+  endedAt       DateTime?
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  project       Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner         User                @relation("SessionOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  participants  CollabParticipant[]
+  invites       CollabInvite[]
+
+  @@index([projectId])
+  @@index([ownerId])
+  @@index([status])
+}
+
+// Collaboration Session Participants
+model CollabParticipant {
+  id            String        @id @default(cuid())
+  sessionId     String
+  userId        String
+  joinedAt      DateTime      @default(now())
+  leftAt        DateTime?
+  isActive      Boolean       @default(true)
+
+  // Relations
+  session       CollabSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+  @@index([sessionId])
+  @@index([userId])
+}
+
+// Project Collaboration Invites
+model CollabInvite {
+  id              String       @id @default(cuid())
+  projectId       String
+  fromUserId      String       // Who sent the invite
+  toUserEmail     String       // Email of recipient
+  sessionId       String?      // Associated session (if any)
+  token           String       @unique
+  message         String?      // Optional personal message
+  status          InviteStatus @default(PENDING)
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  declinedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations
+  project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fromUser        User          @relation("SentInvites", fields: [fromUserId], references: [id], onDelete: Cascade)
+  session         CollabSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([fromUserId])
+  @@index([toUserEmail])
+  @@index([token])
+  @@index([status])
+}
+
+// Legacy models - keep for backwards compatibility
 model Session {
   id         String    @id @default(cuid())
   projectId  String

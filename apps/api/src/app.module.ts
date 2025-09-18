@@ -14,6 +14,7 @@ import { MonitoringModule } from './shared/monitoring.module';
 import { MonitoringMiddleware } from './shared/middleware/monitoring.middleware';
 import { DebugController } from './debug/debug.controller';
 import { RealtimeModule } from './realtime/realtime.module';
+import { CollaborationModule } from './collaboration/collaboration.module';
 
 @Module({
   imports: [
@@ -67,6 +68,9 @@ import { RealtimeModule } from './realtime/realtime.module';
     
     // Realtime module for WebSocket and SSE collaboration features
     RealtimeModule,
+    
+    // Collaboration module for invitations and sessions
+    CollaborationModule,
   ],
   controllers: [DebugController],
   providers: [],
