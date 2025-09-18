@@ -23,6 +23,8 @@ export default function AuthPage({ initialMode }: AuthPageProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { isLoading, error, clearError, login, register } = useAuth();
+  const searchParams = new URLSearchParams(location.search);
+  const invitationToken = searchParams.get('invitation');
 
   const [form, setForm] = useState<FormState>({
     name: "",
@@ -73,6 +75,15 @@ export default function AuthPage({ initialMode }: AuthPageProps) {
     } catch (err) {
       console.error("Auth error:", err);
       setLocalError("Authentication failed. Please try again.");
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    if (invitationToken) {
+      window.location.href = `${apiBaseUrl}/auth/google/invite/${invitationToken}`;
+    } else {
+      window.location.href = `${apiBaseUrl}/auth/google`;
     }
   };
 
@@ -191,8 +202,12 @@ export default function AuthPage({ initialMode }: AuthPageProps) {
           <div className={s.divider}>or</div>
 
           <div className={s.socialRow}>
-            <button type="button" className={s.socialBtn}>Continue with Google</button>
-            <button type="button" className={s.socialBtn}>GitHub</button>
+            <button type="button" className={s.socialBtn} onClick={handleGoogleLogin}>
+              Continue with Google
+            </button>
+            <button type="button" className={s.socialBtn} disabled>
+              GitHub (Coming Soon)
+            </button>
           </div>
 
           <p className={`${s.hint} ${s.small}`} style={{ textAlign: "center", marginTop: "0.75rem" }}>

@@ -257,6 +257,35 @@ export const invitationsApi = {
       },
       token
     );
+  },
+
+  /**
+   * Validate an invitation token (public endpoint - no auth required)
+   */
+  async validateInvitationToken(token: string): Promise<{
+    id: string;
+    projectName: string;
+    inviterName: string;
+    email: string;
+    isValid: boolean;
+    isExpired: boolean;
+    isAccepted: boolean;
+  }> {
+    return invitationApiRequest<{
+      id: string;
+      projectName: string;
+      inviterName: string;
+      email: string;
+      isValid: boolean;
+      isExpired: boolean;
+      isAccepted: boolean;
+    }>(
+      `/collaboration/invitations/validate/${token}`,
+      {
+        method: 'GET',
+      }
+      // No token required for this endpoint
+    );
   }
 };
 

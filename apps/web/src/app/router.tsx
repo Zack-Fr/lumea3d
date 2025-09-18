@@ -10,6 +10,8 @@ import ProjectCreationPage from "@/pages/projects/ProjectCreationPage";
 import ViewerPage from "@/pages/viewer/ViewerPage";
 import LandingPage from "@/pages/landing/LandingPage";
 import CollaborationDemo from "@/pages/test/CollaborationDemo";
+import AuthCallbackPage from "@/pages/auth/AuthCallbackPage";
+import InvitationPage from "@/pages/invitation/InvitationPage";
 // import PreviewPage from "@/pages/PreviewPage";
 
 // 404(need to change)
@@ -32,8 +34,12 @@ const router = createBrowserRouter([
   // Public viewer (for development/demos)
   { path: "/viewer/:sceneId", element: <ViewerPage /> },
   
-  // Test pages (for development)
-  { path: "/test/collaboration-demo", element: <CollaborationDemo /> },
+  // OAuth callback (public)
+  { path: "/auth/callback", element: <AuthCallbackPage /> },
+  
+  // Invitation acceptance (public)
+  { path: "/invite/:token", element: <InvitationPage /> },
+  
 
   // Auth routes: visible only to guests; authenticated users are redirected away by GuestOnly
   {
@@ -59,6 +65,9 @@ const router = createBrowserRouter([
           { path: PATHS.projectSceneEditor, element: <ProjectEditor /> },          // "/app/projects/:projectId/scenes/:sceneId/editor"
           // { path: PATHS.preview, element: <PreviewPage /> },                   // "/app/preview/:token"
           { path: PATHS.viewer, element: <ViewerPage /> },                         // "/app/viewer/:sceneId"
+          
+          // Test pages (protected - requires authentication)
+          { path: "test/collaboration-demo", element: <CollaborationDemo /> },
         ],
       },
     ],
