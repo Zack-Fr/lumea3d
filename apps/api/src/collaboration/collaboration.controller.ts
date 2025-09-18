@@ -8,11 +8,13 @@ import {
   UseGuards,
   Request,
   HttpStatus,
-  HttpCode
+  HttpCode,
+  BadRequestException
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/shared/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/shared/decorators/current-user.decorator';
+import { Public } from '../auth/shared/decorators/public.decorator';
 import { CollaborationService } from './collaboration.service';
 import {
   CreateInvitationDto,
@@ -53,8 +55,12 @@ export class CollaborationController {
   @ApiOperation({ summary: 'Get invitations sent by the current user' })
   @ApiResponse({ status: 200, description: 'Sent invitations retrieved successfully', type: InvitationListResponseDto })
   async getSentInvitations(
-    @CurrentUser('sub') userId: string
+    @CurrentUser() user: any
   ): Promise<InvitationListResponseDto> {
+    const userId = user?.sub || user?.id;
+    if (!userId) {
+      throw new BadRequestException('User ID not found in token');
+    }
     return this.collaborationService.getSentInvitations(userId);
   }
 
@@ -62,8 +68,12 @@ export class CollaborationController {
   @ApiOperation({ summary: 'Get invitations received by the current user' })
   @ApiResponse({ status: 200, description: 'Received invitations retrieved successfully', type: InvitationListResponseDto })
   async getReceivedInvitations(
-    @CurrentUser('email') userEmail: string
+    @CurrentUser() user: any
   ): Promise<InvitationListResponseDto> {
+    const userEmail = user?.email;
+    if (!userEmail) {
+      throw new BadRequestException('User email not found in token');
+    }
     return this.collaborationService.getReceivedInvitations(userEmail);
   }
 
@@ -107,6 +117,25 @@ export class CollaborationController {
     return this.collaborationService.revokeInvitation(userId, inviteId);
   }
 
+  @Get('invitations/validate/:token')
+  @Public()
+  @ApiOperation({ summary: 'Validate an invitation token (public endpoint)' })
+  @ApiResponse({ status: 200, description: 'Invitation validation result' })
+  @ApiResponse({ status: 404, description: 'Invalid token' })
+  async validateInvitationToken(
+    @Param('token') token: string
+  ): Promise<{
+    id: string;
+    projectName: string;
+    inviterName: string;
+    email: string;
+    isValid: boolean;
+    isExpired: boolean;
+    isAccepted: boolean;
+  }> {
+    return this.collaborationService.validateInvitationToken(token);
+  }
+
   // ============================================================================
   // SESSION ENDPOINTS
   // ============================================================================
@@ -115,8 +144,12 @@ export class CollaborationController {
   @ApiOperation({ summary: 'Get active collaboration sessions for the current user' })
   @ApiResponse({ status: 200, description: 'Active sessions retrieved successfully', type: SessionListResponseDto })
   async getActiveSessions(
-    @CurrentUser('sub') userId: string
+    @CurrentUser() user: any
   ): Promise<SessionListResponseDto> {
+    const userId = user?.sub || user?.id;
+    if (!userId) {
+      throw new BadRequestException('User ID not found in token');
+    }
     return this.collaborationService.getActiveSessions(userId);
   }
 

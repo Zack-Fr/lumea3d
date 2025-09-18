@@ -88,7 +88,15 @@ async function bootstrap() {
   app.enableCors({
     origin: process.env.NODE_ENV === 'production' 
       ? process.env.ALLOWED_ORIGINS?.split(',') || false
-      : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174'],
+      : [
+          'http://localhost:3000', 
+          'http://localhost:5173', 
+          'http://localhost:5174',
+          'http://192.168.1.10:5173',  // Allow frontend from network IP
+          'http://192.168.1.9:5173',   // Allow mobile browser access
+          // Allow any IP on local network for development
+          /^http:\/\/192\.168\.1\.\d{1,3}:\d{1,5}$/
+        ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'If-Match'],

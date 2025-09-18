@@ -38,6 +38,13 @@ export interface UserResponse {
   updatedAt: Date;
 }
 
+export interface GoogleUserDto {
+  email: string;
+  displayName: string;
+  googleId: string;
+  avatar?: string;
+}
+
 /**
  * Authentication Service
  * Handles user registration, login, token management, and password validation
@@ -199,7 +206,7 @@ export class AuthService {
   /**
    * Generate JWT access and refresh tokens
    */
-  private async generateTokens(user: UserResponse): Promise<AuthTokens> {
+  async generateTokens(user: UserResponse): Promise<AuthTokens> {
     const payload = {
       sub: user.id,
       email: user.email,
@@ -223,6 +230,113 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  /**
+   * Find or create user from Google OAuth profile
+   */
+  async findOrCreateGoogleUser(googleUser: GoogleUserDto): Promise<UserResponse> {
+    const { email, displayName, googleId, avatar } = googleUser;
+
+    // Try to find existing user by email
+    let user = await this.prismaService.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (user) {
+      // User exists, return existing user
+      return user as UserResponse;
+    }
+
+    // Create new user with Google data
+    // Default role for Google sign-up users (can be CLIENT for invited users)
+    user = await this.prismaService.user.create({
+      data: {
+        email,
+        displayName,
+        role: 'CLIENT', // Default to CLIENT role
+        passwordHash: '', // No password for OAuth users
+        isActive: true,
+      },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return user as UserResponse;
+  }
+
+  /**
+   * Handle invitation-based Google sign-up
+   * This method is called when a user signs up via Google using an invitation link
+   */
+  async handleInvitationSignup(googleUser: GoogleUserDto, invitationToken?: string): Promise<UserResponse> {
+    const { email } = googleUser;
+
+    // If there's an invitation token, validate it
+    if (invitationToken) {
+      const invitation = await this.prismaService.collabInvite.findFirst({
+        where: {
+          token: invitationToken,
+          toUserEmail: email,
+          status: 'PENDING',
+          expiresAt: { gt: new Date() }
+        },
+        include: {
+          project: true
+        }
+      });
+
+      if (invitation) {
+        // Create user and automatically add them to the project
+        const user = await this.findOrCreateGoogleUser(googleUser);
+        
+        // Add user to the project as a member
+        await this.prismaService.projectMember.upsert({
+          where: {
+            userId_projectId: {
+              userId: user.id,
+              projectId: invitation.projectId
+            }
+          },
+          create: {
+            userId: user.id,
+            projectId: invitation.projectId,
+            role: 'CLIENT' // Default role for invited users
+          },
+          update: {} // If already exists, don't change anything
+        });
+
+        // Mark invitation as accepted
+        await this.prismaService.collabInvite.update({
+          where: { id: invitation.id },
+          data: {
+            status: 'ACCEPTED',
+            acceptedAt: new Date()
+          }
+        });
+
+        return user;
+      }
+    }
+
+    // No invitation or invalid invitation, create regular user
+    return this.findOrCreateGoogleUser(googleUser);
   }
   
 }
