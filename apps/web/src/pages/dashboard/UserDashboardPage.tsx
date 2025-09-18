@@ -354,7 +354,7 @@ const UserProfileCard = memo(({ userStats }: UserProfileCardProps) => {
       <div className={styles.userProfileHeader}>
         <div className={styles.userAvatar}>
           <Avatar className="w-12 h-12 ring-2 ring-[var(--glass-yellow)]">
-            <AvatarImage src="../../../public/brand/lumeaLogo_noText.svg" />
+            <AvatarImage src="/brand/lumeaLogo_noText.svg" />
             <AvatarFallback className="bg-[var(--glass-yellow)] text-[var(--glass-black)]">
               {displayName.charAt(0).toUpperCase()}
             </AvatarFallback>
@@ -494,7 +494,7 @@ const TopNavigation = memo(({ onNavigate, onLogout }: TopNavigationProps) => {
 
         <div className="flex items-center space-x-4">
           <Avatar className="cursor-pointer ring-2 ring-[var(--glass-border-light)]">
-            <AvatarImage src="../../../public/brand/lumeaLogo_noText.svg" />
+            <AvatarImage src="/brand/lumeaLogo_noText.svg" />
             <AvatarFallback className="bg-[var(--glass-yellow)] text-[var(--glass-black)]">
               {displayName.charAt(0).toUpperCase()}
             </AvatarFallback>

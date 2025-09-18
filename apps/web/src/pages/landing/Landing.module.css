@@ -137,7 +137,7 @@
 }
 
 .logoGlow {
-  background-image: url('../../public/brand/lumeaLogo_noText.svg');
+  background-image: url('/brand/lumeaLogo_noText.svg');
   width: 40px;
   height: 40px;
   border-radius: 8px;
@@ -181,7 +181,7 @@
   position: relative;
   overflow: hidden;
   border-radius: 1rem;
-  background-image: url("../../../public/brand/LebaneseJetInteroir-3.jpg");
+  background-image: url("/brand/LebaneseJetInteroir-3.jpg");
   background-size: cover;
   border: 1px solid rgba(245, 200, 66, 0.1);
 }
