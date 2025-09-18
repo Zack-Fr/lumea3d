@@ -1,5 +1,5 @@
-import { LoggerService } from './apps/api/src/shared/services/logger.service';
-import { MetricsService } from './apps/api/src/shared/services/metrics.service';
+import { LoggerService } from '../apps/api/src/shared/services/logger.service';
+import { MetricsService } from '../apps/api/src/shared/services/metrics.service';
 
 async function testMonitoring() {
   console.log('🔍 Testing Monitoring and Logging Services...\n');
