@@ -218,6 +218,9 @@ export default function AuthPage({ initialMode }: AuthPageProps) {
         </form>
         </div>
       </div>
+      
+      {/* Debug component - remove in production */}
+      {/* <ApiUrlDebug /> */}
     </div>
   );
 }

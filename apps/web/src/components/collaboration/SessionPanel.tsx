@@ -73,10 +73,10 @@ const SessionPanel: React.FC<SessionPanelProps> = ({
 
   if (sessionsToShow.length === 0) {
     return (
-      <Card className={`p-6 text-center text-gray-500 ${className}`}>
-        <Users size={32} className="mx-auto mb-3 opacity-50" />
-        <p className="font-medium">No active sessions</p>
-        <p className="text-sm mt-1">
+      <Card className={`p-6 text-center text-gray-400 bg-[var(--glass-black)] border-[var(--glass-border-dim)] ${className}`}>
+        <Users size={32} className="mx-auto mb-3 opacity-50 text-gray-400" />
+        <p className="font-medium text-white">No active sessions</p>
+        <p className="text-sm mt-1 text-gray-400">
           {showActiveOnly 
             ? "Start collaborating by accepting an invitation" 
             : "Your collaboration history will appear here"
@@ -91,9 +91,9 @@ const SessionPanel: React.FC<SessionPanelProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Users className="w-5 h-5 text-gray-600" />
-          <h3 className="font-semibold">Active Sessions</h3>
-          <Badge variant="secondary" className="text-xs">
+          <Users className="w-5 h-5 text-gray-400" />
+          <h3 className="font-semibold text-white">Active Sessions</h3>
+          <Badge variant="secondary" className="text-xs bg-[var(--glass-yellow)] text-black">
             {sessionsToShow.length}
           </Badge>
         </div>
@@ -103,7 +103,7 @@ const SessionPanel: React.FC<SessionPanelProps> = ({
           size="sm"
           onClick={refreshSessions}
           disabled={isLoading}
-          className="gap-2"
+          className="gap-2 text-gray-300 hover:text-white hover:bg-[var(--glass-border-dim)]"
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           Refresh
@@ -118,34 +118,34 @@ const SessionPanel: React.FC<SessionPanelProps> = ({
           const isExpanded = expandedSession === session.id;
 
           return (
-            <Card key={session.id} className={`transition-all ${isCurrentSession ? 'ring-2 ring-blue-200' : ''}`}>
+            <Card key={session.id} className={`transition-all bg-[var(--glass-black)] border-[var(--glass-border-dim)] ${isCurrentSession ? 'ring-2 ring-[var(--glass-yellow)]' : ''}`}>
               {/* Session Header */}
               <div className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-medium truncate">{session.projectName}</h4>
+                      <h4 className="font-medium truncate text-white">{session.projectName}</h4>
                       
                       {session.status === 'active' && (
-                        <Badge variant="default" className="text-xs bg-green-100 text-green-800">
-                          <div className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></div>
+                        <Badge variant="default" className="text-xs bg-green-600 text-white">
+                          <div className="w-2 h-2 bg-green-400 rounded-full mr-1 animate-pulse"></div>
                           Live
                         </Badge>
                       )}
                       
                       {isCurrentSession && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs bg-[var(--glass-yellow)] text-black">
                           <Monitor size={10} className="mr-1" />
                           Current
                         </Badge>
                       )}
                       
                       {isOwner && (
-                        <Crown size={14} className="text-yellow-500" />
+                        <Crown size={14} className="text-yellow-400" />
                       )}
                     </div>
                     
-                    <div className="text-sm text-gray-600 space-y-1">
+                    <div className="text-sm text-gray-400 space-y-1">
                       <p>Owner: {session.ownerName}</p>
                       <p>Started: {formatTime(session.createdAt)}</p>
                       <p>Duration: {getDuration(session.createdAt, session.endedAt)}</p>
@@ -161,7 +161,7 @@ const SessionPanel: React.FC<SessionPanelProps> = ({
                           connectionState.isConnected ? 'bg-green-500' : 
                           connectionState.isConnecting ? 'bg-yellow-500 animate-pulse' : 'bg-red-500'
                         }`} />
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-400">
                           {connectionState.isConnected ? 'Connected' : 
                            connectionState.isConnecting ? 'Connecting...' : 'Disconnected'}
                         </span>
@@ -205,11 +205,11 @@ const SessionPanel: React.FC<SessionPanelProps> = ({
 
               {/* Expanded Details */}
               {isExpanded && (
-                <div className="border-t border-gray-200 p-4 bg-gray-50">
+                <div className="border-t border-[var(--glass-border-dim)] p-4 bg-[var(--glass-black)]">
                   <div className="space-y-4">
                     {/* Participants */}
                     <div>
-                      <h5 className="font-medium text-sm mb-3 flex items-center gap-2">
+                      <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-white">
                         <Users size={14} />
                         Participants ({session.participants.length})
                       </h5>
@@ -219,20 +219,20 @@ const SessionPanel: React.FC<SessionPanelProps> = ({
                           const status = getParticipantStatus(participant.id);
                           
                           return (
-                            <div key={participant.id} className="flex items-center justify-between p-2 bg-white rounded border">
+                            <div key={participant.id} className="flex items-center justify-between p-2 bg-[var(--glass-black)] rounded border border-[var(--glass-border-dim)]">
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
+                                <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center text-sm font-medium text-white">
                                   {participant.name.charAt(0).toUpperCase()}
                                 </div>
                                 
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <span className="font-medium text-sm">{participant.name}</span>
+                                    <span className="font-medium text-sm text-white">{participant.name}</span>
                                     {participant.id === session.ownerId && (
-                                      <Crown size={12} className="text-yellow-500" />
+                                      <Crown size={12} className="text-yellow-400" />
                                     )}
                                   </div>
-                                  <p className="text-xs text-gray-500">{participant.email}</p>
+                                  <p className="text-xs text-gray-400">{participant.email}</p>
                                 </div>
                               </div>
 
@@ -241,7 +241,7 @@ const SessionPanel: React.FC<SessionPanelProps> = ({
                                   variant={status === 'online' ? 'default' : 'secondary'} 
                                   className="text-xs"
                                 >
-                                  {status === 'online' && <div className="w-2 h-2 bg-green-500 rounded-full mr-1" />}
+                                  {status === 'online' && <div className="w-2 h-2 bg-green-400 rounded-full mr-1" />}
                                   {status.charAt(0).toUpperCase() + status.slice(1)}
                                 </Badge>
                                 
@@ -256,7 +256,7 @@ const SessionPanel: React.FC<SessionPanelProps> = ({
                     {/* Real-time Users (if current session) */}
                     {isCurrentSession && realtimeUsers.length > 0 && (
                       <div>
-                        <h5 className="font-medium text-sm mb-3 flex items-center gap-2">
+                        <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-white">
                           <Monitor size={14} />
                           Currently Active ({realtimeUsers.length})
                         </h5>
@@ -265,7 +265,7 @@ const SessionPanel: React.FC<SessionPanelProps> = ({
                           {realtimeUsers.map((user) => (
                             <div
                               key={user.id}
-                              className="flex items-center gap-2 px-3 py-1 bg-white rounded-full border text-sm"
+                              className="flex items-center gap-2 px-3 py-1 bg-[var(--glass-black)] rounded-full border border-[var(--glass-border-dim)] text-sm text-white"
                               style={{ borderColor: user.color }}
                             >
                               <div
@@ -274,7 +274,7 @@ const SessionPanel: React.FC<SessionPanelProps> = ({
                               />
                               <span>{user.name}</span>
                               {user.isCurrentUser && (
-                                <Badge variant="secondary" className="text-xs px-1 py-0">You</Badge>
+                                <Badge variant="secondary" className="text-xs px-1 py-0 bg-[var(--glass-yellow)] text-black">You</Badge>
                               )}
                             </div>
                           ))}
@@ -284,20 +284,20 @@ const SessionPanel: React.FC<SessionPanelProps> = ({
 
                     {/* Session Stats */}
                     <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="bg-white p-3 rounded border">
-                        <div className="flex items-center gap-2 text-gray-600 mb-1">
+                      <div className="bg-[var(--glass-black)] p-3 rounded border border-[var(--glass-border-dim)]">
+                        <div className="flex items-center gap-2 text-gray-400 mb-1">
                           <Clock size={12} />
                           <span>Duration</span>
                         </div>
-                        <p className="font-medium">{getDuration(session.createdAt, session.endedAt)}</p>
+                        <p className="font-medium text-white">{getDuration(session.createdAt, session.endedAt)}</p>
                       </div>
                       
-                      <div className="bg-white p-3 rounded border">
-                        <div className="flex items-center gap-2 text-gray-600 mb-1">
+                      <div className="bg-[var(--glass-black)] p-3 rounded border border-[var(--glass-border-dim)]">
+                        <div className="flex items-center gap-2 text-gray-400 mb-1">
                           <Users size={12} />
                           <span>Peak Users</span>
                         </div>
-                        <p className="font-medium">{session.participants.length}</p>
+                        <p className="font-medium text-white">{session.participants.length}</p>
                       </div>
                     </div>
                   </div>

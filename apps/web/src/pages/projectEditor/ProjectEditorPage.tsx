@@ -19,7 +19,8 @@ import ViewportTools from '../../components/projectEditor/ViewportTools';
 import ViewportSettings from '../../components/projectEditor/ViewportSettings';
 import GamificationOverlay from '../../components/projectEditor/GamificationOverlay';
 import Achievement from '../../components/projectEditor/Achievement';
-import RealtimeChat from '../../features/realtime/components/RealtimeChat';
+// import RealtimeChat from '../../features/realtime/components/RealtimeChat';
+import CollaborationPanel from '../../components/collaboration/CollaborationPanel';
 
 // Asset Import Components
 import { AssetImportModal } from '../../features/scenes/AssetImportModal';
@@ -164,6 +165,9 @@ const ProjectEditorContent: React.FC = () => {
     setLightingMode
   } = useProjectEditorSettings();
 
+  // Collaboration panel state
+  const [showCollaboration, setShowCollaboration] = useState(false);
+
   // Navigation callback
   const handleNavigate = useCallback((page: string) => {
     if (page === 'dashboard') {
@@ -193,7 +197,20 @@ const ProjectEditorContent: React.FC = () => {
   // Properties toggle callback
   const handlePropertiesToggle = useCallback(() => {
     setShowProperties(!showProperties);
-  }, [showProperties, setShowProperties]);
+    // Close collaboration panel when opening properties
+    if (!showProperties) {
+      setShowCollaboration(false);
+    }
+  }, [showProperties, setShowProperties, showCollaboration]);
+
+  // Collaboration toggle callback
+  const handleCollaborationToggle = useCallback(() => {
+    setShowCollaboration(!showCollaboration);
+    // Close properties panel when opening collaboration
+    if (!showCollaboration) {
+      setShowProperties(false);
+    }
+  }, [showCollaboration, setShowCollaboration, showProperties]);
 
   // AI Assist callback
   const handleAIAssist = useCallback(() => {
@@ -616,6 +633,8 @@ const ProjectEditorContent: React.FC = () => {
         onLightingModeToggle={handleLightingModeToggle}
         showProperties={showProperties}
         onPropertiesToggle={handlePropertiesToggle}
+        showCollaboration={showCollaboration}
+        onCollaborationToggle={handleCollaborationToggle}
         onAIAssist={handleAIAssist}
       />
       {/* Main Layout with Resizable Panels */}
@@ -694,45 +713,57 @@ const ProjectEditorContent: React.FC = () => {
             </main>
           </Panel>
 
-          {/* Right Panel Resize Handle (only when properties panel is visible) */}
-          {showProperties && (
+          {/* Right Panel Resize Handle (only when properties or collaboration panel is visible) */}
+          {(showProperties || showCollaboration) && (
             <>
               <PanelResizeHandle className={styles.panelResizeHandle} />
               
-              {/* Right Tabbed Panel (Properties + Camera) */}
+              {/* Right Tabbed Panel (Properties + Camera OR Collaboration) */}
               <Panel defaultSize={25} minSize={20} maxSize={40} className={styles.rightPanelContainer}>
-                <TabbedRightPanel
-                  show={showProperties}
-                  onClose={() => setShowProperties(false)}
-                  
-                  // Properties panel props
-                  sceneId={contextSceneId || urlSceneId || undefined}
-                  selectedItemId={selectedItemId || undefined}
-                  
-                  // Camera controls props
-                  cameraMode={cameraMode}
-                  onCameraModeChange={handleCameraModeChange}
-                  minDistance={cameraMinDistance}
-                  maxDistance={cameraMaxDistance}
-                  moveSpeed={cameraMoveSpeed}
-                  onZoomLimitsChange={handleZoomLimitsChange}
-                  onMoveSpeedChange={handleMoveSpeedChange}
-                  onCameraPreset={handleCameraPreset}
-                  enablePan={enablePan}
-                  enableZoom={enableZoom}
-                  enableRotate={enableRotate}
-                  onControlsToggle={handleControlsToggle}
-                  // Clipping plane props
-                  nearClip={cameraNearClip}
-                  farClip={cameraFarClip}
-                  onClippingChange={handleClippingChange}
-                />
+                {showProperties && (
+                  <TabbedRightPanel
+                    show={showProperties}
+                    onClose={() => setShowProperties(false)}
+                    
+                    // Properties panel props
+                    sceneId={contextSceneId || urlSceneId || undefined}
+                    selectedItemId={selectedItemId || undefined}
+                    
+                    // Camera controls props
+                    cameraMode={cameraMode}
+                    onCameraModeChange={handleCameraModeChange}
+                    minDistance={cameraMinDistance}
+                    maxDistance={cameraMaxDistance}
+                    moveSpeed={cameraMoveSpeed}
+                    onZoomLimitsChange={handleZoomLimitsChange}
+                    onMoveSpeedChange={handleMoveSpeedChange}
+                    onCameraPreset={handleCameraPreset}
+                    enablePan={enablePan}
+                    enableZoom={enableZoom}
+                    enableRotate={enableRotate}
+                    onControlsToggle={handleControlsToggle}
+                    // Clipping plane props
+                    nearClip={cameraNearClip}
+                    farClip={cameraFarClip}
+                    onClippingChange={handleClippingChange}
+                  />
+                )}
+                
+                {showCollaboration && (
+                  <CollaborationPanel
+                    projectId={contextProjectId || urlProjectId || 'unknown'}
+                    projectName={manifest?.scene?.name || 'Current Project'}
+                    sceneId={contextSceneId || urlSceneId || 'unknown'}
+                    onClose={() => setShowCollaboration(false)}
+                    className={styles.collaborationPanelContainer}
+                  />
+                )}
               </Panel>
             </>
           )}
         </PanelGroup>
       </div>
-      <RealtimeChat />
+      {/* <RealtimeChat /> */}
       {/* Asset Import Modal */}
       <AssetImportModal
         isOpen={isAssetImportModalOpen}

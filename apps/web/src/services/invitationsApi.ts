@@ -69,19 +69,25 @@ async function invitationApiRequest<T>(
   options: RequestInit,
   token?: string
 ): Promise<T> {
-  try {
-    const url = `${API_BASE_URL}${endpoint}`;
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json'
-  };
+  const url = `${API_BASE_URL}${endpoint}`;
   
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
     
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers.Authorization = `Bearer ${token}`;
     }
+    
+    console.log('INVITATION_API: Making request:', {
+      url,
+      method: options.method,
+      hasToken: !!token,
+      tokenPreview: token ? token.substring(0, 20) + '...' : 'none',
+      body: options.body,
+      headers
+    });
     
     const response = await fetch(url, {
       ...options,
@@ -90,12 +96,45 @@ async function invitationApiRequest<T>(
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      let errorData: any = null;
       
       try {
-        const errorData = await response.json();
+        errorData = await response.json();
         errorMessage = errorData.message || errorData.error || errorMessage;
       } catch {
         // Use default error message if JSON parsing fails
+      }
+      
+      console.error('INVITATION_API: Request failed:', {
+        url,
+        method: options.method,
+        status: response.status,
+        statusText: response.statusText,
+        requestBody: options.body,
+        requestHeaders: headers,
+        responseHeaders: Object.fromEntries(response.headers.entries()),
+        errorData,
+        errorMessage,
+        validationErrors: errorData?.validationErrors || 'none',
+        possibleCauses: response.status === 400 ? [
+          'Invalid project ID or project not found',
+          'User doesn\'t have permission to invite to this project',
+          'Email address already has pending invitation',
+          'Project doesn\'t allow invitations',
+          'Backend validation rule not captured in DTO validation'
+        ] : response.status === 401 ? [
+          'JWT token expired or invalid',
+          'Please logout and login again',
+          'Backend JWT secret may have changed'
+        ] : ['Unknown error']
+      });
+      
+      // Special handling for 401 errors
+      if (response.status === 401) {
+        throw new InvitationApiError(
+          'Your session has expired or is invalid. Please logout and login again.',
+          response.status
+        );
       }
 
       throw new InvitationApiError(errorMessage, response.status);
@@ -106,6 +145,13 @@ async function invitationApiRequest<T>(
     if (error instanceof InvitationApiError) {
       throw error;
     }
+    
+    console.error('🚨 INVITATION_API: Network error:', {
+      url,
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    
     throw new InvitationApiError(
       'Network error occurred while communicating with the invitations API',
       undefined,
