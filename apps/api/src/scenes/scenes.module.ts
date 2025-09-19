@@ -4,7 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScenesService } from './scenes.service';
 import { ScenesController } from './scenes.controller';
 import { FlatScenesController } from './flat-scenes.controller';
-import { ScenesGateway } from './scenes.gateway';
+// import { ScenesGateway } from './scenes.gateway'; // DISABLED - conflicts with FlatScenesGateway
 import { FlatScenesGateway } from './flat-scenes.gateway';
 import { ScenesSSEController } from './scenes-sse.controller';
 import { FlatScenesSSEController } from './flat-scenes-sse.controller';
@@ -42,11 +42,10 @@ import { AssetsModule } from '../assets/assets.module';
     ScenesAuthGuard,
     {
       provide: 'ScenesGateway',
-      useClass: ScenesGateway,
+      useClass: FlatScenesGateway, // Use FlatScenesGateway instead of ScenesGateway
     },
-    ScenesGateway,
     FlatScenesGateway,
   ],
-  exports: [ScenesService, ScenesGateway, FlatScenesGateway, DownloadService],
+  exports: [ScenesService, FlatScenesGateway, DownloadService],
 })
 export class ScenesModule {}

@@ -45,7 +45,7 @@ export class CollaborationController {
   @ApiResponse({ status: 400, description: 'Bad request - Invalid data or invitation already exists' })
   @ApiResponse({ status: 403, description: 'Forbidden - No permission to invite users to this project' })
   async createInvitation(
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('id') userId: string,
     @Body() dto: CreateInvitationDto
   ): Promise<InvitationResponseDto> {
     return this.collaborationService.createInvitation(userId, dto);
@@ -57,7 +57,7 @@ export class CollaborationController {
   async getSentInvitations(
     @CurrentUser() user: any
   ): Promise<InvitationListResponseDto> {
-    const userId = user?.sub || user?.id;
+    const userId = user?.id;
     if (!userId) {
       throw new BadRequestException('User ID not found in token');
     }
@@ -70,9 +70,15 @@ export class CollaborationController {
   async getReceivedInvitations(
     @CurrentUser() user: any
   ): Promise<InvitationListResponseDto> {
+    console.log('🔍 getReceivedInvitations called with user:', {
+      user,
+      userKeys: user ? Object.keys(user) : 'user is null',
+      extractedEmail: user?.email
+    });
+    
     const userEmail = user?.email;
     if (!userEmail) {
-      throw new BadRequestException('User email not found in token');
+      throw new BadRequestException(`User email not found in token. Available fields: ${user ? Object.keys(user).join(', ') : 'none'}`);
     }
     return this.collaborationService.getReceivedInvitations(userEmail);
   }
@@ -111,7 +117,7 @@ export class CollaborationController {
   @ApiResponse({ status: 204, description: 'Invitation revoked successfully' })
   @ApiResponse({ status: 404, description: 'Invitation not found' })
   async revokeInvitation(
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('id') userId: string,
     @Param('id') inviteId: string
   ): Promise<void> {
     return this.collaborationService.revokeInvitation(userId, inviteId);
@@ -146,7 +152,7 @@ export class CollaborationController {
   async getActiveSessions(
     @CurrentUser() user: any
   ): Promise<SessionListResponseDto> {
-    const userId = user?.sub || user?.id;
+    const userId = user?.id;
     if (!userId) {
       throw new BadRequestException('User ID not found in token');
     }
@@ -158,7 +164,7 @@ export class CollaborationController {
   @ApiResponse({ status: 200, description: 'Session retrieved successfully', type: SessionResponseDto })
   @ApiResponse({ status: 404, description: 'Session not found' })
   async getSession(
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('id') userId: string,
     @Param('id') sessionId: string
   ): Promise<SessionResponseDto> {
     return this.collaborationService.getSession(userId, sessionId);
@@ -170,7 +176,7 @@ export class CollaborationController {
   @ApiResponse({ status: 204, description: 'Session ended successfully' })
   @ApiResponse({ status: 404, description: 'Session not found or you are not the owner' })
   async endSession(
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('id') userId: string,
     @Param('id') sessionId: string
   ): Promise<void> {
     return this.collaborationService.endSession(userId, sessionId);
@@ -182,7 +188,7 @@ export class CollaborationController {
   @ApiResponse({ status: 204, description: 'Left session successfully' })
   @ApiResponse({ status: 404, description: 'You are not an active participant in this session' })
   async leaveSession(
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('id') userId: string,
     @Param('id') sessionId: string,
     @Body() dto?: LeaveSessionDto
   ): Promise<void> {

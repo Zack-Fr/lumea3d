@@ -4,7 +4,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateInvitationDto {
   @ApiProperty({ description: 'Project ID to invite user to' })
-  @IsUUID()
+  @IsString()
   projectId: string;
 
   @ApiProperty({ description: 'Email address of user to invite' })

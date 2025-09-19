@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { GlobalExceptionFilter } from './shared/filters/global-exception.filter';
 import { IoAdapter } from '@nestjs/platform-socket.io';
@@ -82,6 +82,15 @@ async function bootstrap() {
       target: false,
       value: false,
     },
+    exceptionFactory: (errors) => {
+      // Log detailed validation errors for debugging
+      console.error('VALIDATION ERRORS:', JSON.stringify(errors, null, 2));
+      return new BadRequestException({
+        message: 'Validation failed',
+        errors: errors,
+        statusCode: 400
+      });
+    }
   }));
 
   // CORS with security considerations

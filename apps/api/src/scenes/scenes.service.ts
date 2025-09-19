@@ -1630,8 +1630,9 @@ export class ScenesService {
    * Notify realtime clients of scene updates
    */
   private notifySceneUpdate(sceneId: string, operation: any) {
-    if (this.scenesGateway?.notifySceneUpdate) {
-      this.scenesGateway.notifySceneUpdate(sceneId, {
+    if (this.scenesGateway?.emitSceneUpdate) {
+      // Use FlatScenesGateway's emitSceneUpdate method
+      this.scenesGateway.emitSceneUpdate(sceneId, 'scene:update', {
         ...operation,
         userId: 'system',
         timestamp: Date.now(),

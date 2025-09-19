@@ -31,13 +31,31 @@ export class CollaborationService {
   // ============================================================================
 
   async createInvitation(userId: string, dto: CreateInvitationDto): Promise<InvitationResponseDto> {
+    // Debug the userId parameter
+    console.log('🔍 CollaborationService.createInvitation called with:', {
+      userId,
+      userIdType: typeof userId,
+      dto
+    });
+    
+    if (!userId || typeof userId !== 'string') {
+      throw new BadRequestException(`Invalid userId provided: ${userId} (type: ${typeof userId})`);
+    }
+    
+    // First check if user is a system-level ADMIN
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
     // Verify user has access to the project
     const project = await this.prisma.project.findFirst({
       where: {
         id: dto.projectId,
         OR: [
-          { userId: userId },
-          { members: { some: { userId: userId, role: { in: ['ADMIN', 'DESIGNER'] } } } }
+          { userId: userId }, // User owns the project
+          { members: { some: { userId: userId, role: { in: ['ADMIN', 'DESIGNER'] } } } }, // User is project member with required role
+          ...(user.role === 'ADMIN' ? [{ id: dto.projectId }] : []) // System ADMIN can access any project
         ]
       },
       include: {
@@ -46,7 +64,21 @@ export class CollaborationService {
     });
 
     if (!project) {
-      throw new ForbiddenException('You do not have permission to invite users to this project');
+      // Provide more detailed error information
+      const projectExists = await this.prisma.project.findUnique({ where: { id: dto.projectId } });
+      if (!projectExists) {
+        throw new BadRequestException(`Project with ID '${dto.projectId}' does not exist`);
+      }
+      
+      const userAccess = await this.prisma.projectMember.findFirst({
+        where: { userId: userId, projectId: dto.projectId }
+      });
+      
+      if (userAccess) {
+        throw new ForbiddenException(`You have '${userAccess.role}' role on this project. Only project owners or members with 'ADMIN' or 'DESIGNER' roles can send invitations.`);
+      } else {
+        throw new ForbiddenException('You do not have permission to invite users to this project. You must be the project owner or a member with ADMIN/DESIGNER role.');
+      }
     }
 
     // Check if there's already a pending invitation for this user/project
@@ -134,6 +166,27 @@ export class CollaborationService {
   }
 
   async getReceivedInvitations(userEmail: string): Promise<InvitationListResponseDto> {
+    console.log('🔍 getReceivedInvitations service called with:', {
+      userEmail,
+      userEmailType: typeof userEmail,
+      emailLength: userEmail.length,
+      emailBytes: Buffer.from(userEmail).toString('hex')
+    });
+    
+    // First, let's see what's actually in the database
+    const allInvitesForDebugging = await this.prisma.collabInvite.findMany({
+      select: {
+        id: true,
+        toUserEmail: true,
+        status: true,
+        createdAt: true
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5
+    });
+    
+    console.log('🔍 Recent invitations in database:', allInvitesForDebugging);
+    
     const invitations = await this.prisma.collabInvite.findMany({
       where: { toUserEmail: userEmail },
       include: {
@@ -142,14 +195,36 @@ export class CollaborationService {
       },
       orderBy: { createdAt: 'desc' }
     });
+    
+    console.log('🔍 Query result for userEmail "${userEmail}":', {
+      foundInvitations: invitations.length,
+      invitationIds: invitations.map(inv => inv.id)
+    });
 
-    return {
+    const result = {
       invitations: invitations.map(inv => this.mapInvitationToDto(inv)),
       total: invitations.length
     };
+    
+    console.log('🔍 Returning result:', result);
+    
+    return result;
   }
 
   async acceptInvitation(userEmail: string, dto: AcceptInvitationDto): Promise<{ sessionId: string }> {
+    console.log('🔍 DEBUG acceptInvitation called with:', {
+      userEmail,
+      token: dto.token,
+      currentTime: new Date().toISOString()
+    });
+    
+    // First, let's see if there's ANY invitation with this token
+    const anyInviteWithToken = await this.prisma.collabInvite.findFirst({
+      where: { token: dto.token }
+    });
+    
+    console.log('🔍 DEBUG any invite with token:', anyInviteWithToken);
+    
     // Find the invitation
     const invite = await this.prisma.collabInvite.findFirst({
       where: {
@@ -163,8 +238,33 @@ export class CollaborationService {
         fromUser: true
       }
     });
+    
+    console.log('🔍 DEBUG invitation lookup result:', {
+      found: !!invite,
+      searchCriteria: {
+        token: dto.token,
+        toUserEmail: userEmail,
+        status: 'PENDING',
+        expiresAt: 'greater than ' + new Date().toISOString()
+      },
+      invite: invite
+    });
 
     if (!invite) {
+      // Check if invitation exists but is already accepted/declined/expired
+      if (anyInviteWithToken) {
+        if (anyInviteWithToken.status === InviteStatus.ACCEPTED) {
+          throw new BadRequestException('This invitation has already been accepted');
+        } else if (anyInviteWithToken.status === InviteStatus.DECLINED) {
+          throw new BadRequestException('This invitation has been declined');
+        } else if (anyInviteWithToken.status === InviteStatus.EXPIRED) {
+          throw new BadRequestException('This invitation has expired');
+        } else if (anyInviteWithToken.expiresAt < new Date()) {
+          throw new BadRequestException('This invitation has expired');
+        } else if (anyInviteWithToken.toUserEmail !== userEmail) {
+          throw new BadRequestException('This invitation is not for your email address');
+        }
+      }
       throw new NotFoundException('Invalid or expired invitation');
     }
 
