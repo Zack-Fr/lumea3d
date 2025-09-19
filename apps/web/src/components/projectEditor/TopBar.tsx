@@ -17,7 +17,8 @@ import {
   Folder,
   Plus,
   Save,
-  Users
+  Users,
+  PanelLeft
 } from "lucide-react";
 import { useSceneContext } from '../../contexts/SceneContext';
 import { useScenes } from '../../hooks/scenes/useSceneQuery';
@@ -37,6 +38,8 @@ interface TopBarProps {
   onSoundToggle: () => void;
   lightingMode: string;
   onLightingModeToggle: () => void;
+  showLeftPanel: boolean;
+  onLeftPanelToggle: () => void;
   showProperties: boolean;
   onPropertiesToggle: () => void;
   showCollaboration: boolean;
@@ -52,6 +55,8 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
   onSoundToggle,
   lightingMode,
   onLightingModeToggle,
+  showLeftPanel,
+  onLeftPanelToggle,
 //   showProperties,
   onPropertiesToggle,
   showCollaboration,
@@ -415,6 +420,16 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
             {queue.length > 0 && (
               <span className="ml-1 text-xs">{queue.length}</span>
             )}
+          </Button>
+
+          <Button 
+            variant={showLeftPanel ? "default" : "ghost"}
+            size="sm"
+            onClick={onLeftPanelToggle}
+            className={`${styles.controlButton} ${showLeftPanel ? 'bg-blue-500 text-white' : ''}`}
+            title="Toggle Assets Panel"
+          >
+            <PanelLeft className="w-4 h-4" />
           </Button>
 
           <Button 

@@ -34,7 +34,7 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
   
   // Light selection handler
   const handleSelectLight = useCallback((light: THREE.Light) => {
-    console.log('💡 LayersPanel: Selecting light:', light.name);
+    console.log('LayersPanel: Selecting light:', light.name);
     // Try to select the light helper first (it's usually more selectable)
     if (light.userData.helper) {
       selectObject(light.userData.helper);
@@ -47,7 +47,7 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
   const handleToggleLightVisibility = useCallback((light: THREE.Light, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent selection when clicking eye
     light.visible = !light.visible;
-    console.log(`💡 LayersPanel: Light ${light.name} visibility:`, light.visible);
+    console.log(`LayersPanel: Light ${light.name} visibility:`, light.visible);
     
     // Also toggle helper visibility if it exists
     if (light.userData.helper) {
@@ -202,7 +202,7 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-purple-500" />
-                <span className="text-sm font-medium">Active Layers</span>
+                <span className={styles.sidebarTitle}>Active Layers</span>
               </div>
             </div>
             

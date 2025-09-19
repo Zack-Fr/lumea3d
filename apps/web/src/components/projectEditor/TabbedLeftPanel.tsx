@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Button } from "../ui/Button";
 import { 
   Plus,
-  Search
+  X,
+  Package
 } from "lucide-react";
 import { AssetCategory } from '../../types/projectEditor';
 import { useSceneContext } from '../../contexts/SceneContext';
@@ -13,6 +14,10 @@ import LayersPanel from './LayersPanel';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 
 interface TabbedLeftPanelProps {
+  // Panel state
+  show: boolean;
+  onClose: () => void;
+  
   // Asset-related props
   assetCategories: AssetCategory[];
   selectedTool: string;
@@ -46,10 +51,13 @@ interface TabbedLeftPanelProps {
 
 
 const TabbedLeftPanel: React.FC<TabbedLeftPanelProps> = ({
+  // Panel state
+  show,
+  onClose,
+  
   // Asset props
   assetCategories,
   selectedTool,
-  
   selectedAsset,
   onAssetSelect,
   onAssetAdd,
@@ -58,7 +66,6 @@ const TabbedLeftPanel: React.FC<TabbedLeftPanelProps> = ({
   // Properties props
   selectedItemId,
   onItemSelect,
-  
 }) => {
   const { 
     sceneId, 
@@ -215,36 +222,23 @@ const TabbedLeftPanel: React.FC<TabbedLeftPanelProps> = ({
     );
   };
 
-  // Removed unused render functions for properties and camera tabs
+  // Return null if panel should be hidden
+  if (!show) return null;
 
   return (
     <aside className={styles.leftSidebar}>
-      {/* Fixed Header - like right panel */}
+      {/* Header with close button - matching right panel pattern */}
       <div className={styles.sidebarHeader}>
         <div className={styles.sidebarTitleRow}>
-          <h2 className={styles.sidebarTitle}>Scene Assets & Layers</h2>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className={styles.addButton}
-            onClick={onImportAsset}
-            title="Import new 3D asset"
+          <h2 className={styles.sidebarTitle}>Assets & Layers</h2>
+          <button 
+            onClick={onClose}
+            className={styles.closeButton}
+            title="Close assets panel"
           >
-            <Plus className="w-4 h-4" />
-          </Button>
+            <X className="w-4 h-4" />
+          </button>
         </div>
-        
-        {/* Search for assets */}
-        {!sceneId && (
-          <div className={styles.searchContainer}>
-            <Search className={styles.searchIcon} />
-            <input
-              type="text"
-              placeholder="Search assets..."
-              className={styles.searchInput}
-            />
-          </div>
-        )}
       </div>
 
       {/* Scrollable Content Area - same pattern as rightPanelContent */}
@@ -254,7 +248,17 @@ const TabbedLeftPanel: React.FC<TabbedLeftPanelProps> = ({
           <div className={styles.sidebarSection}>
             <div className="p-4">
               <div className="flex items-center gap-2 mb-4">
+                <Package className="w-4 h-4" />
                 <h3 className={styles.sidebarTitle} style={{ fontSize: '0.875rem' }}>Assets</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={styles.addButton}
+                  onClick={onImportAsset}
+                  title="Import new 3D asset"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
               </div>
               {renderTabContent()}
             </div>

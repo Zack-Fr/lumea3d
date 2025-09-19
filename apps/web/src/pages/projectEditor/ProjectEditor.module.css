@@ -29,7 +29,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-width: 250px;
+  min-width: 200px;
   overflow: hidden;
 }
 
@@ -38,7 +38,7 @@
   flex-direction: column;
   height: 100%;
   flex: 1;
-  min-width: 400px;
+  min-width: 300px;
   overflow: hidden;
 }
 
@@ -46,7 +46,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-width: 300px;
+  min-width: 250px;
   overflow: hidden;
 }
 
@@ -2044,31 +2044,67 @@
 
 /* Responsive Design */
 @media (max-width: 1280px) {
-  .leftSidebar {
-    width: 16rem;
+  .leftPanelContainer {
+    min-width: 180px;
   }
-  .rightSidebar {
-    width: 20rem;
+  .mainViewportPanelContainer {
+    min-width: 250px;
+  }
+  .rightPanelContainer {
+    min-width: 220px;
   }
 }
 
 @media (max-width: 1024px) {
-  .leftSidebar {
-    width: 14rem;
+  .leftPanelContainer {
+    min-width: 160px;
   }
-  .rightSidebar {
-    width: 18rem;
+  .mainViewportPanelContainer {
+    min-width: 200px;
+  }
+  .rightPanelContainer {
+    min-width: 200px;
   }
 }
 
 @media (max-width: 768px) {
-  .leftSidebar,
-  .rightSidebar {
-    display: none;
+  .leftPanelContainer {
+    min-width: 0;
+    width: 100vw;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    background: var(--glass-bg-primary);
+    backdrop-filter: blur(20px);
+  }
+  
+  .rightPanelContainer {
+    min-width: 0;
+    width: 100vw;
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--glass-bg-primary);
+    backdrop-filter: blur(20px);
+  }
+  
+  .mainViewportPanelContainer {
+    min-width: 0;
+    width: 100%;
   }
 
   .viewportTools,
   .viewportSettings {
+    display: none;
+  }
+  
+  .resizablePanelGroup {
+    position: relative;
+  }
+  
+  .panelResizeHandle {
     display: none;
   }
 }

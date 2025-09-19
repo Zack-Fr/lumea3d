@@ -17,8 +17,9 @@ import TabbedRightPanel from '../../components/projectEditor/TabbedRightPanel';
 import ViewportCanvas from '../../components/projectEditor/ViewportCanvas';
 import ViewportTools from '../../components/projectEditor/ViewportTools';
 import ViewportSettings from '../../components/projectEditor/ViewportSettings';
-import GamificationOverlay from '../../components/projectEditor/GamificationOverlay';
-import Achievement from '../../components/projectEditor/Achievement';
+// Gamification UI temporarily disabled — comment out imports so the HUD does not render
+// import GamificationOverlay from '../../components/projectEditor/GamificationOverlay';
+// import Achievement from '../../components/projectEditor/Achievement';
 // import RealtimeChat from '../../features/realtime/components/RealtimeChat';
 import CollaborationPanel from '../../components/collaboration/CollaborationPanel';
 
@@ -140,14 +141,8 @@ const ProjectEditorContent: React.FC = () => {
     handleViewportClick
   } = useViewportControls();
 
-  const {
-    gamificationData,
-    showGamification,
-    setShowGamification,
-    showAchievement,
-    achievementMessage,
-    triggerAchievement
-  } = useGamificationSystem();
+  // Keep gamification hook for side-effects, only extract what we actively use
+  const { setShowGamification, triggerAchievement } = useGamificationSystem();
 
   const {
     selectedTool,
@@ -165,8 +160,32 @@ const ProjectEditorContent: React.FC = () => {
     setLightingMode
   } = useProjectEditorSettings();
 
-  // Collaboration panel state
+  // Panel states
+  const [showLeftPanel, setShowLeftPanel] = useState(true); // Left panel (assets) - default open
   const [showCollaboration, setShowCollaboration] = useState(false);
+  
+  // Responsive panel visibility - close panels on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth <= 768;
+      if (isMobile && showLeftPanel) {
+        log('info', 'ProjectEditor: Closing left panel for mobile view');
+        setShowLeftPanel(false);
+      }
+      if (isMobile && (showProperties || showCollaboration)) {
+        log('info', 'ProjectEditor: Closing right panels for mobile view');
+        setShowProperties(false);
+        setShowCollaboration(false);
+      }
+    };
+    
+    // Check on mount
+    handleResize();
+    
+    // Listen for resize events
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [showLeftPanel, showProperties, showCollaboration, setShowProperties]);
 
   // Navigation callback
   const handleNavigate = useCallback((page: string) => {
@@ -193,6 +212,12 @@ const ProjectEditorContent: React.FC = () => {
     setLightingMode(newMode);
     triggerAchievement(`Lighting changed to ${newMode} mode!`);
   }, [lightingMode, setLightingMode, triggerAchievement]);
+
+  // Left panel toggle callback
+  const handleLeftPanelToggle = useCallback(() => {
+    setShowLeftPanel(!showLeftPanel);
+  }, [showLeftPanel]);
+  // NOTE: handleLeftPanelToggle is referenced by UI controls elsewhere; keep it to avoid regressions
 
   // Properties toggle callback
   const handlePropertiesToggle = useCallback(() => {
@@ -605,7 +630,8 @@ const ProjectEditorContent: React.FC = () => {
 
   return (
     <div className={styles.projectEditorRoot}>
-      {/* Achievement Notification */}
+      {/* Achievement Notification (disabled) */}
+      {/*
       {showAchievement && (
         <Achievement 
           message={achievementMessage}
@@ -613,7 +639,6 @@ const ProjectEditorContent: React.FC = () => {
         />
       )}
 
-      {/* Gamification Overlay */}
       {showGamification && (
         <GamificationOverlay
           gamificationData={gamificationData}
@@ -621,6 +646,7 @@ const ProjectEditorContent: React.FC = () => {
           onClose={() => setShowGamification(false)}
         />
       )}
+      */}
 
       {/* Top Bar */}
       <TopBar
@@ -631,6 +657,8 @@ const ProjectEditorContent: React.FC = () => {
         onSoundToggle={handleSoundToggle}
         lightingMode={lightingMode}
         onLightingModeToggle={handleLightingModeToggle}
+        showLeftPanel={showLeftPanel}
+        onLeftPanelToggle={handleLeftPanelToggle}
         showProperties={showProperties}
         onPropertiesToggle={handlePropertiesToggle}
         showCollaboration={showCollaboration}
@@ -640,42 +668,50 @@ const ProjectEditorContent: React.FC = () => {
       {/* Main Layout with Resizable Panels */}
       <div className={styles.projectEditorLayout}>
         <PanelGroup direction="horizontal" className={styles.resizablePanelGroup}>
-          {/* Left Assets Panel */}
-          <Panel defaultSize={25} minSize={15} maxSize={35} className={styles.leftPanelContainer}>
-            <TabbedLeftPanel
-              // Asset props
-              assetCategories={assetCategories}
-              selectedTool={selectedTool}
-              onToolChange={setSelectedTool}
-              selectedAsset={selectedAsset}
-              onAssetSelect={handleAssetSelect}
-              onAssetAdd={handleAssetAdd}
-              onImportAsset={handleImportAsset}
-              
-              // Properties panel props (not used but kept for compatibility)
-              selectedItemId={selectedItemId}
-              onItemSelect={setSelectedItemId}
-              showProperties={showProperties}
-              onPropertiesClose={() => setShowProperties(false)}
-              
-              // Camera controls props (not used but kept for compatibility)
-              cameraMode={cameraMode}
-              onCameraModeChange={handleCameraModeChange}
-              minDistance={cameraMinDistance}
-              maxDistance={cameraMaxDistance}
-              moveSpeed={cameraMoveSpeed}
-              onZoomLimitsChange={handleZoomLimitsChange}
-              onMoveSpeedChange={handleMoveSpeedChange}
-              onCameraPreset={handleCameraPreset}
-              enablePan={enablePan}
-              enableZoom={enableZoom}
-              enableRotate={enableRotate}
-              onControlsToggle={handleControlsToggle}
-            />
-          </Panel>
+          {/* Left Assets Panel - Conditional */}
+          {showLeftPanel && (
+            <>
+              <Panel defaultSize={20} minSize={10} maxSize={40} className={styles.leftPanelContainer}>
+                <TabbedLeftPanel
+                  // Panel state
+                  show={showLeftPanel}
+                  onClose={() => setShowLeftPanel(false)}
+                  
+                  // Asset props
+                  assetCategories={assetCategories}
+                  selectedTool={selectedTool}
+                  onToolChange={setSelectedTool}
+                  selectedAsset={selectedAsset}
+                  onAssetSelect={handleAssetSelect}
+                  onAssetAdd={handleAssetAdd}
+                  onImportAsset={handleImportAsset}
+                  
+                  // Properties panel props (not used but kept for compatibility)
+                  selectedItemId={selectedItemId}
+                  onItemSelect={setSelectedItemId}
+                  showProperties={showProperties}
+                  onPropertiesClose={() => setShowProperties(false)}
+                  
+                  // Camera controls props (not used but kept for compatibility)
+                  cameraMode={cameraMode}
+                  onCameraModeChange={handleCameraModeChange}
+                  minDistance={cameraMinDistance}
+                  maxDistance={cameraMaxDistance}
+                  moveSpeed={cameraMoveSpeed}
+                  onZoomLimitsChange={handleZoomLimitsChange}
+                  onMoveSpeedChange={handleMoveSpeedChange}
+                  onCameraPreset={handleCameraPreset}
+                  enablePan={enablePan}
+                  enableZoom={enableZoom}
+                  enableRotate={enableRotate}
+                  onControlsToggle={handleControlsToggle}
+                />
+              </Panel>
 
-          {/* Left Panel Resize Handle */}
-          <PanelResizeHandle className={styles.panelResizeHandle} />
+              {/* Left Panel Resize Handle */}
+              <PanelResizeHandle className={styles.panelResizeHandle} />
+            </>
+          )}
 
           {/* Main Viewport Area */}
           <Panel className={styles.mainViewportPanelContainer}>
@@ -719,7 +755,7 @@ const ProjectEditorContent: React.FC = () => {
               <PanelResizeHandle className={styles.panelResizeHandle} />
               
               {/* Right Tabbed Panel (Properties + Camera OR Collaboration) */}
-              <Panel defaultSize={25} minSize={20} maxSize={40} className={styles.rightPanelContainer}>
+              <Panel defaultSize={20} minSize={15} maxSize={45} className={styles.rightPanelContainer}>
                 {showProperties && (
                   <TabbedRightPanel
                     show={showProperties}
