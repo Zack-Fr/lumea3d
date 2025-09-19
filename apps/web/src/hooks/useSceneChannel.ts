@@ -85,8 +85,7 @@ export function useSceneChannel(
     if (!token || !sceneId) return null
     
     const socket = io('/scenes', {
-      query: { sceneId },
-      auth: { token }, // Use auth object for token
+      query: { sceneId, token }, // Pass both sceneId and token in query for WsSceneGuard
       transports: ['websocket'],
       timeout: 10000,
       reconnection: false // We handle reconnection manually

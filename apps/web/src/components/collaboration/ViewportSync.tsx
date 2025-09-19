@@ -140,12 +140,12 @@ const ViewportSync: React.FC<ViewportSyncProps> = ({
   return (
     <div className={`space-y-3 ${className}`}>
       {/* Viewport Sync Controls */}
-      <div className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
+      <div className="bg-[var(--glass-black)] rounded-lg border border-[var(--glass-border-dim)] p-3 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Monitor className="w-4 h-4 text-gray-600" />
-            <span className="font-medium text-sm">Viewport Sync</span>
-            <Badge variant="secondary" className="text-xs">
+            <Monitor className="w-4 h-4 text-gray-400" />
+            <span className="font-medium text-sm text-white">Viewport Sync</span>
+            <Badge variant="secondary" className="text-xs bg-[var(--glass-yellow)] text-black">
               {connectedUsers.length} online
             </Badge>
           </div>
@@ -154,7 +154,7 @@ const ViewportSync: React.FC<ViewportSyncProps> = ({
             variant="ghost"
             size="sm"
             onClick={() => setIsVisible(!isVisible)}
-            className="p-2"
+            className="p-2 text-gray-300 hover:text-white hover:bg-[var(--glass-border-dim)]"
           >
             {isVisible ? <Eye size={14} /> : <EyeOff size={14} />}
           </Button>
@@ -191,7 +191,7 @@ const ViewportSync: React.FC<ViewportSyncProps> = ({
             {/* Active Users List */}
             {connectedUsers.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-xs font-medium text-gray-600">Connected Users</h4>
+                <h4 className="text-xs font-medium text-gray-400">Connected Users</h4>
                 
                 <div className="space-y-1">
                   {connectedUsers.map((user) => {
@@ -201,7 +201,7 @@ const ViewportSync: React.FC<ViewportSyncProps> = ({
                     return (
                       <div
                         key={user.userId}
-                        className="flex items-center justify-between p-2 rounded border"
+                        className="flex items-center justify-between p-2 rounded border border-[var(--glass-border-dim)] bg-[var(--glass-black)]"
                         style={{ borderColor: `${user.color}20`, backgroundColor: `${user.color}05` }}
                       >
                         <div className="flex items-center gap-2">
@@ -209,17 +209,17 @@ const ViewportSync: React.FC<ViewportSyncProps> = ({
                             className="w-3 h-3 rounded-full"
                             style={{ backgroundColor: user.color }}
                           />
-                          <span className="text-sm font-medium">{user.name}</span>
+                          <span className="text-sm font-medium text-white">{user.name}</span>
                           
                           {hasViewport && (
-                            <Badge variant="secondary" className="text-xs px-1 py-0">
+                            <Badge variant="secondary" className="text-xs px-1 py-0 bg-[var(--glass-yellow)] text-black">
                               <Monitor size={8} className="mr-1" />
                               Active
                             </Badge>
                           )}
                           
                           {isFollowing && (
-                            <Badge variant="default" className="text-xs px-1 py-0">
+                            <Badge variant="default" className="text-xs px-1 py-0 bg-green-600 text-white">
                               Following
                             </Badge>
                           )}
@@ -231,7 +231,7 @@ const ViewportSync: React.FC<ViewportSyncProps> = ({
                             size="sm"
                             onClick={() => handleFollowUser(user.userId)}
                             disabled={!hasViewport}
-                            className="text-xs px-2 py-1 h-auto"
+                            className="text-xs px-2 py-1 h-auto text-gray-300 hover:text-white hover:bg-[var(--glass-border-dim)] border-[var(--glass-border-dim)]"
                           >
                             <Eye size={10} className="mr-1" />
                             {isFollowing ? 'Unfollow' : 'Follow'}
@@ -245,16 +245,16 @@ const ViewportSync: React.FC<ViewportSyncProps> = ({
             )}
 
             {/* Status Messages */}
-            <div className="text-xs text-gray-500 space-y-1">
+            <div className="text-xs text-gray-400 space-y-1">
               {syncMode === 'broadcast' && (
-                <p className="flex items-center gap-1 text-blue-600">
+                <p className="flex items-center gap-1 text-blue-400">
                   <RotateCw size={10} className="animate-spin" />
                   Broadcasting your viewport to {connectedUsers.length} users
                 </p>
               )}
               
               {syncMode === 'follow' && followingUserId && (
-                <p className="flex items-center gap-1 text-green-600">
+                <p className="flex items-center gap-1 text-green-400">
                   <Eye size={10} />
                   Following {users.find(u => u.userId === followingUserId)?.name}'s viewport
                 </p>

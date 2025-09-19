@@ -50,6 +50,18 @@
   overflow: hidden;
 }
 
+/* Collaboration Panel Container */
+.collaborationPanelContainer {
+  height: 100%;
+  overflow: hidden;
+  background: var(--glass-bg-primary);
+  border-left: 1px solid var(--glass-border);
+}
+
+.collaborationPanelContainer > div {
+  height: 100%;
+}
+
 /* Main Viewport Area */
 .mainViewportArea {
   flex: 1;

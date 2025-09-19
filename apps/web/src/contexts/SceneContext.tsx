@@ -107,13 +107,13 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
   // Ensure token is immediately available to scenesApi when auth state changes
   useEffect(() => {
     if (token && !authLoading) {
-      console.log('🔐 SceneProvider: Ensuring token is set in scenesApi');
+      console.log('SceneProvider: Ensuring token is set in scenesApi');
       updateApiClientToken(token);
     }
   }, [token, authLoading]);
 
   // Log authentication status for debugging
-  console.log('🔐 SceneProvider Auth Status:', {
+  console.log('SceneProvider Auth Status:', {
     hasToken: !!token,
     hasUser: !!user,
     authLoading,
@@ -161,16 +161,20 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     enabled: !!sceneId && !!token && !!user && !authLoading // Only load if we have a sceneId and auth is ready
   });
 
-  console.log('🎯 SceneContext: Categories data', {
+  console.log('SceneContext: Categories data', {
     sceneId,
     allCategoriesCount: allCategories.length,
     allCategories: allCategories,
     categoriesLoading
   });
 
+  // COMPLETELY DISABLED - DO NOT TOUCH
+  // useSceneChannel is causing infinite loops
+  // Real-time collaboration is DISABLED until further investigation
+
   // Scene actions
   const setScene = useCallback((newProjectId: string, newSceneId: string) => {
-    console.log('🎯 setScene called with:', { projectId: newProjectId, sceneId: newSceneId });
+    console.log('setScene called with:', { projectId: newProjectId, sceneId: newSceneId });
     setProjectId(newProjectId);
     setSceneId(newSceneId);
     
@@ -285,7 +289,7 @@ export const useSceneParams = () => {
     if (sceneEditorMatch) {
       const projectId = decodeURIComponent(sceneEditorMatch[1]);
       const sceneId = decodeURIComponent(sceneEditorMatch[2]);
-      console.log('✅ useSceneParams: Found scene editor URL:', { projectId, sceneId });
+      console.log('useSceneParams: Found scene editor URL:', { projectId, sceneId });
       return {
         projectId,
         sceneId
@@ -297,7 +301,7 @@ export const useSceneParams = () => {
     if (sceneMatch) {
       const projectId = decodeURIComponent(sceneMatch[1]);
       const sceneId = decodeURIComponent(sceneMatch[2]);
-      console.log('✅ useSceneParams: Found scene URL:', { projectId, sceneId });
+      console.log('useSceneParams: Found scene URL:', { projectId, sceneId });
       return {
         projectId,
         sceneId
@@ -308,7 +312,7 @@ export const useSceneParams = () => {
     const projectMatch = path.match(/\/app\/projects\/([^/]+)$/);
     if (projectMatch) {
       const projectId = decodeURIComponent(projectMatch[1]);
-      console.log('📁 useSceneParams: Found project URL (no scene):', { projectId, sceneId: null });
+      console.log('useSceneParams: Found project URL (no scene):', { projectId, sceneId: null });
       return {
         projectId,
         sceneId: null  // Don't set sceneId for project URLs
@@ -316,7 +320,7 @@ export const useSceneParams = () => {
     }
 
     // No scene ID found in URL
-    console.log('❌ useSceneParams: No scene/project found in URL path:', path);
+    console.log('useSceneParams: No scene/project found in URL path:', path);
     return { projectId: null, sceneId: null };
   }, []);
 

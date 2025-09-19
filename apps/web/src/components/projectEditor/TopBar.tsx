@@ -16,15 +16,18 @@ import {
   ChevronDown,
   Folder,
   Plus,
-  Save
+  Save,
+  Users
 } from "lucide-react";
 import { useSceneContext } from '../../contexts/SceneContext';
 import { useScenes } from '../../hooks/scenes/useSceneQuery';
 import { useScenesList } from '../../hooks/scenes/useScenesList';
 import { useAuth } from '../../providers/AuthProvider';
 import { useSaveQueueStore } from '../../stores/saveQueueStore';
+import { useInvitations } from '../../hooks/useInvitations';
 import { captureAndUploadScreenshot } from '../../utils/canvasScreenshot';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
+import { toast } from 'react-toastify';
 
 interface TopBarProps {
   onNavigate: (page: string) => void;
@@ -36,6 +39,8 @@ interface TopBarProps {
   onLightingModeToggle: () => void;
   showProperties: boolean;
   onPropertiesToggle: () => void;
+  showCollaboration: boolean;
+  onCollaborationToggle: () => void;
   onAIAssist: () => void;
 }
 
@@ -49,12 +54,15 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
   onLightingModeToggle,
 //   showProperties,
   onPropertiesToggle,
+  showCollaboration,
+  onCollaborationToggle,
   onAIAssist
 }) => {
   const navigate = useNavigate();
   const { sceneId, projectId } = useSceneContext();
   const { token, isAuthenticated, isLoading: authLoading } = useAuth();
   const { saveState, createSnapshot, setSceneId, queue } = useSaveQueueStore();
+  const { activeSessions, currentSession, receivedInvitations, sentInvitations } = useInvitations();
   const [showSceneSelector, setShowSceneSelector] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -90,13 +98,13 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
           if (response.ok) {
             const { version } = await response.json();
             setSceneId(sceneId, version);
-            console.log(`🔄 Initialized save queue with scene version: ${version}`);
+            console.log(`Initialized save queue with scene version: ${version}`);
           } else {
-            console.warn(`⚠️ Failed to fetch scene version, using default version 1`);
+            console.warn(`Failed to fetch scene version, using default version 1`);
             setSceneId(sceneId, 1);
           }
         } catch (error) {
-          console.error(`❌ Error fetching scene version:`, error);
+          console.error(`Error fetching scene version:`, error);
           setSceneId(sceneId, 1);
         }
       }
@@ -138,16 +146,16 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
   const currentScene = finalScenes.find(scene => scene.id === sceneId);
 
   const handleSceneSelect = (scene: any) => {
-    console.log('🎯 TopBar: Scene selected:', { scene, projectId });
+    console.log('TopBar: Scene selected:', { scene, projectId });
     
     if (!projectId) {
-      console.error('❌ TopBar: No projectId available for scene selection');
+      console.error('TopBar: No projectId available for scene selection');
       return;
     }
     
     // Navigate to the scene URL which will trigger the context update
     const sceneUrl = `/app/projects/${projectId}/scenes/${scene.id}/editor`;
-    console.log('📦 TopBar: Navigating to:', sceneUrl);
+    console.log('TopBar: Navigating to:', sceneUrl);
     
     navigate(sceneUrl);
     setShowSceneSelector(false);
@@ -155,12 +163,12 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
 
   const handleCreateScene = async () => {
     if (!projectId) {
-      console.error('❌ No project ID available for scene creation');
-      alert('No project selected. Please select a project first.');
+      console.error('No project ID available for scene creation');
+      toast.error('No project selected. Please select a project first.');
       return;
     }
 
-    console.log('🎨 Creating scene in project:', projectId);
+    console.log('Creating scene in project:', projectId);
 
     try {
       // Import scenesApi dynamically to avoid circular dependencies
@@ -168,10 +176,11 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
       
       const sceneName = prompt('Enter scene name:');
       if (!sceneName || !sceneName.trim()) {
+        toast.info('Scene creation cancelled');
         return;
       }
 
-      console.log('🎨 Calling scenesApi.createScene with:', { 
+      console.log('Calling scenesApi.createScene with:', { 
         name: sceneName.trim(),
         projectId: projectId
       });
@@ -181,17 +190,17 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
         projectId: projectId
       });
       
-      console.log('✅ Scene created successfully:', newScene);
-      
+      console.log('Scene created successfully:', newScene);
+      toast.success('Scene created successfully', { autoClose: 3000 });
       // Navigate to the new scene URL
       if (newScene && newScene.id) {
         const newSceneUrl = `/app/projects/${projectId}/scenes/${newScene.id}/editor`;
-        console.log('🚀 TopBar: Navigating to new scene:', newSceneUrl);
+        console.log('TopBar: Navigating to new scene:', newSceneUrl);
         navigate(newSceneUrl);
       }
     } catch (error) {
-      console.error('❌ Failed to create scene:', error);
-      alert('Failed to create scene. Please try again.');
+      console.error('Failed to create scene:', error);
+      toast.error('Failed to create scene. Please try again.');
     }
   };
 
@@ -211,17 +220,24 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
           const result = await captureAndUploadScreenshot(projectId);
           console.log('📷 Canvas screenshot uploaded:', result.thumbnailUrl);
         } catch (screenshotError) {
-          console.warn('⚠️ Failed to capture canvas screenshot:', screenshotError);
+          console.warn('Failed to capture canvas screenshot:', screenshotError);
           // Continue with save even if screenshot fails
         }
       }
       
+      // show a persistent toast while saving
+      const savingToastId = toast.info('Saving scene...', { autoClose: false, closeButton: false });
+
       await createSnapshot(`Manual Save - ${timestamp}`);
-      console.log('💾 Manual save completed');
+      console.log('Manual save completed');
+
+      // replace the saving toast with success
+      toast.dismiss(savingToastId);
+      toast.success('Scene saved', { autoClose: 2500 });
     } catch (error) {
-      console.error('❌ Manual save failed:', error);
+      console.error('Manual save failed:', error);
       console.error('Auth token available:', !!token);
-      alert('Save failed. Please try again.');
+      toast.error('Save failed. Please try again.');
     }
   };
   return (
@@ -325,7 +341,27 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
         </div>
         
         <h1 className={styles.topBarTitle}>3D Scene Editor</h1>
-        <Badge className={styles.liveBadge}>Live</Badge>
+        {/* Dynamic Live Badge */}
+        {currentSession ? (
+          <Badge className={`${styles.liveBadge} bg-green-500 text-white animate-pulse`}>
+            Live • {currentSession.participants.length} users
+          </Badge>
+        ) : (
+          receivedInvitations.some(inv => inv.projectId === projectId && inv.status === 'pending') || 
+          sentInvitations.some(inv => inv.projectId === projectId && inv.status === 'pending')
+        ) ? (
+          <Badge className={`${styles.liveBadge} bg-blue-500 text-white`}>
+            Pending Invites
+          </Badge>
+        ) : activeSessions.length > 0 ? (
+          <Badge className={`${styles.liveBadge} bg-orange-500 text-white`}>
+            Active Sessions
+          </Badge>
+        ) : (
+          <Badge className={`${styles.liveBadge} bg-gray-500 text-white`}>
+            Offline
+          </Badge>
+        )}
       </div>
 
       <div className={styles.topBarRight}>
@@ -382,10 +418,21 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
           </Button>
 
           <Button 
+            variant={showCollaboration ? "default" : "ghost"}
+            size="sm"
+            onClick={onCollaborationToggle}
+            className={`${styles.controlButton} ${showCollaboration ? 'bg-blue-500 text-white' : ''}`}
+            title="Real-time Collaboration"
+          >
+            <Users className="w-4 h-4" />
+          </Button>
+
+          <Button 
             variant="ghost"
             size="sm"
             onClick={onPropertiesToggle}
             className={styles.controlButton}
+            title="Properties Panel"
           >
             <Settings className="w-4 h-4" />
           </Button>

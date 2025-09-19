@@ -150,9 +150,14 @@ export const useInvitations = (): UseInvitationsReturn => {
         setCurrentSession(session);
       }
     } catch (err) {
+      // Always refresh invitations to show current status
+      await refreshInvitations();
+      
       const errorMessage = err instanceof Error ? err.message : 'Failed to accept invitation';
       addNotification('error', 'Failed to Accept', errorMessage);
-      throw err;
+      
+      // Don't re-throw the error - just show the notification
+      console.error('Accept invitation error:', err);
     }
   }, [token, refreshInvitations, refreshSessions]);
 
