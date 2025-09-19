@@ -1,5 +1,6 @@
-import React, { useMemo, Suspense } from 'react';
+import React, { useMemo, Suspense, useState } from 'react';
 import { useGLTF } from '@react-three/drei';
+import { toast } from 'react-toastify';
 import * as THREE from 'three';
 import { useSceneContext } from '../../contexts/SceneContext';
 import { log } from '../../utils/logger';
@@ -49,12 +50,40 @@ const MeshItem: React.FC<MeshItemProps> = React.memo(({ item, categoryKey, isEna
   // Load the GLTF model directly
   let gltf: any = null;
   let loadError = false;
+  const [hasError, setHasError] = useState(false);
   
   try {
     if (bestUrl && isEnabled) {
       console.log('🔍 MeshItem: Loading GLTF:', bestUrl);
-      gltf = useGLTF(bestUrl, true);
+      gltf = useGLTF(bestUrl, undefined, undefined, (error: any) => {
+        console.error('Failed to load GLB in MeshItem:', error);
+        setHasError(true);
+        loadError = true;
+        toast.error('Failed to load 3D model. The asset may be missing or corrupted.', {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      });
       console.log('🔍 MeshItem: GLTF loaded successfully:', gltf ? 'yes' : 'no');
+
+      // Check if this is a placeholder GLB from the API
+      if (gltf && gltf.scene && gltf.scene.userData && gltf.scene.userData.generator === 'Lumea Placeholder') {
+        console.warn('MeshItem: Detected placeholder GLB for:', bestUrl);
+        setHasError(true);
+        loadError = true;
+        toast.error('3D model asset is missing from storage. Using error placeholder.', {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
     }
   } catch (error) {
     console.error('🔍 MeshItem: useGLTF failed:', error);
@@ -63,6 +92,11 @@ const MeshItem: React.FC<MeshItemProps> = React.memo(({ item, categoryKey, isEna
 
   if (!isEnabled) {
     console.log('🔍 MeshItem: Item disabled, not rendering:', item.id);
+    return null;
+  }
+  
+  // If there's an error, don't render anything
+  if (hasError) {
     return null;
   }
   
@@ -262,22 +296,44 @@ const MeshItem: React.FC<MeshItemProps> = React.memo(({ item, categoryKey, isEna
 MeshItem.displayName = 'MeshItem';
 
 // Error boundary component for individual meshes
-const MeshErrorBoundary: React.FC<{ children: React.ReactNode }> = ({ 
-  children
-}) => {
-  return (
-    <Suspense 
-      fallback={
-        <mesh position={[0, 0, 0]}>
-          <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial color="#cccccc" wireframe />
-        </mesh>
-      }
-    >
-      {children}
-    </Suspense>
-  );
-};
+class MeshErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('MeshErrorBoundary caught an error:', error, errorInfo);
+    // Don't show toast here as individual mesh errors are handled by useGLTF
+  }
+
+  render() {
+    if (this.state.hasError) {
+      // Return null to hide the broken mesh instead of showing error UI
+      return null;
+    }
+
+    return (
+      <Suspense
+        fallback={
+          <mesh position={[0, 0, 0]}>
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color="#cccccc" wireframe />
+          </mesh>
+        }
+      >
+        {this.props.children}
+      </Suspense>
+    );
+  }
+}
 
 // Main scene renderer component
 const SceneRenderer: React.FC = React.memo(() => {

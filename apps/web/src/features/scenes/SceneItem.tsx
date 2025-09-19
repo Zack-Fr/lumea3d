@@ -1,7 +1,8 @@
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useMemo, useEffect, useState } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { Group } from 'three';
 import { applyMaterialOverridesToObject } from '../../utils/textureSystem';
+import { toast } from 'react-toastify';
 import type { SceneItem } from '../../services/scenesApi';
 
 interface SceneItemProps {
@@ -12,7 +13,40 @@ interface SceneItemProps {
 
 export function SceneItem({ item, categoryUrl, categoryKey }: SceneItemProps) {
   const groupRef = useRef<Group>(null);
-  const { scene } = useGLTF(categoryUrl);
+  const [hasError, setHasError] = useState(false);
+  
+  const { scene } = useGLTF(categoryUrl, undefined, undefined, (error: any) => {
+    const msg = (error && error.message) || String(error);
+    const isStorageError = /public\/storage\/serve|ECONNREFUSED|minio|s3/i.test(msg);
+
+    if (isStorageError) {
+      console.warn('SceneItem: Storage fetch failed (suppressed):', msg);
+      toast.warn('Some assets are unavailable (storage offline). Using placeholders.', { position: 'top-right', autoClose: 4000, toastId: `storage-missing-${categoryUrl}` });
+    } else {
+      console.error('Failed to load GLB for SceneItem:', error);
+      toast.error('Failed to load 3D model. The asset may be missing or corrupted.', { position: 'top-right', autoClose: 5000 });
+    }
+    setHasError(true);
+  });
+  
+  // Check for placeholder GLB
+  useEffect(() => {
+    if (scene && !hasError) {
+      if (scene.children.length === 0 && 
+          (scene as any).asset?.generator === 'Lumea Placeholder') {
+        console.warn('Detected placeholder GLB for missing asset in SceneItem:', categoryUrl);
+        setHasError(true);
+        toast.error('3D model not found. The asset may have been deleted or moved.', {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
+    }
+  }, [scene, hasError, categoryUrl]);
   
   // Find the specific model node in the category scene
   const modelNode = useMemo(() => {
@@ -125,7 +159,7 @@ export function SceneItem({ item, categoryUrl, categoryKey }: SceneItemProps) {
       
   }, [clonedModel, item.materialOverrides, item.material, item.id]);
   
-  if (!clonedModel) {
+  if (!clonedModel || hasError) {
     return null;
   }
   

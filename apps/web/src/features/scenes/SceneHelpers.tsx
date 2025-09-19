@@ -1,8 +1,9 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Grid, Plane } from '@react-three/drei';
 import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { Group, Mesh } from 'three';
+import { toast } from 'react-toastify';
 import type { ViewerControls } from './ViewerSidebar';
 
 interface SceneHelpersProps {
@@ -35,35 +36,63 @@ function SceneGrid({ visible }: { visible: boolean }) {
 // NavMesh Visualization Component
 function NavMeshVisualization({ url, visible }: { url?: string; visible: boolean }) {
   const meshRef = useRef<Group>(null);
+  const [hasError, setHasError] = useState(false);
 
   if (!visible || !url) return null;
 
-  try {
-    const { scene } = useGLTF(url);
-    
-    // Clone the navmesh and make it semi-transparent
-    const navmesh = scene.clone();
-    
-    // Apply wireframe material to visualize navmesh
-    navmesh.traverse((child) => {
-      if (child instanceof Mesh) {
-        child.material = child.material.clone();
-        child.material.wireframe = true;
-        child.material.transparent = true;
-        child.material.opacity = 0.3;
-        child.material.color.setHex(0x00ff00); // Green wireframe
-      }
+  const { scene } = useGLTF(url, undefined, undefined, (error: any) => {
+    console.error('Failed to load navmesh GLB:', error);
+    setHasError(true);
+    toast.error('Failed to load navigation mesh. The asset may be missing or corrupted.', {
+      position: "top-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
     });
+  });
+  
+  // Check for placeholder GLB
+  useEffect(() => {
+    if (scene && !hasError) {
+      if (scene.children.length === 0 && 
+          (scene as any).asset?.generator === 'Lumea Placeholder') {
+        console.warn('Detected placeholder GLB for missing navmesh asset:', url);
+        setHasError(true);
+        toast.error('Navigation mesh not found. The asset may have been deleted or moved.', {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
+    }
+  }, [scene, hasError, url]);
+  
+  if (hasError) return null;
+  
+  // Clone the navmesh and make it semi-transparent
+  const navmesh = scene.clone();
+  
+  // Apply wireframe material to visualize navmesh
+  navmesh.traverse((child) => {
+    if (child instanceof Mesh) {
+      child.material = child.material.clone();
+      child.material.wireframe = true;
+      child.material.transparent = true;
+      child.material.opacity = 0.3;
+      child.material.color.setHex(0x00ff00); // Green wireframe
+    }
+  });
 
-    return (
-      <group ref={meshRef} name="navmesh-visualization">
-        <primitive object={navmesh} />
-      </group>
-    );
-  } catch (error) {
-    console.warn('Failed to load navmesh for visualization:', error);
-    return null;
-  }
+  return (
+    <group ref={meshRef} name="navmesh-visualization">
+      <primitive object={navmesh} />
+    </group>
+  );
 }
 
 // FPS Counter Component (overlaid in 3D space)
