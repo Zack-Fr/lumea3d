@@ -11,7 +11,7 @@ services:
       POSTGRES_DB: lumea_production
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
     ports:
-      - "5433:5432"  # Different port to avoid conflicts
+      - "0.0.0.0:5433:5432"  # Bind to all interfaces for network access
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
@@ -29,7 +29,7 @@ services:
     image: redis:7-alpine
     container_name: lumea_redis_prod
     ports:
-      - "6380:6379"  # Different port to avoid conflicts
+      - "0.0.0.0:6380:6379"  # Bind to all interfaces for network access
     volumes:
       - redis_prod_data:/data
     healthcheck:
@@ -46,8 +46,8 @@ services:
     image: minio/minio:latest
     container_name: lumea_minio_prod
     ports:
-      - "9001:9000"  # Different port to avoid conflicts
-      - "9091:9090"  # Console port
+      - "0.0.0.0:9001:9000"  # Bind to all interfaces for network access
+      - "0.0.0.0:9091:9090"  # Console port
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
@@ -80,7 +80,7 @@ services:
       ALLOWED_ORIGINS: https://app.lumea.com,https://admin.lumea.com
       PORT: 3000
     ports:
-      - "3000:3000"  # Different port to avoid conflicts
+      - "0.0.0.0:3000:3000"  # Bind to all interfaces for network access
     depends_on:
       postgres_prod:
         condition: service_healthy
@@ -111,7 +111,7 @@ services:
       NODE_ENV: production
       VITE_API_URL: http://localhost:3000
     ports:
-      - "3000:80"  # Nginx serves on port 80 inside container
+      - "0.0.0.0:3001:80"  # Bind to all interfaces for network access
     depends_on:
       - api_prod
     healthcheck:
