@@ -25,10 +25,6 @@ interface LightConfig {
 const LightCreation: React.FC<LightCreationProps> = ({ onLightCreated }) => {
   const { sceneId } = useSceneContext();
   
-  console.log('💡 LightCreation: Scene ID from context:', {
-    sceneId,
-    hasSceneId: !!sceneId
-  });
   const [selectedLightType, setSelectedLightType] = useState<LightType>('directional');
   const [isCreatingLight, setIsCreatingLight] = useState(false);
 
@@ -143,14 +139,6 @@ const LightCreation: React.FC<LightCreationProps> = ({ onLightCreated }) => {
           createdAt: new Date().toISOString()
         }
       };
-
-      console.log('💡 Light created:', {
-        type: lightType,
-        name: light.name,
-        position: light.position.toArray(),
-        intensity: light.intensity,
-        color: light.color.getHexString()
-      });
 
       // Add light to the 3D scene
       addLightToScene(light);

@@ -74,14 +74,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   
   const activeSceneId = sceneId || contextSceneId;
   
-  console.log({
-    propSceneId: sceneId,
-    contextSceneId: contextSceneId,
-    activeSceneId: activeSceneId,
-    hasManifest: !!manifest,
-    sceneIdSource: sceneId ? 'prop' : contextSceneId ? 'context' : 'none'
-  });
-  
   // Shell shadow state
   const [shellSettings, setShellSettings] = useState<ShellSettings>({
     castShadow: false,
@@ -160,14 +152,11 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     let intervalId: number;
     
     if (selection.isTransforming) {
-      console.log('PropertiesPanel: Starting live position updates (transforming)'); 
       // Update positions every 50ms while transforming for live feedback
       intervalId = window.setInterval(() => {
-        console.log('💡 PropertiesPanel: Live position update tick');
         setCreatedLights(prev => [...prev]); // This will cause a re-render with current positions
       }, 50);
     } else {
-      console.log('PropertiesPanel: Stopping live position updates (not transforming)');
     }
     
     return () => {
@@ -202,7 +191,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
         if (prevSettings.intensity !== newSettings.intensity || 
             prevSettings.exposure !== newSettings.exposure ||
             prevSettings.shadowStrength !== newSettings.shadowStrength) {
-          console.log('Environment: Loading settings from manifest:', newSettings);
           return newSettings;
         }
         return prevSettings;
@@ -235,7 +223,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
               color: `#${stdMat.color.getHexString()}`
             };
             
-            console.log('🎨 Extracted material properties from:', material.name || 'unnamed', extractedMaterial);
             (extractedMaterial as any)._extracted = true; // Mark as extracted to break loops
             break;
           }
@@ -316,7 +303,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                 
                 // Create a placeholder or fallback URL for UUID textures
                 // You could also try to reconstruct the original URL if you know the pattern
-                console.log('Found texture with UUID reference:', texture.name, 'UUID:', texture.image);
                 
                 // Try to render the texture to a canvas to get a data URL
                 try {
@@ -331,7 +317,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                     if (imageData instanceof HTMLImageElement || imageData instanceof HTMLCanvasElement) {
                       ctx?.drawImage(imageData, 0, 0, 128, 128);
                       const dataUrl = canvas.toDataURL('image/png');
-                      console.log('Created data URL from texture:', texture.name);
                       return { url: dataUrl, name: textureName };
                     }
                   }
@@ -361,7 +346,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                     ctx.fillText(displayName, 64, 112);
                     
                     const dataUrl = canvas.toDataURL('image/png');
-                    console.log('Created fallback data URL for texture:', texture.name);
                     return { url: dataUrl, name: textureName };
                   }
                 } catch (error) {
@@ -391,7 +375,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                   </svg>
                 `)}`;
                 
-                console.log('🎨 Created SVG fallback for texture:', name);
                 return { url: svgUrl, name: textureName };
               }
               
@@ -401,7 +384,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                 if (texture.image.src) return { url: texture.image.src, name: textureName };
                 
                 // Create a visual placeholder for texture based on its name
-                console.log('🖼️ Found texture object for:', texture.name, 'creating visual placeholder...');
                 
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
@@ -453,17 +435,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                   ctx.fillText(displayName, 64, 112);
                   
                   const dataUrl = canvas.toDataURL('image/png');
-                  console.log('🎨 Created enhanced placeholder for texture:', texture.name);
                   return { url: dataUrl, name: textureName };
                 }
               }
               
-              console.log('🔍 Could not extract URL from texture:', {
-                name: texture.name,
-                hasImage: !!texture.image,
-                imageType: typeof texture.image,
-                image: texture.image
-              });
               return undefined;
             };
             
@@ -474,7 +449,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
             textures.occlusion = getTextureData(stdMat.aoMap);
             textures.opacity = getTextureData(stdMat.alphaMap);
             
-            console.log('🖼️ Extracted texture URLs:', textures);
             break;
           }
         }
@@ -534,7 +508,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       }
     });
     
-    console.log('🎨 Extracted materials:', materials);
     return materials;
   }, []);
 
@@ -555,7 +528,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       // For visibility, it's client-side only - no API call needed
       if (property === 'visible') {
         // TODO: Update 3D scene shell visibility directly
-        console.log('Shell visibility changed:', value);
         return;
       }
       
@@ -570,7 +542,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       // Call the backend API to update shell properties
       await scenesApi.updateScene(activeSceneId, updateBody, manifest?.scene?.version?.toString());
       
-      console.log(`Successfully updated shell ${property} to ${value} for scene ${activeSceneId}`);
       
       // Refresh scene to reflect changes
       refreshScene();
@@ -624,7 +595,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       // Call the backend API to update item
       await scenesApi.updateItem(activeSceneId, selectedItemId, updateRequest, manifest?.scene?.version?.toString());
       
-      console.log(`Successfully updated item ${selectedItemId} transform`);
       
       // Update local state
       setSelectedItem(prev => prev ? { ...prev, ...transform } : null);
@@ -646,25 +616,21 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   const handleUnitChange = useCallback((unit: ScaleUnit) => {
     setScaleSettings(prev => ({ ...prev, unit }));
     // TODO: Update 3D scene with new unit display
-    console.log('Scene unit changed to:', unit);
   }, []);
   
   const handleScaleChange = useCallback((sceneScale: number) => {
     setScaleSettings(prev => ({ ...prev, sceneScale }));
     // TODO: Update 3D scene scale multiplier
-    console.log('Scene scale changed to:', sceneScale);
   }, []);
   
   
   // Light creation handler
   const handleLightCreated = useCallback((light: THREE.Light) => {
-    // console.log('Light created in PropertiesPanel:', light.name);
     setCreatedLights(prev => [...prev, light]);
   }, []);
   
   // Light property update handler
   const handleUpdateLightProperty = useCallback((light: THREE.Light, property: string, value: any) => {
-    console.log(`💡 Updating light ${light.name} ${property}:`, value);
     
     try {
       switch (property) {
@@ -714,7 +680,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   // Light visibility toggle handler
   const handleToggleLightVisibility = useCallback((light: THREE.Light) => {
     light.visible = !light.visible;
-    console.log(`💡 Light ${light.name} visibility:`, light.visible);
     
     // Also toggle helper visibility if it exists
     if (light.userData.helper) {
@@ -727,7 +692,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   
   // Remove light handler
   const handleRemoveLight = useCallback((light: THREE.Light) => {
-    console.log(`💡 Removing light:`, light.name);
     
     try {
       // STEP 1: Check if this light or its helper is currently selected and deselect it first
@@ -738,7 +702,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
           selection.selectedObject.itemId === light.name;
         
         if (isLightSelected) {
-          console.log(`💡 Deselecting light before removal:`, light.name);
           // Deselect to detach transform controls
           if (typeof deselectObject === 'function') {
             deselectObject();
@@ -752,26 +715,22 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
           // Remove helper first (it's usually selected)
           if (light.userData.helper && light.userData.helper.parent) {
             light.userData.helper.parent.remove(light.userData.helper);
-            console.log(`💡 Helper removed for light:`, light.name);
           }
           
           // Remove target for directional/spot lights
           if ((light instanceof THREE.DirectionalLight || light instanceof THREE.SpotLight) && light.target.parent) {
             light.target.parent.remove(light.target);
-            console.log(`💡 Target removed for light:`, light.name);
           }
           
           // Remove light from scene
           if (light.parent) {
             light.parent.remove(light);
-            console.log(`💡 Light removed from scene:`, light.name);
           }
           
           // STEP 3: Remove from LightsManager (this will clean up layers panel)
           try {
             const { removeLightFromScene } = await import('./LightsContainer');
             removeLightFromScene(light.name);
-            console.log(`💡 Light removed from LightsManager:`, light.name);
           } catch (error) {
             console.warn('Could not import removeLightFromScene:', error);
           }
@@ -779,10 +738,8 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
           // STEP 4: Remove from state
           setCreatedLights(prev => prev.filter(l => l.name !== light.name));
           
-          console.log(`✓ Light ${light.name} removed successfully`);
-          
         } catch (error) {
-          console.error(`Failed to remove light ${light.name} in timeout:`, error);
+          console.error(`Failed to remove light ${light.name}:`, error);
         }
       }, 100); // 100ms delay to ensure transform controls are detached
       
@@ -855,12 +812,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
         if (pendingUpdates.metallic !== undefined) apiMaterialOverrides.metallic = pendingUpdates.metallic / 100;
         if (pendingUpdates.emission !== undefined) apiMaterialOverrides.emissive = pendingUpdates.emission / 100;
         if (pendingUpdates.color) apiMaterialOverrides.baseColor = pendingUpdates.color;
-        
-        console.log('📤 Staging debounced material update:', {
-          itemId: selection.selectedObject.itemId,
-          pendingUpdates,
-          apiMaterialOverrides
-        });
         
         stageOperation({
           op: 'update_material',
@@ -984,11 +935,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
           
           // STEP: Stage texture removal as delta operation for backend saving
           if (selection.selectedObject?.itemId) {
-            console.log('Staging texture removal as delta operation:', {
-              itemId: selection.selectedObject.itemId,
-              textureType: type
-            });
-            
             // Build texture removal material overrides for backend
             const materialOverrides: any = {};
             

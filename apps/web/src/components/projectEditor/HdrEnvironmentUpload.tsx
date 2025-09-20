@@ -25,12 +25,6 @@ const HdrEnvironmentUpload: React.FC<HdrEnvironmentUploadProps> = ({
   onHdriUpdate,
   onSceneRefresh
 }) => {
-  console.log('🌄 HDR Upload Component: Rendered with props:', {
-    sceneId,
-    currentHdriUrl,
-    hasOnHdriUpdate: !!onHdriUpdate,
-    hasOnSceneRefresh: !!onSceneRefresh
-  });
   const [uploadState, setUploadState] = useState<UploadState>({
     isUploading: false,
     uploadProgress: 0,

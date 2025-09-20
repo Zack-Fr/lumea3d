@@ -73,14 +73,7 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
 
   // Debug logging for auth state
   useEffect(() => {
-    console.log('🔐 TopBar auth state:', {
-      hasToken: !!token,
-      tokenPreview: token ? token.substring(0, 20) + '...' : 'NULL',
-      isAuthenticated,
-      authLoading,
-      projectId,
-      sceneId
-    });
+    // Removed console.log for auth state
   }, [token, isAuthenticated, authLoading, projectId, sceneId]);
 
   // Initialize save queue with scene ID and fetch current version
@@ -103,13 +96,13 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
           if (response.ok) {
             const { version } = await response.json();
             setSceneId(sceneId, version);
-            console.log(`Initialized save queue with scene version: ${version}`);
+            // Removed console.log for initialized save queue
           } else {
-            console.warn(`Failed to fetch scene version, using default version 1`);
+            // Removed console.warn for failed to fetch scene version
             setSceneId(sceneId, 1);
           }
         } catch (error) {
-          console.error(`Error fetching scene version:`, error);
+          // Removed console.error for error fetching scene version
           setSceneId(sceneId, 1);
         }
       }
@@ -151,16 +144,16 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
   const currentScene = finalScenes.find(scene => scene.id === sceneId);
 
   const handleSceneSelect = (scene: any) => {
-    console.log('TopBar: Scene selected:', { scene, projectId });
+    // Removed console.log for scene selection
     
     if (!projectId) {
-      console.error('TopBar: No projectId available for scene selection');
+      // Removed console.error for no projectId
       return;
     }
     
     // Navigate to the scene URL which will trigger the context update
     const sceneUrl = `/app/projects/${projectId}/scenes/${scene.id}/editor`;
-    console.log('TopBar: Navigating to:', sceneUrl);
+    // Removed console.log for navigation
     
     navigate(sceneUrl);
     setShowSceneSelector(false);
@@ -168,12 +161,12 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
 
   const handleCreateScene = async () => {
     if (!projectId) {
-      console.error('No project ID available for scene creation');
+      // Removed console.error for no project ID
       toast.error('No project selected. Please select a project first.');
       return;
     }
 
-    console.log('Creating scene in project:', projectId);
+    // Removed console.log for creating scene in project
 
     try {
       // Import scenesApi dynamically to avoid circular dependencies
@@ -185,26 +178,23 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
         return;
       }
 
-      console.log('Calling scenesApi.createScene with:', { 
-        name: sceneName.trim(),
-        projectId: projectId
-      });
+      // Removed console.log for calling scenesApi.createScene
 
       const newScene = await scenesApi.createScene({ 
         name: sceneName.trim(),
         projectId: projectId
       });
       
-      console.log('Scene created successfully:', newScene);
+      // Removed console.log for scene created successfully
       toast.success('Scene created successfully', { autoClose: 3000 });
       // Navigate to the new scene URL
       if (newScene && newScene.id) {
         const newSceneUrl = `/app/projects/${projectId}/scenes/${newScene.id}/editor`;
-        console.log('TopBar: Navigating to new scene:', newSceneUrl);
+        // Removed console.log for navigating to new scene
         navigate(newSceneUrl);
       }
     } catch (error) {
-      console.error('Failed to create scene:', error);
+      // Removed console.error for failed to create scene
       toast.error('Failed to create scene. Please try again.');
     }
   };
@@ -221,11 +211,11 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
       // Capture and upload canvas screenshot as thumbnail
       if (projectId) {
         try {
-          console.log('📷 Capturing canvas screenshot...');
+          // Removed console.log for capturing canvas screenshot
           const result = await captureAndUploadScreenshot(projectId);
-          console.log('📷 Canvas screenshot uploaded:', result.thumbnailUrl);
+          // Removed console.log for canvas screenshot uploaded
         } catch (screenshotError) {
-          console.warn('Failed to capture canvas screenshot:', screenshotError);
+          // Removed console.warn for failed to capture screenshot
           // Continue with save even if screenshot fails
         }
       }
@@ -234,14 +224,14 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
       const savingToastId = toast.info('Saving scene...', { autoClose: false, closeButton: false });
 
       await createSnapshot(`Manual Save - ${timestamp}`);
-      console.log('Manual save completed');
+      // Removed console.log for manual save completed
 
       // replace the saving toast with success
       toast.dismiss(savingToastId);
       toast.success('Scene saved', { autoClose: 2500 });
     } catch (error) {
-      console.error('Manual save failed:', error);
-      console.error('Auth token available:', !!token);
+      // Removed console.error for manual save failed
+      // Removed console.error for auth token available
       toast.error('Save failed. Please try again.');
     }
   };

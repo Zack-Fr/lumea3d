@@ -319,16 +319,12 @@ export const scenesApi = {
       console.error('❌ SCENES_API: NO TOKEN - Authorization header NOT set!');
     }
     
-    console.log('🎨 SCENES_API: Final headers:', headers);
     
     const response = await fetch(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(sceneData),
     });
-    
-    console.log('🎨 SCENES_API: Response status:', response.status);
-    console.log('🎨 SCENES_API: Response status text:', response.statusText);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -404,39 +400,6 @@ export const scenesApi = {
     if (!token) {
       throw new SceneApiError(401, 'Authentication token required');
     }
-    
-    console.log('📦 SCENES_API: addItem request:', {
-      sceneId,
-      version,
-      url,
-      itemStructure: {
-        categoryKey: item.categoryKey,
-        categoryKeyValid: /^[a-z0-9_]{1,50}$/.test(item.categoryKey),
-        model: item.model || 'not specified',
-        position: [item.positionX, item.positionY, item.positionZ],
-        positionValid: [
-          typeof item.positionX === 'number' && item.positionX >= -1000 && item.positionX <= 1000,
-          typeof item.positionY === 'number' && item.positionY >= -1000 && item.positionY <= 1000,
-          typeof item.positionZ === 'number' && item.positionZ >= -1000 && item.positionZ <= 1000
-        ],
-        rotation: [item.rotationX, item.rotationY, item.rotationZ],
-        rotationValid: [
-          typeof item.rotationX === 'number' && item.rotationX >= -180 && item.rotationX <= 180,
-          typeof item.rotationY === 'number' && item.rotationY >= -180 && item.rotationY <= 180,
-          typeof item.rotationZ === 'number' && item.rotationZ >= -180 && item.rotationZ <= 180
-        ],
-        scale: [item.scaleX, item.scaleY, item.scaleZ],
-        scaleValid: [
-          typeof item.scaleX === 'number' && item.scaleX >= 0.01 && item.scaleX <= 100,
-          typeof item.scaleY === 'number' && item.scaleY >= 0.01 && item.scaleY <= 100,
-          typeof item.scaleZ === 'number' && item.scaleZ >= 0.01 && item.scaleZ <= 100
-        ],
-        selectable: item.selectable,
-        locked: item.locked,
-        hasMeta: !!item.meta,
-        metaKeys: item.meta ? Object.keys(item.meta) : []
-      }
-    });
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
