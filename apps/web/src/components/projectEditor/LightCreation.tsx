@@ -139,9 +139,98 @@ const LightCreation: React.FC<LightCreationProps> = ({ onLightCreated }) => {
           createdAt: new Date().toISOString()
         }
       };
+      
+      console.log('💡 Created light with userData:', {
+        lightName: light.name,
+        userData: light.userData,
+        selectable: light.userData.selectable
+      });
 
       // Add light to the 3D scene
       addLightToScene(light);
+      
+      // Save light to backend as scene item
+      if (sceneId) {
+        console.log('💾 Attempting to save light to backend...');
+        
+        // Try to save asynchronously without blocking the UI
+        setTimeout(async () => {
+          try {
+            const { scenesApi } = await import('../../services/scenesApi');
+            
+            // Get available categories first
+            let categoryKey = 'lighting'; // Default fallback
+            try {
+              const categories = await scenesApi.getCategories(sceneId);
+              console.log('📋 Available categories:', categories);
+              
+              // Use first available category if any exist
+              if (categories && categories.length > 0) {
+                categoryKey = categories[0].categoryKey || 'lighting';
+                console.log('📋 Using category:', categoryKey);
+              }
+            } catch (categoryError) {
+              console.log('⚠️ Could not fetch categories, using default');
+            }
+            
+            // Create scene item for the light
+            const lightItem = {
+              categoryKey: categoryKey,
+              model: lightType,
+              positionX: light.position.x,
+              positionY: light.position.y,
+              positionZ: light.position.z,
+              rotationX: light.rotation.x,
+              rotationY: light.rotation.y,
+              rotationZ: light.rotation.z,
+              scaleX: light.scale.x,
+              scaleY: light.scale.y,
+              scaleZ: light.scale.z,
+              selectable: true,
+              locked: false,
+              meta: {
+                isLight: true,
+                lightType: lightType,
+                lightName: light.name,
+                originalLightId: light.userData.itemId,
+                lightProperties: {
+                  color: light.color.getHexString(),
+                  intensity: light.intensity,
+                  ...(lightType === 'point' && { 
+                    distance: (light as THREE.PointLight).distance,
+                    decay: (light as THREE.PointLight).decay 
+                  }),
+                  ...(lightType === 'spot' && { 
+                    distance: (light as THREE.SpotLight).distance,
+                    decay: (light as THREE.SpotLight).decay,
+                    angle: (light as THREE.SpotLight).angle 
+                  })
+                }
+              }
+            };
+            
+            console.log('💾 Creating light item:', lightItem);
+            
+            const result = await scenesApi.addItem(sceneId, lightItem);
+            
+            if (result && result.id) {
+              const oldItemId = light.userData.itemId;
+              light.userData.itemId = result.id;
+              light.userData.dbId = result.id;
+              
+              console.log('✅ Light successfully saved:', {
+                lightName: light.name,
+                tempId: oldItemId,
+                dbId: result.id
+              });
+            }
+            
+          } catch (error) {
+            console.error('❌ Failed to save light:', error);
+            // Light remains with temp ID - still moveable locally
+          }
+        }, 100);
+      }
       
       // Notify parent component
       if (onLightCreated) {

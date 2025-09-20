@@ -123,7 +123,10 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
       }
       
       // Include mesh objects and light helpers with selectable userData
-      if ((child.type === 'Mesh' || child.userData?.isHelper) && child.userData && child.userData.selectable && child.userData.itemId) {
+      const isSelectableMesh = child.type === 'Mesh' && child.userData && child.userData.selectable && child.userData.itemId;
+      const isSelectableHelper = child.userData?.isHelper && child.userData.selectable && child.userData.itemId;
+      
+      if (isSelectableMesh || isSelectableHelper) {
         intersectableObjects.push(child);
       }
     });

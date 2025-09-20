@@ -57,7 +57,25 @@ export function SelectionProvider({ children }: SelectionProviderProps) {
   const selectObject = useCallback((object: Object3D) => {
     // Check if object has the required userData for selection
     const userData = object.userData;
+    
+    console.log('🎯 Selection attempt:', {
+      objectName: object.name,
+      hasUserData: !!userData,
+      itemId: userData?.itemId,
+      selectable: userData?.selectable,
+      isLight: userData?.meta?.isLight,
+      isHelper: userData?.isHelper,
+      userData: userData
+    });
+    
     if (!userData || !userData.itemId || !userData.selectable) {
+      console.warn('⚠️ Object is not selectable:', {
+        objectName: object.name,
+        missingUserData: !userData,
+        missingItemId: !userData?.itemId,
+        notSelectable: !userData?.selectable,
+        userData
+      });
       log('warn', '⚠️ Object is not selectable:', object.name);
       return;
     }
