@@ -3951,8 +3951,12 @@
   ],
   "servers": [
     {
+      "url": "http://192.168.1.10:3000",
+      "description": "Network Access Server"
+    },
+    {
       "url": "http://localhost:3000",
-      "description": "Development Server"
+      "description": "Local Development Server"
     },
     {
       "url": "https://api.lumea.dev",

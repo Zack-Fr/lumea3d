@@ -30,22 +30,13 @@ async function bootstrap() {
     },
   });
   
-  // Security middleware
+  // Security middleware - relaxed for development network access
   app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
-        frameSrc: ["'none'"],
-      },
-    },
+    contentSecurityPolicy: false, // Disable CSP for development
     crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false, // Disable COOP for development
+    crossOriginResourcePolicy: false, // Disable CORP for development
+    hsts: false, // Disable HSTS for HTTP development
   }));
 
   // Rate limiting - TEMPORARILY DISABLED FOR TESTING
@@ -93,19 +84,20 @@ async function bootstrap() {
     }
   }));
 
+  // Add custom middleware to handle mobile browser access
+  app.use((req, res, next) => {
+    // Allow mobile browsers by relaxing security headers
+    res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none');
+    res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  });
+
   // CORS with security considerations
   app.enableCors({
     origin: process.env.NODE_ENV === 'production' 
       ? process.env.ALLOWED_ORIGINS?.split(',') || false
-      : [
-          'http://localhost:3000', 
-          'http://localhost:5173', 
-          'http://localhost:5174',
-          'http://192.168.1.10:5173',  // Allow frontend from network IP
-          'http://192.168.1.9:5173',   // Allow mobile browser access
-          // Allow any IP on local network for development
-          /^http:\/\/192\.168\.1\.\d{1,3}:\d{1,5}$/
-        ],
+      : true, // Allow all origins for development
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'If-Match'],
