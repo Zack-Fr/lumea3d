@@ -120,13 +120,16 @@ export class PresenceService {
   /**
    * Get list of users present in a scene
    */
-  list(sceneId: string): Array<{ id: string; name: string }> {
+  list(sceneId: string): Array<{ id: string; userId: string; name: string; status: string; lastSeen: number }> {
     const scenePresence = this.presenceMap.get(sceneId);
     if (!scenePresence) return [];
 
     return Array.from(scenePresence.values()).map(user => ({
       id: user.id,
+      userId: user.id, // Map id to userId for frontend compatibility
       name: user.name,
+      status: 'online', // All present users are online
+      lastSeen: user.lastActivity,
     }));
   }
 

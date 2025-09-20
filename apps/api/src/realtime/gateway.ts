@@ -30,7 +30,17 @@ import {
 @WebSocketGateway({
   namespace: '/rt',
   cors: {
-    origin: process.env.WEB_ORIGIN || 'http://localhost:5173',
+    origin: process.env.NODE_ENV === 'production' 
+      ? process.env.WEB_ORIGIN || false
+      : [
+          'http://localhost:3000', 
+          'http://localhost:5173', 
+          'http://localhost:5174',
+          'http://192.168.1.10:5173',  // Allow frontend from network IP
+          'http://192.168.1.9:5173',   // Allow mobile browser access
+          // Allow any IP on local network for development
+          /^http:\/\/192\.168\.1\.\d{1,3}:\d{1,5}$/
+        ],
     credentials: true,
   },
   maxHttpBufferSize: 32 * 1024, // 32 KB message size limit

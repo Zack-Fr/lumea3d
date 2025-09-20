@@ -10,7 +10,7 @@ export interface DeltaOp {
 // Server → Client events
 export type RtSrvEvent =
   | { t: 'HELLO'; sceneId: string; version: number; serverTime: number }
-  | { t: 'PRESENCE'; users: Array<{ id: string; name: string; color?: string; status?: string }> }
+  | { t: 'PRESENCE'; users: Array<{ id: string; userId: string; name: string; color?: string; status?: string; lastSeen?: number }> }
   | { t: 'CAMERA'; from: string; pose: { p: [number, number, number]; q: [number, number, number, number] } }
   | { t: 'CHAT'; from: string; msg: string; ts: number }
   | { t: 'DELTA'; version: number; ops: DeltaOp[] }
