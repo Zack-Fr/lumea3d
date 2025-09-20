@@ -85,8 +85,6 @@ const [state, setState] = useState<AuthState>(() => {
 
   // Update API client token whenever auth token changes
   useEffect(() => {
-    logOnce('auth:token-changed', 'info', '🔐 AUTH_PROVIDER: Token changed, updating API clients (logged once)');
-    log('debug', 'AUTH_PROVIDER token meta', { hasToken: !!state.token, tokenLength: state.token?.length });
 
     // Additional debugging for authentication issues
     console.log('🔐 Auth token updated:', {
@@ -98,15 +96,10 @@ const [state, setState] = useState<AuthState>(() => {
     });
 
     if (state.token) {
-      // log once to avoid repeated token lines
-      logOnce('auth:set-tokens', 'info', '🔐 AUTH_PROVIDER: Setting token for all API services');
-      console.log('🔐 AUTH_PROVIDER: Calling updateApiClientToken with token');
       updateApiClientToken(state.token);
       updateAssetApiToken(state.token);
       updateDashboardApiToken(state.token);
     } else {
-      logOnce('auth:clear-tokens', 'info', '🔐 AUTH_PROVIDER: Clearing tokens from all API services');
-      console.log('🔐 AUTH_PROVIDER: Clearing tokens (no token available)');
       updateApiClientToken(null);
       updateAssetApiToken(null);
       updateDashboardApiToken(null);

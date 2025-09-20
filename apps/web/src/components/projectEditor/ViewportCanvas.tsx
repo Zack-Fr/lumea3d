@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { log, once as logOnce } from '../../utils/logger';
 import { Canvas } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
@@ -10,15 +10,17 @@ import { useLightingControls } from '../../hooks/useLightingControls';
 import { initKTX2Loader } from '../../utils/textureSystem';
 import { gpuMemoryMonitor } from '../../utils/gpuMemoryMonitor';
 import { StagedSceneLoader } from '../../features/scenes/StagedSceneLoader';
-import { SceneRenderer } from '../../features/scenes/SceneRenderer';
 import { ClickSelection } from '../../features/scenes/ClickSelection';
-import { TransformGizmos } from '../../features/scenes/TransformGizmos';
 import { SelectionHighlightSystem } from '../../features/scenes/SelectionHighlight';
 import { TransformControlsPanel } from '../../features/scenes/TransformControlsPanel';
 import { TransformKeyboardControls } from '../../features/scenes/TransformKeyboardControls';
 import { SelectionBridge } from '../../features/scenes/SelectionBridge';
 import { GridSystem } from '../../features/scenes/GridSystem';
 import { LayerHierarchyBridge } from '../../features/scenes/LayerHierarchyBridge';
+// Portal imports temporarily removed to fix infinite loop
+// import { SceneHost } from '../../viewer/SceneHost';
+// import { useScenePortal } from '../../viewer/useScenePortal';
+import { EditorScene } from '../../viewer/EditorScene';
 import { PerformanceStatsOverlay } from './PerformanceStatsOverlay';
 import LightsContainer from './LightsContainer';
 import CameraControlsComponent from './CameraControls';
@@ -66,8 +68,6 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
   farClip = 1000
 }) => {
   
-  // Debug log clipping plane values
-  console.log('🎥 Camera clipping planes:', { nearClip, farClip });
   // Get scene data from context
   const { 
     sceneId, 
@@ -77,6 +77,26 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
     error,
     manifest
   } = useSceneContext();
+
+  // Update manifest store when manifest changes - with deep change detection to prevent loops
+  React.useEffect(() => {
+    if (!sceneId || !manifest) return;
+    
+    import('../../stores/manifestStore').then(({ manifestStore }) => {
+      const currentState = manifestStore.getState();
+      // Only update if sceneId changed OR manifest is actually a different object reference
+      if (currentState.sceneId !== sceneId || currentState.manifest !== manifest) {
+        console.log('📦 Updating manifest store:', { sceneId, manifestItems: manifest?.items?.length });
+        manifestStore.getState().set({ sceneId, manifest });
+      }
+    });
+  }, [sceneId, manifest]);
+
+  // Temporarily render EditorScene directly to avoid portal issues
+  // TODO: Re-implement portal after fixing infinite loop
+  const editorScene = React.useMemo(() => {
+    return sceneId ? <EditorScene sceneId={sceneId} /> : null;
+  }, [sceneId]);
   
   // Get lighting controls
   const { defaultLightEnabled } = useLightingControls();
@@ -456,7 +476,6 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
           const hdriUrl = manifest?.scene?.envHdriUrl || manifest?.scene?.env?.hdri_url || manifest?.env?.hdri_url;
           
           if (hdriUrl) {
-            console.log('🌄 HDR Environment: Loading HDR from URL:', hdriUrl);
             return (
               <Environment 
                 files={hdriUrl} 
@@ -465,10 +484,8 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
               />
             );
           } else if (defaultLightEnabled) {
-            console.log('🌄 HDR Environment: Using default city preset (default light enabled)');
             return <Environment preset="city" background={false} />;
           } else {
-            console.log('🌄 HDR Environment: No environment (default light disabled)');
             return null;
           }
         })()}
@@ -501,18 +518,11 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
       {/* Dynamic Lights Management */}
       <LightsContainer />
       
-      {/* Scene Content */}
-      <Suspense fallback={null}>
-        {sceneId && <SceneRenderer sceneId={sceneId} />}
-      </Suspense>
+      {/* Scene Content - Direct rendering for now */}
+      {editorScene}
       
-      
-      {/* Selection and Transform System */}
+      {/* Selection and Transform System (outside portal) */}
       <ClickSelection enabled={true} />
-      <TransformGizmos enabled={true} />
-      
-      {/* Layer Hierarchy Data Bridge */}
-      <LayerHierarchyBridge />
       <SelectionHighlightSystem 
         enabled={true}
         highlightColor="#f5c842"
@@ -522,6 +532,9 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
         intensity={1.2}
         pulseSpeed={2.0}
       />
+      
+      {/* Layer Hierarchy Data Bridge */}
+      <LayerHierarchyBridge />
 
         {/* Camera Controls */}
         <CameraControlsComponent

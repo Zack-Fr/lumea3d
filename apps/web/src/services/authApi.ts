@@ -1,5 +1,4 @@
 import { Role, User, RoleEnum } from '../providers/AuthProvider'
-import { once as logOnce, log } from '../utils/logger';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || ''
 
@@ -90,8 +89,6 @@ async function apiRequest<T>(
 
 export const authApi = {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-  logOnce('auth:login:start', 'info', `🌐 AUTH_API: Making login request to: ${API_BASE_URL}/auth/login (logged once)`);
-  log('debug', 'AUTH_API: Request payload', { email: credentials.email });
     
     // Step 1: Get tokens from login endpoint
     const tokensResponse = await apiRequest<BackendAuthResponse>('/auth/login', {
@@ -99,20 +96,13 @@ export const authApi = {
       body: JSON.stringify(credentials),
     });
     
-    logOnce('auth:login:tokens', 'info', '🌐 AUTH_API: Login tokens received (logged once)');
-    log('debug', 'AUTH_API: token details', { hasAccessToken: !!tokensResponse.accessToken, hasRefreshToken: !!tokensResponse.refreshToken });
-    
     // Step 2: Get user profile using the access token
-  logOnce('auth:login:fetch-profile', 'info', '🌐 AUTH_API: Fetching user profile...');
     const userResponse = await apiRequest<User>('/auth/profile', {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${tokensResponse.accessToken}`,
       },
     });
-    
-    logOnce('auth:login:user-received', 'info', '🌐 AUTH_API: User profile received (logged once)');
-    log('debug', 'AUTH_API: user details', { userId: userResponse.id, userEmail: userResponse.email });
     
     // Step 3: Combine into expected format
     const response: AuthResponse = {
@@ -121,15 +111,10 @@ export const authApi = {
       refreshToken: tokensResponse.refreshToken
     };
     
-    logOnce('auth:login:ready', 'info', '🌐 AUTH_API: Combined response ready (logged once)');
-    log('debug', 'AUTH_API: combined response', { hasUser: !!response.user, hasToken: !!response.token, userId: response.user?.id });
-    
     return response;
   },
 
   async register(userData: RegisterRequest): Promise<AuthResponse> {
-    logOnce('auth:register:start', 'info', `🌐 AUTH_API: Making register request to: ${API_BASE_URL}/auth/register (logged once)`);
-    log('debug', 'AUTH_API: Register payload', { email: userData.email });
     
     // Step 1: Get tokens from register endpoint
     const tokensResponse = await apiRequest<BackendAuthResponse>('/auth/register', {
@@ -140,11 +125,7 @@ export const authApi = {
       }),
     });
     
-    logOnce('auth:register:tokens', 'info', '🌐 AUTH_API: Register tokens received (logged once)');
-    log('debug', 'AUTH_API: token details', { hasAccessToken: !!tokensResponse.accessToken, hasRefreshToken: !!tokensResponse.refreshToken });
-    
     // Step 2: Get user profile using the access token
-    logOnce('auth:register:fetch-profile', 'info', '🌐 AUTH_API: Fetching user profile...');
     const userResponse = await apiRequest<User>('/auth/profile', {
       method: 'GET',
       headers: {
@@ -152,18 +133,12 @@ export const authApi = {
       },
     });
     
-    logOnce('auth:register:user-received', 'info', '🌐 AUTH_API: User profile received (logged once)');
-    log('debug', 'AUTH_API: user details', { userId: userResponse.id, userEmail: userResponse.email });
-    
     // Step 3: Combine into expected format
     const response: AuthResponse = {
       user: userResponse,
       token: tokensResponse.accessToken,
       refreshToken: tokensResponse.refreshToken
     };
-    
-    logOnce('auth:register:ready', 'info', '🌐 AUTH_API: Combined response ready (logged once)');
-    log('debug', 'AUTH_API: combined response', { hasUser: !!response.user, hasToken: !!response.token, userId: response.user?.id });
     
     return response;
   },

@@ -71,17 +71,8 @@ export const useInvitations = (): UseInvitationsReturn => {
       setSentInvitations(sent);
       setReceivedInvitations(received);
 
-      // Add notifications for new pending invitations
-      received
-        .filter(inv => inv.status === 'pending')
-        .forEach(invitation => {
-          addNotification(
-            'invitation',
-            'New Collaboration Invitation',
-            `${invitation.fromUserName} invited you to collaborate on "${invitation.projectName}"`,
-            { invitationId: invitation.id, invitation }
-          );
-        });
+      // Note: Removed automatic notification creation to prevent Maximum update depth exceeded
+      // Notifications for new invitations should be handled by real-time updates or explicit user actions
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load invitations';
@@ -127,7 +118,7 @@ export const useInvitations = (): UseInvitationsReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, [token, refreshInvitations]);
+  }, [token]); // FIXED: Removed refreshInvitations to prevent circular dependency
 
   // Accept invitation
   const acceptInvitation = useCallback(async (_invitationId: string, invitationToken: string) => {
@@ -159,7 +150,7 @@ export const useInvitations = (): UseInvitationsReturn => {
       // Don't re-throw the error - just show the notification
       console.error('Accept invitation error:', err);
     }
-  }, [token, refreshInvitations, refreshSessions]);
+  }, [token]); // FIXED: Removed function dependencies to prevent circular dependency
 
   // Decline invitation
   const declineInvitation = useCallback(async (invitationId: string) => {
@@ -175,7 +166,7 @@ export const useInvitations = (): UseInvitationsReturn => {
       addNotification('error', 'Failed to Decline', errorMessage);
       throw err;
     }
-  }, [token, refreshInvitations]);
+  }, [token]); // FIXED: Removed refreshInvitations to prevent circular dependency
 
   // Revoke invitation
   const revokeInvitation = useCallback(async (invitationId: string) => {
@@ -191,7 +182,7 @@ export const useInvitations = (): UseInvitationsReturn => {
       addNotification('error', 'Failed to Revoke', errorMessage);
       throw err;
     }
-  }, [token, refreshInvitations]);
+  }, [token]); // FIXED: Removed refreshInvitations to prevent circular dependency
 
   // End session
   const endSession = useCallback(async (sessionId: string) => {
@@ -211,7 +202,7 @@ export const useInvitations = (): UseInvitationsReturn => {
       addNotification('error', 'Failed to End Session', errorMessage);
       throw err;
     }
-  }, [token, currentSession, refreshSessions]);
+  }, [token, currentSession]); // FIXED: Removed refreshSessions to prevent circular dependency
 
   // Leave session
   const leaveSession = useCallback(async (sessionId: string) => {
@@ -231,7 +222,7 @@ export const useInvitations = (): UseInvitationsReturn => {
       addNotification('error', 'Failed to Leave Session', errorMessage);
       throw err;
     }
-  }, [token, currentSession, refreshSessions]);
+  }, [token, currentSession]); // FIXED: Removed refreshSessions to prevent circular dependency
 
   // Notification management
   const addNotification = useCallback((
@@ -255,10 +246,11 @@ export const useInvitations = (): UseInvitationsReturn => {
     // Auto-remove non-critical notifications after 5 seconds
     if (type === 'success' || type === 'info') {
       setTimeout(() => {
-        clearNotification(notification.id);
+        // Use setNotifications directly to avoid circular dependency with clearNotification
+        setNotifications(prev => prev.filter(n => n.id !== notification.id));
       }, 5000);
     }
-  }, []);
+  }, []); // FIXED: No dependency on clearNotification to prevent circular dependency
 
   const markNotificationAsRead = useCallback((notificationId: string) => {
     setNotifications(prev => prev.map(n => 
@@ -280,7 +272,7 @@ export const useInvitations = (): UseInvitationsReturn => {
       refreshInvitations();
       refreshSessions();
     }
-  }, [token, refreshInvitations, refreshSessions]);
+  }, [token]); // FIXED: Only depend on token to prevent infinite loops
 
   return {
     // Data

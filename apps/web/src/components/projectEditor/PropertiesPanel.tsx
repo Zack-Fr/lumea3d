@@ -1111,8 +1111,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     })();
     
     const url = textureData?.url;
-    console.log(`🎯 getCurrentTextureUrl for ${textureType}:`, url);
-    console.log('🎯 currentTextures state:', currentTextures);
     return url;
   }, [currentTextures]);
   

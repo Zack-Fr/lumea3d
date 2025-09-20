@@ -107,7 +107,8 @@ export const useSaveQueueStore = create<SaveQueueState>()(
         console.log('🔍 Request body:', JSON.stringify({ operations }, null, 2));
 
         // API call to apply delta operations
-        const response = await fetch(`http://localhost:3000/scenes/${sceneId}/items`, {
+        const apiBaseUrl = import.meta?.env?.VITE_API_URL || 'http://192.168.1.10:3000';
+        const response = await fetch(`${apiBaseUrl}/scenes/${sceneId}/items`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -289,7 +290,8 @@ export const useSaveQueueStore = create<SaveQueueState>()(
 
         try {
           // Fetch latest scene version
-          const response = await fetch(`http://localhost:3000/scenes/${sceneId}/version`, {
+          const apiBaseUrl = import.meta?.env?.VITE_API_URL || 'http://192.168.1.10:3000';
+          const response = await fetch(`${apiBaseUrl}/scenes/${sceneId}/version`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('token') || localStorage.getItem('access_token') || ''}`,
             },

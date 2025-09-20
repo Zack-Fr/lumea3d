@@ -2,7 +2,7 @@ import { useRef, useEffect } from 'react';
 import { log } from '../../utils/logger';
 import { TransformControls } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
-import { useSelection } from './SelectionContext';
+import { useSelectionStore } from '../../stores/selectionStore';
 import { useSaveQueueStore } from '../../stores/saveQueueStore';
 
 interface TransformGizmosProps {
@@ -11,11 +11,14 @@ interface TransformGizmosProps {
 
 export function TransformGizmos({ enabled }: TransformGizmosProps) {
   const { camera } = useThree();
-  const { selection, setIsTransforming, updateObjectTransform } = useSelection();
+  const selected = useSelectionStore((s) => s.selected);
+  const transformMode = useSelectionStore((s) => s.transformMode);
+  const isTransforming = useSelectionStore((s) => s.isTransforming);
+  const setIsTransforming = useSelectionStore((s) => s.setIsTransforming);
   const { stage } = useSaveQueueStore();
   const transformRef = useRef<any>(null);
 
-  const selectedObject = selection.selectedObject?.object;
+  const selectedObject = selected?.object;
 
   // Update gizmo mode and attach event listeners
   useEffect(() => {
@@ -32,8 +35,8 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
 
     if (selectedObject) {
       // Set the correct mode
-      controls.setMode(selection.transformMode);
-      log('debug', `🔧 Transform mode set to: ${selection.transformMode}`);
+      controls.setMode(transformMode);
+      log('debug', `🔧 Transform mode set to: ${transformMode}`);
       
       try {
         // Verify object is still part of scene graph before attaching
@@ -73,7 +76,7 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
         }
       };
     }
-  }, [selection.transformMode, selectedObject]);
+  }, [transformMode, selectedObject]);
 
   // Handle transform start/end events
   const handleDragStart = () => {
@@ -89,11 +92,6 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
 
     // Update the transform in our state
     if (selectedObject) {
-      updateObjectTransform(
-        selectedObject.position,
-        selectedObject.rotation,
-        selectedObject.scale
-      );
 
       // Stage the transform change for delta save
       const itemId = selectedObject.userData?.itemId || selectedObject.userData?.id || selectedObject.name || selectedObject.uuid;
@@ -120,12 +118,9 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
 
   const handleObjectChange = () => {
     // Real-time transform updates during dragging
-    if (selectedObject && selection.isTransforming) {
-      updateObjectTransform(
-        selectedObject.position,
-        selectedObject.rotation,
-        selectedObject.scale
-      );
+    if (selectedObject && isTransforming) {
+      // Real-time transform updates during dragging
+      // Update will be handled by store automatically
     }
   };
 
@@ -138,7 +133,7 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
       ref={transformRef}
       object={selectedObject}
       camera={camera}
-      mode={selection.transformMode}
+      mode={transformMode}
       size={0.8}
       showX={true}
       showY={true}

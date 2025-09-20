@@ -164,7 +164,7 @@ const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
 
         {activeTab === 'sessions' && (
           <div className="p-2 min-h-[200px]">
-            <SessionPanel className="" />
+            <SessionPanel className="" sceneId={sceneId} />
           </div>
         )}
 

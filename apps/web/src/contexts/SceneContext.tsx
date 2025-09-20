@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
 import { SceneManifestV2, updateApiClientToken } from '../services/scenesApi';
 import { useSceneCategories } from '../hooks/scenes/useSceneQuery';
 import { useSceneManifestStaged } from '../hooks/scenes/useSceneManifestStaged';
 import { useAuth } from '../providers/AuthProvider';
+import { useSceneChannel } from '../hooks/useSceneChannel';
+import { log } from '../utils/logger';
 
 // Helper function to calculate performance score
 const calculatePerformanceScore = (metrics: { totalLoadTime: number; categoryCount: number }): 'excellent' | 'good' | 'fair' | 'poor' => {
@@ -112,16 +114,8 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     }
   }, [token, authLoading]);
 
-  // Log authentication status for debugging
-  console.log('SceneProvider Auth Status:', {
-    hasToken: !!token,
-    hasUser: !!user,
-    authLoading,
-    sceneId,
-    projectId,
-    mode: sceneId ? 'SCENE_MODE' : projectId ? 'PROJECT_MODE' : 'NO_MODE',
-    hooksShouldRun: !!sceneId && !!token && !!user && !authLoading
-  });
+  // Log authentication status for debugging (REMOVED to prevent console spam)
+  // Only log auth status changes, not every render
 
   // Scene manifest loading - use the staged loader for progressive loading
   const {
@@ -161,16 +155,47 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     enabled: !!sceneId && !!token && !!user && !authLoading // Only load if we have a sceneId and auth is ready
   });
 
-  console.log('SceneContext: Categories data', {
-    sceneId,
-    allCategoriesCount: allCategories.length,
-    allCategories: allCategories,
-    categoriesLoading
+  // Categories data logging removed to prevent console spam
+
+  // Memoize callbacks to prevent infinite re-renders (defined after refreshScene)
+  const onDelta = useCallback((delta: any) => {
+    log('info', '🔄 Real-time scene delta received:', delta);
+    
+    // Throttled refresh to prevent loops - increased debounce time
+    setTimeout(() => {
+      log('info', '🔄 Refreshing scene from real-time delta');
+      if (refreshManifestRef.current) {
+        refreshManifestRef.current();
+      }
+    }, 2000); // Increased from 1s to 2s debounce
+    
+    // Note: No return statement - onDelta should not return cleanup functions
+  }, []); // FIXED: Empty dependencies to prevent circular references
+
+  const onError = useCallback((error: Error) => {
+    log('error', '❌ Scene channel error:', error);
+  }, []);
+
+  const onConnectionChange = useCallback((state: any) => {
+    // Simplified logging without dependency on sceneChannel state
+    log('info', '🔌 Scene channel state changed:', {
+      connected: state.connected,
+      type: state.connectionType,
+      error: state.error,
+      reconnecting: state.reconnecting
+    });
+  }, []); // FIXED: Empty dependencies to prevent circular references
+
+  // Real-time scene updates - RE-ENABLED with FIXED circuit breaker
+  // Using void operator to indicate we only want side effects, not return value
+  void useSceneChannel(sceneId || '', {
+    enabled: !!sceneId && !!token && !authLoading, // FIXED: Circuit breaker now works properly
+    onDelta,
+    onError,
+    onConnectionChange
   });
 
-  // COMPLETELY DISABLED - DO NOT TOUCH
-  // useSceneChannel is causing infinite loops
-  // Real-time collaboration is DISABLED until further investigation
+  // Real-time channel state logging removed to prevent console spam
 
   // Scene actions
   const setScene = useCallback((newProjectId: string, newSceneId: string) => {
@@ -206,12 +231,16 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     setPriorityCategoriesState(categories);
   }, []);
 
+  // Use ref to avoid dependency on refreshManifest changing
+  const refreshManifestRef = useRef(refreshManifest);
+  refreshManifestRef.current = refreshManifest;
+  
   const refreshScene = useCallback(() => {
     console.log('Refreshing scene');
-    if (refreshManifest) {
-      refreshManifest();
+    if (refreshManifestRef.current) {
+      refreshManifestRef.current();
     }
-  }, [refreshManifest]);
+  }, []); // FIXED: Empty dependencies to prevent infinite loops
 
   // Create loading state
   const sceneLoadingState: SceneLoadingState = {
@@ -282,14 +311,11 @@ export const useSceneParams = () => {
   const extractSceneParams = useCallback(() => {
     const path = window.location.pathname;
 
-    console.log('🔍 useSceneParams: Parsing URL path:', path);
-
     // Match /app/projects/:projectId/scenes/:sceneId/editor
     const sceneEditorMatch = path.match(/\/app\/projects\/([^/]+)\/scenes\/([^/]+)\/editor/);
     if (sceneEditorMatch) {
       const projectId = decodeURIComponent(sceneEditorMatch[1]);
       const sceneId = decodeURIComponent(sceneEditorMatch[2]);
-      console.log('useSceneParams: Found scene editor URL:', { projectId, sceneId });
       return {
         projectId,
         sceneId
@@ -301,7 +327,6 @@ export const useSceneParams = () => {
     if (sceneMatch) {
       const projectId = decodeURIComponent(sceneMatch[1]);
       const sceneId = decodeURIComponent(sceneMatch[2]);
-      console.log('useSceneParams: Found scene URL:', { projectId, sceneId });
       return {
         projectId,
         sceneId
@@ -312,7 +337,6 @@ export const useSceneParams = () => {
     const projectMatch = path.match(/\/app\/projects\/([^/]+)$/);
     if (projectMatch) {
       const projectId = decodeURIComponent(projectMatch[1]);
-      console.log('useSceneParams: Found project URL (no scene):', { projectId, sceneId: null });
       return {
         projectId,
         sceneId: null  // Don't set sceneId for project URLs

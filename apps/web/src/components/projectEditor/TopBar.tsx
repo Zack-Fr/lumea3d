@@ -87,7 +87,8 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
           }
           
           // Fetch current scene version
-          const response = await fetch(`http://localhost:3000/scenes/${sceneId}/version`, {
+          const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://192.168.1.10:3000';
+          const response = await fetch(`${apiBaseUrl}/scenes/${sceneId}/version`, {
             headers: {
               'Authorization': `Bearer ${token}`,
             },
@@ -212,7 +213,7 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
       if (projectId) {
         try {
           // Removed console.log for capturing canvas screenshot
-          const result = await captureAndUploadScreenshot(projectId);
+          void await captureAndUploadScreenshot(projectId);
           // Removed console.log for canvas screenshot uploaded
         } catch (screenshotError) {
           // Removed console.warn for failed to capture screenshot

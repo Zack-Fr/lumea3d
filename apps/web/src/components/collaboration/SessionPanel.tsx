@@ -11,11 +11,13 @@ import type { SessionResponse } from '../../services/invitationsApi';
 interface SessionPanelProps {
   className?: string;
   showActiveOnly?: boolean;
+  sceneId?: string | null;
 }
 
 const SessionPanel: React.FC<SessionPanelProps> = ({
   className = '',
-  showActiveOnly = false
+  showActiveOnly = false,
+  sceneId = null
 }) => {
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const { user, token } = useAuth();
@@ -31,8 +33,8 @@ const SessionPanel: React.FC<SessionPanelProps> = ({
   // Get realtime connection state for current session
   const { users: realtimeUsers, connectionState } = useRealtimeConnection({
     token,
-    sceneId: currentSession?.projectId || null,
-    enabled: !!currentSession
+    sceneId: sceneId,
+    enabled: !!sceneId && !!token
   });
 
   const formatTime = (dateString: string) => {
