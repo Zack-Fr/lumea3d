@@ -12,15 +12,18 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    host: true,
+    // host: true,  // Local development
+    host: '0.0.0.0',  // Network access for phone
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        // target: 'http://localhost:3000',  // Local development
+        target: 'http://192.168.1.10:3000',  // Network access for phone
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       },
       '/socket.io': {
-        target: 'http://localhost:3000',
+        // target: 'http://localhost:3000',  // Local development
+        target: 'http://192.168.1.10:3000',  // Network access for phone
         changeOrigin: true,
         ws: true
       }

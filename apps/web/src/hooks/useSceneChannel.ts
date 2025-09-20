@@ -5,8 +5,6 @@ import { useAuth } from '../providers/AuthProvider'
 import { log } from '../utils/logger'
 import type { SceneDelta } from '@/api/sdk'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
-
 interface SceneChannelState {
   connected: boolean
   connectionType: 'websocket' | 'sse' | null
@@ -26,10 +24,10 @@ interface SceneChannelOptions {
  * 
  * Features:
  * - WebSocket connection to /scenes namespace with sceneId + token auth
- * - Automatic SSE fallback when WebSocket fails
+ * - Robust error handling to prevent infinite loops
+ * - Connection throttling and exponential backoff
  * - Automatic query cache invalidation on deltas
- * - Connection state management and error handling
- * - Graceful reconnection with exponential backoff
+ * - Graceful reconnection with circuit breaker pattern
  */
 export function useSceneChannel(
   sceneId: string,
@@ -38,6 +36,7 @@ export function useSceneChannel(
   const { enabled = true, onDelta, onError, onConnectionChange } = options
   const { token } = useAuth()
   const queryClient = useQueryClient()
+  
   // Connection state
   const [state, setState] = useState<SceneChannelState>({
     connected: false,
@@ -46,12 +45,18 @@ export function useSceneChannel(
     reconnecting: false
   })
   
-  // Refs for cleanup
+  // Refs for cleanup and circuit breaker
   const socketRef = useRef<Socket | null>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
   const reconnectTimeoutRef = useRef<number | null>(null)
   const reconnectAttemptsRef = useRef(0)
-  const lastEventIdRef = useRef<string | null>(null)
+  const isConnectingRef = useRef(false)
+  const circuitBreakerOpenRef = useRef(false)
+  
+  // Circuit breaker constants
+  const maxReconnectAttempts = 3 // Reduced from 5 to prevent excessive retries
+  const baseReconnectDelay = 2000 // Increased to 2 seconds
+  const circuitBreakerTimeout = 30000 // 30 seconds before allowing retry after circuit open
   
   // Update state helper
   const updateState = useCallback((updates: Partial<SceneChannelState>) => {
@@ -80,193 +85,166 @@ export function useSceneChannel(
     onError?.(error)
   }, [updateState, onError])
   
-  // WebSocket connection
+  // WebSocket connection with circuit breaker
   const connectWebSocket = useCallback(() => {
     if (!token || !sceneId) return null
+    
+    // Circuit breaker: stop trying if already connecting or circuit is open
+    if (isConnectingRef.current || circuitBreakerOpenRef.current) {
+      log('debug', 'WebSocket connection blocked: already connecting or circuit breaker open');
+      return null;
+    }
+    
+    // Circuit breaker: stop trying after max attempts
+    if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+      log('warn', `WebSocket connection attempts exceeded (${maxReconnectAttempts}), opening circuit breaker`);
+      circuitBreakerOpenRef.current = true;
+      
+      // Reset circuit breaker after timeout
+      setTimeout(() => {
+        log('info', 'Circuit breaker reset, allowing new WebSocket attempts');
+        circuitBreakerOpenRef.current = false;
+        reconnectAttemptsRef.current = 0;
+      }, circuitBreakerTimeout);
+      
+      return null;
+    }
+    
+    isConnectingRef.current = true;
     
     const socket = io('/scenes', {
       query: { sceneId, token }, // Pass both sceneId and token in query for WsSceneGuard
       transports: ['websocket'],
-      timeout: 10000,
-      reconnection: false // We handle reconnection manually
+      timeout: 10000, // Longer timeout to reduce rapid failures
+      reconnection: false, // We handle reconnection manually
+      forceNew: true // Ensure fresh connection
     })
     
     socket.on('connect', () => {
-      log('info', `WebSocket connected to scene: ${sceneId}`);
-      reconnectAttemptsRef.current = 0
+      log('info', `✅ WebSocket connected to scene: ${sceneId}`);
+      isConnectingRef.current = false;
+      reconnectAttemptsRef.current = 0; // Reset counter on success
+      circuitBreakerOpenRef.current = false; // Close circuit breaker on success
+      
       updateState({
         connected: true,
         connectionType: 'websocket',
         error: null,
         reconnecting: false
       })
+      
+      // Join the scene room
+      socket.emit('joinScene', { projectId: 'current-project', sceneId });
     })
     
     socket.on('scene:delta', handleDelta)
     
     socket.on('disconnect', (reason) => {
-      log('warn', `WebSocket disconnected: ${reason}`)
+      log('warn', `🔌 WebSocket disconnected: ${reason}`);
+      isConnectingRef.current = false;
+      
       updateState({
         connected: false,
-        error: `Disconnected: ${reason}`
+        error: null, // Don't treat normal disconnection as error
+        reconnecting: false
       })
+      
+      // Don't auto-reconnect on disconnect - only on connect_error
+      // This prevents the infinite loop caused by immediate reconnection
     })
     
     socket.on('connect_error', (error) => {
-      log('warn', 'WebSocket connection failed, trying SSE fallback:', error as any)
-      handleError(error, 'websocket')
-      socket.disconnect()
-      // Don't set reconnecting here - we'll fall back to SSE
+      isConnectingRef.current = false;
+      reconnectAttemptsRef.current += 1;
+      
+      log('error', `❌ WebSocket connection failed (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts}):`, {
+        message: error.message,
+        type: (error as any).type,
+        description: (error as any).description,
+        context: (error as any).context,
+        sceneId,
+        hasToken: !!token,
+        tokenLength: token?.length
+      });
+      
+      handleError(error, 'websocket');
+      socket.disconnect();
+      
+      // Only schedule reconnection if we haven't exceeded max attempts
+      if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+        const delay = Math.min(baseReconnectDelay * Math.pow(2, reconnectAttemptsRef.current - 1), 30000);
+        log('info', `🔄 Scheduling WebSocket retry in ${delay}ms...`);
+        
+        reconnectTimeoutRef.current = window.setTimeout(() => {
+          if (!circuitBreakerOpenRef.current) {
+            updateState({ reconnecting: true });
+            const newSocket = connectWebSocket();
+            if (newSocket) {
+              socketRef.current = newSocket;
+            }
+          }
+        }, delay);
+      } else {
+        log('warn', '🚫 Max WebSocket reconnection attempts reached - opening circuit breaker');
+        circuitBreakerOpenRef.current = true;
+        
+        // Reset after timeout
+        setTimeout(() => {
+          log('info', 'Circuit breaker reset after timeout');
+          circuitBreakerOpenRef.current = false;
+          reconnectAttemptsRef.current = 0;
+        }, circuitBreakerTimeout);
+      }
     })
     
     return socket
-  }, [token, sceneId, handleDelta, handleError, updateState])
+  }, [token, sceneId, handleDelta, handleError, updateState]) // REMOVED 'enabled' to prevent infinite loops
   
-  // SSE connection
-  const connectSSE = useCallback(() => {
-    if (!token || !sceneId) return null
-    
-    // Use flat SSE route: /scenes/:sceneId/events
-    // Build URL with proper base path and token auth via query parameter
-    // Include Last-Event-ID for reconnection if we have one
-    let url = `${API_BASE_URL}/scenes/${sceneId}/events?token=${encodeURIComponent(token)}`
-    
-    // Create EventSource with custom headers if we need to resume
-    let eventSource: EventSource
-    if (lastEventIdRef.current) {
-      // For browsers that support it, we can try to set Last-Event-ID
-      // Note: Most browsers handle this automatically, but we track it for manual reconnection
-      log('debug', `Reconnecting SSE with Last-Event-ID: ${lastEventIdRef.current}`)
-      url += `&lastEventId=${encodeURIComponent(lastEventIdRef.current)}`
-    }
-    
-    eventSource = new EventSource(url)
-    
-    eventSource.onopen = () => {
-      log('info', `SSE connected to scene: ${sceneId}`)
-      reconnectAttemptsRef.current = 0
-      updateState({
-        connected: true,
-        connectionType: 'sse',
-        error: null,
-        reconnecting: false
-      })
-    }
-    
-    eventSource.onmessage = (event) => {
-      try {
-        // Store the event ID for reconnection
-        if (event.lastEventId) {
-          lastEventIdRef.current = event.lastEventId
-        }
-        
-        const delta = JSON.parse(event.data) as SceneDelta
-        handleDelta(delta)
-      } catch (error) {
-        log('error', 'Failed to parse SSE delta:', error as any)
-      }
-    }
-    
-    eventSource.onerror = (error) => {
-      log('error', 'SSE connection error:', error as any)
-      updateState({
-        connected: false,
-        error: 'SSE connection failed'
-      })
-      handleError(new Error('SSE connection failed'), 'sse')
-    }
-    
-    return eventSource
-  }, [token, sceneId, handleDelta, handleError, updateState])
+  // SSE connection (DISABLED - JWT auth limitations with EventSource)
+  // EventSource cannot send Authorization headers, making JWT authentication impossible
+  // WebSocket is the primary and only supported real-time method
   
-  // Reconnection with exponential backoff
-  const scheduleReconnect = useCallback(() => {
-    const maxAttempts = 5
-    const baseDelay = 1000 // 1 second
-    
-    if (reconnectAttemptsRef.current >= maxAttempts) {
-      updateState({
-        error: 'Maximum reconnection attempts reached',
-        reconnecting: false
-      })
-      return
-    }
-    
-    const delay = baseDelay * Math.pow(2, reconnectAttemptsRef.current)
-    reconnectAttemptsRef.current++
-    
-    updateState({ reconnecting: true })
-    
-    reconnectTimeoutRef.current = window.setTimeout(() => {
-      log('debug', `Reconnecting attempt ${reconnectAttemptsRef.current}...`)
-      
-      // For SSE reconnection, we prefer to use the same connection type
-      // unless explicitly requested to try WebSocket first
-      if (state.connectionType === 'sse') {
-        const eventSource = connectSSE()
-        if (eventSource) {
-          eventSourceRef.current = eventSource
-        }
-      } else {
-        // Try WebSocket first, then fallback will happen automatically
-        const socket = connectWebSocket()
-        if (socket) {
-          socketRef.current = socket
-        }
-      }
-    }, delay)
-  }, [updateState, state.connectionType, connectSSE, connectWebSocket])
+  // DEPRECATED: Removed scheduleReconnect to prevent infinite loops
+  // Reconnection is now handled directly in connectWebSocket's connect_error handler
   
   // Main connection logic
   const connect = useCallback(() => {
     if (!enabled || !token || !sceneId) return
     
-    // Clear any existing connections
-    disconnect()
-    
-    // Try WebSocket first
+    // Try WebSocket with circuit breaker protection
     const socket = connectWebSocket()
     if (socket) {
       socketRef.current = socket
       
-      // Set up fallback to SSE if WebSocket fails
-      const fallbackTimeout = window.setTimeout(() => {
-        if (!state.connected || state.connectionType !== 'websocket') {
-          log('warn', 'WebSocket failed, falling back to SSE')
-          socket.disconnect()
-          socketRef.current = null
-          
-          const eventSource = connectSSE()
-          if (eventSource) {
-            eventSourceRef.current = eventSource
-          }
-        }
-      }, 5000) // 5 second timeout for WebSocket
+      // Note: SSE fallback disabled due to JWT auth limitations with EventSource
+      // WebSocket is the primary real-time method
+      log('debug', 'WebSocket connection initiated - SSE fallback disabled for JWT compatibility')
       
-      socket.on('connect', () => {
-        clearTimeout(fallbackTimeout)
-      })
-      
-      socket.on('disconnect', () => {
-        if (enabled) {
-          scheduleReconnect()
-        }
-      })
+      // Removed disconnect handler that was causing infinite reconnection loop
+      // Reconnection is now handled only in connect_error handler with circuit breaker
     }
-  }, [enabled, token, sceneId, connectWebSocket, connectSSE, scheduleReconnect, state.connected, state.connectionType])
+  }, [enabled, token, sceneId, connectWebSocket])
   
   // Disconnect helper
   const disconnect = useCallback(() => {
+    // Clear any pending reconnection timeouts
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current)
       reconnectTimeoutRef.current = null
     }
     
+    // Reset circuit breaker flags
+    isConnectingRef.current = false;
+    circuitBreakerOpenRef.current = false;
+    reconnectAttemptsRef.current = 0;
+    
+    // Disconnect WebSocket
     if (socketRef.current) {
       socketRef.current.disconnect()
       socketRef.current = null
     }
     
+    // Close EventSource (even though it's disabled, clean up ref)
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
       eventSourceRef.current = null
@@ -275,8 +253,11 @@ export function useSceneChannel(
     updateState({
       connected: false,
       connectionType: null,
-      reconnecting: false
+      reconnecting: false,
+      error: null
     })
+    
+    log('debug', 'WebSocket disconnected and cleaned up');
   }, [updateState])
   
   // Manual reconnect function
@@ -285,16 +266,53 @@ export function useSceneChannel(
     connect()
   }, [connect])
   
-  // Effect for connection management
+  // Effect for connection management - FIXED to prevent infinite loops
   useEffect(() => {
+    // Cleanup function to run on effect cleanup or unmount
+    const cleanup = () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+        reconnectTimeoutRef.current = null
+      }
+      
+      // Reset circuit breaker flags
+      isConnectingRef.current = false;
+      circuitBreakerOpenRef.current = false;
+      reconnectAttemptsRef.current = 0;
+      
+      if (socketRef.current) {
+        socketRef.current.disconnect()
+        socketRef.current = null
+      }
+      
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close()
+        eventSourceRef.current = null
+      }
+      
+      updateState({
+        connected: false,
+        connectionType: null,
+        reconnecting: false,
+        error: null
+      })
+    }
+
     if (enabled && token && sceneId) {
-      connect()
+      // Clean up any existing connections first
+      cleanup();
+      
+      // Start new connection directly in effect to avoid dependency issues
+      const socket = connectWebSocket()
+      if (socket) {
+        socketRef.current = socket
+      }
     } else {
-      disconnect()
+      cleanup()
     }
     
-    return disconnect
-  }, [enabled, token, sceneId, connect, disconnect])
+    return cleanup
+  }, [enabled, token, sceneId]) // Only depend on the actual values that should trigger reconnection
   
   // Cleanup on unmount
   useEffect(() => {

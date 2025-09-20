@@ -465,10 +465,12 @@ const ProjectEditorContent: React.FC = () => {
               assetUrl = category.url;
               console.log('🔍 ProjectEditor: Using category URL:', assetUrl);
             } else if (category?.asset?.meshoptUrl) {
-              assetUrl = `http://localhost:3000/public/storage/serve/lumea-assets/${category.asset.meshoptUrl}`;
+              const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://192.168.1.10:3000';
+              assetUrl = `${apiBaseUrl}/public/storage/serve/lumea-assets/${category.asset.meshoptUrl}`;
               console.log('🔍 ProjectEditor: Constructed meshopt URL:', assetUrl);
             } else if (category?.asset?.originalUrl) {
-              assetUrl = `http://localhost:3000/public/storage/serve/lumea-assets/${category.asset.originalUrl}`;
+              const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://192.168.1.10:3000';
+              assetUrl = `${apiBaseUrl}/public/storage/serve/lumea-assets/${category.asset.originalUrl}`;
               console.log('🔍 ProjectEditor: Constructed original URL:', assetUrl);
             }
           }
