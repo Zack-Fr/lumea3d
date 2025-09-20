@@ -93,25 +93,66 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
     // Update the transform in our state
     if (selectedObject) {
 
-      // Stage the transform change for delta save
-      const itemId = selectedObject.userData?.itemId || selectedObject.userData?.id || selectedObject.name || selectedObject.uuid;
+      // Handle transform updates for all objects
+      const isLight = selectedObject.userData?.meta?.isLight || false;
+      const dbId = selectedObject.userData?.dbId;
+      const tempId = selectedObject.userData?.itemId;
+      const itemId = dbId || tempId || selectedObject.userData?.id;
+      
+      console.log('🔧 Transform update:', {
+        name: selectedObject.name,
+        isLight,
+        dbId,
+        tempId,
+        finalItemId: itemId
+      });
+      
       if (itemId) {
-        const deltaOp = {
-          op: 'update_item' as const,
-          id: itemId,
-          transform: {
-            position: [selectedObject.position.x, selectedObject.position.y, selectedObject.position.z] as [number, number, number],
-            rotation_euler: [selectedObject.rotation.x, selectedObject.rotation.y, selectedObject.rotation.z] as [number, number, number],
-            scale: [selectedObject.scale.x, selectedObject.scale.y, selectedObject.scale.z] as [number, number, number],
+        // Try to stage the update if we have a backend ID
+        if (dbId) {
+          // Object is saved in backend, safe to stage update
+          const deltaOp = {
+            op: 'update_item' as const,
+            id: dbId,
+            transform: {
+              position: [selectedObject.position.x, selectedObject.position.y, selectedObject.position.z] as [number, number, number],
+              rotation_euler: [selectedObject.rotation.x, selectedObject.rotation.y, selectedObject.rotation.z] as [number, number, number],
+              scale: [selectedObject.scale.x, selectedObject.scale.y, selectedObject.scale.z] as [number, number, number],
+            }
+          };
+          
+          stage(deltaOp);
+          console.log('💾 Staged transform update for saved item:', dbId);
+          
+        } else if (isLight && tempId) {
+          // Light with temp ID - try to stage update but handle gracefully if it fails
+          console.log('⏳ Attempting to stage update for unsaved light:', tempId);
+          
+          try {
+            const deltaOp = {
+              op: 'update_item' as const,
+              id: tempId,
+              transform: {
+                position: [selectedObject.position.x, selectedObject.position.y, selectedObject.position.z] as [number, number, number],
+                rotation_euler: [selectedObject.rotation.x, selectedObject.rotation.y, selectedObject.rotation.z] as [number, number, number],
+                scale: [selectedObject.scale.x, selectedObject.scale.y, selectedObject.scale.z] as [number, number, number],
+              }
+            };
+            
+            stage(deltaOp);
+            console.log('💾 Staged update for temp light (may fail gracefully):', tempId);
+            
+          } catch (error) {
+            console.log('⚠️ Could not stage temp light update (expected):', error);
+            // This is fine - the light will move visually but not persist until saved
           }
-        };
-        
-        stage(deltaOp);
-        console.log('💾 Staged transform update for item:', itemId);
-        log('debug', '💾 Transform staged for delta save', { itemId, transform: deltaOp.transform });
+        } else {
+          // Regular object without backend ID
+          console.log('ℹ️ Local-only transform update for object:', selectedObject.name);
+        }
       } else {
-        console.warn('⚠️ Cannot stage transform: no item ID found on object');
-        log('warn', '⚠️ Cannot stage transform: no item ID found', { userData: selectedObject.userData });
+        // No ID at all - this is unusual but we still allow the visual movement
+        console.warn('⚠️ Transform update with no ID - visual only');
       }
     }
   };

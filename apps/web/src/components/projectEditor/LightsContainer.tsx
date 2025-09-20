@@ -10,9 +10,38 @@ function createLightHelper(light: THREE.Light): THREE.Object3D | null {
     helper.userData.needsUpdate = true;
     return helper;
   } else if (light instanceof THREE.PointLight) {
-    const helper = new THREE.PointLightHelper(light, 1, 0xffff00);
-    // Point light helpers automatically follow the light, but we can force updates
+    // Create a selectable mesh helper instead of the default PointLightHelper
+    const geometry = new THREE.SphereGeometry(0.5, 16, 16);
+    const material = new THREE.MeshBasicMaterial({ 
+      color: 0xffff00, 
+      wireframe: true, 
+      transparent: true, 
+      opacity: 0.8 
+    });
+    const helper = new THREE.Mesh(geometry, material);
+    
+    // Position helper at light position initially
+    helper.position.copy(light.position);
+    
+    // Set up automatic position syncing
     helper.userData.needsUpdate = true;
+    helper.userData.lightReference = light;
+    
+    // Update helper position to match light
+    const updateHelperPosition = () => {
+      helper.position.copy(light.position);
+      helper.updateMatrixWorld(true);
+    };
+    
+    // Set up periodic sync (in case position changes aren't caught)
+    const syncInterval = setInterval(updateHelperPosition, 100);
+    helper.userData.syncInterval = syncInterval;
+    
+    // Clean up interval when helper is removed
+    helper.userData.cleanup = () => {
+      clearInterval(syncInterval);
+    };
+    
     return helper;
   } else if (light instanceof THREE.SpotLight) {
     const helper = new THREE.SpotLightHelper(light, 0xffff00);
@@ -52,6 +81,11 @@ export class LightsManager {
       const light = this.lights[index];
       // Clean up helper if it exists
       if (light.userData.helper) {
+        // Call custom cleanup if available (for our point light helpers)
+        if (light.userData.helper.userData?.cleanup) {
+          light.userData.helper.userData.cleanup();
+        }
+        // Standard disposal
         light.userData.helper.dispose?.();
       }
       this.lights.splice(index, 1);
@@ -108,8 +142,16 @@ const LightsContainer: React.FC<LightsContainerProps> = ({ onLightAdded }) => {
               ...light.userData,
               isHelper: true,
               originalLight: light.name,
-              actualLightObject: light // Reference to the actual light for transforms
+              actualLightObject: light, // Reference to the actual light for transforms
+              selectable: true, // Explicitly ensure helper is selectable
+              itemId: light.userData.itemId || light.name, // Ensure itemId is set
             };
+            
+            console.log('💡 Created light helper with userData:', {
+              helperName: helper.name,
+              lightName: light.name,
+              userData: helper.userData
+            });
             
             // Helper should follow the light position automatically
             const updateHelper = () => {
