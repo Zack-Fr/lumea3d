@@ -18,7 +18,6 @@ const ProjectCard = memo(({ project, onClick, onThumbnailUpdate, onProjectDelete
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleClick = () => {
-    console.log('📎 Project card clicked - navigating to editor');
     onClick?.(project);
   };
 
@@ -132,7 +131,6 @@ const ProjectCard = memo(({ project, onClick, onThumbnailUpdate, onProjectDelete
         // Only navigate if we're not clicking on menu elements
         const target = e.target as HTMLElement;
         const isMenuClick = target.closest('[data-menu]') !== null;
-        console.log('🎯 Card clicked, target:', target.tagName, 'isMenuClick:', isMenuClick);
         if (!isMenuClick) {
           handleClick();
         }

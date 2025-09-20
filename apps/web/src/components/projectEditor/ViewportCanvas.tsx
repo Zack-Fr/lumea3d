@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { log, once as logOnce } from '../../utils/logger';
 import { Canvas } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
@@ -10,15 +10,16 @@ import { useLightingControls } from '../../hooks/useLightingControls';
 import { initKTX2Loader } from '../../utils/textureSystem';
 import { gpuMemoryMonitor } from '../../utils/gpuMemoryMonitor';
 import { StagedSceneLoader } from '../../features/scenes/StagedSceneLoader';
-import { SceneRenderer } from '../../features/scenes/SceneRenderer';
 import { ClickSelection } from '../../features/scenes/ClickSelection';
-import { TransformGizmos } from '../../features/scenes/TransformGizmos';
 import { SelectionHighlightSystem } from '../../features/scenes/SelectionHighlight';
 import { TransformControlsPanel } from '../../features/scenes/TransformControlsPanel';
 import { TransformKeyboardControls } from '../../features/scenes/TransformKeyboardControls';
 import { SelectionBridge } from '../../features/scenes/SelectionBridge';
 import { GridSystem } from '../../features/scenes/GridSystem';
 import { LayerHierarchyBridge } from '../../features/scenes/LayerHierarchyBridge';
+import { SceneHost } from '../../viewer/SceneHost';
+import { useScenePortal } from '../../viewer/useScenePortal';
+import { EditorScene } from '../../viewer/EditorScene';
 import { PerformanceStatsOverlay } from './PerformanceStatsOverlay';
 import LightsContainer from './LightsContainer';
 import CameraControlsComponent from './CameraControls';
@@ -77,6 +78,18 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
     error,
     manifest
   } = useSceneContext();
+
+  // Update manifest store when manifest changes (outside portal)
+  React.useEffect(() => {
+    if (sceneId && manifest) {
+      import('../../stores/manifestStore').then(({ manifestStore }) => {
+        manifestStore.getState().set({ sceneId, manifest });
+      });
+    }
+  }, [sceneId, manifest]);
+
+  // Use scene portal keyed by sceneId
+  useScenePortal(() => sceneId ? <EditorScene sceneId={sceneId} /> : null, sceneId || 'no-scene');
   
   // Get lighting controls
   const { defaultLightEnabled } = useLightingControls();
@@ -501,18 +514,11 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
       {/* Dynamic Lights Management */}
       <LightsContainer />
       
-      {/* Scene Content */}
-      <Suspense fallback={null}>
-        {sceneId && <SceneRenderer sceneId={sceneId} />}
-      </Suspense>
+      {/* Scene Content via Portal */}
+      <SceneHost />
       
-      
-      {/* Selection and Transform System */}
+      {/* Selection and Transform System (outside portal) */}
       <ClickSelection enabled={true} />
-      <TransformGizmos enabled={true} />
-      
-      {/* Layer Hierarchy Data Bridge */}
-      <LayerHierarchyBridge />
       <SelectionHighlightSystem 
         enabled={true}
         highlightColor="#f5c842"
@@ -522,6 +528,9 @@ const ViewportCanvas: React.FC<ViewportCanvasProps> = React.memo(({
         intensity={1.2}
         pulseSpeed={2.0}
       />
+      
+      {/* Layer Hierarchy Data Bridge */}
+      <LayerHierarchyBridge />
 
         {/* Camera Controls */}
         <CameraControlsComponent

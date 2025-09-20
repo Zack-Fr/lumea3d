@@ -2,7 +2,8 @@ import React, { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { ViewportMovement } from '../../types/projectEditor';
-import { useSelection } from '../../features/scenes/SelectionContext';
+import { useSelectionStore } from '../../stores/selectionStore';
+import { cameraStore } from '../../stores/cameraStore';
 import * as THREE from 'three';
 
 interface CameraControlsProps {
@@ -29,10 +30,23 @@ const CameraControlsComponent: React.FC<CameraControlsProps> = ({
   enableRotate = true
 }) => {
   const { camera, gl } = useThree();
-  const { selection } = useSelection();
+  const isTransforming = useSelectionStore((s) => s.isTransforming);
   const orbitControlsRef = useRef<any>();
   const moveSpeed = propMoveSpeed;
   const velocity = useRef(new THREE.Vector3());
+
+  // RAF-throttled camera update function
+  const rafThrottle = <T extends (...a: any[]) => void>(fn: T) => {
+    let ticking = false;
+    return ((...args: any[]) => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        fn(...args);
+      });
+    }) as T;
+  };
   
   // FPS camera controls with WASD
   useFrame((state, delta) => {
@@ -67,13 +81,35 @@ const CameraControlsComponent: React.FC<CameraControlsProps> = ({
     }
   });
 
+  // Event-based camera store updates with RAF throttling
+  useEffect(() => {
+    const controls = orbitControlsRef.current;
+    if (!controls) return;
+
+    const onChange = rafThrottle(() => {
+      const p = camera.position.toArray() as [number, number, number];
+      const dir = new THREE.Vector3();
+      camera.getWorldDirection(dir);
+      const t: [number, number, number] = [p[0] + dir.x, p[1] + dir.y, p[2] + dir.z];
+      cameraStore.setState({ pose: { p, t }, by: 'local' });
+    });
+
+    controls.addEventListener('change', onChange);
+    controls.addEventListener('end', onChange);
+
+    return () => {
+      controls.removeEventListener('change', onChange);
+      controls.removeEventListener('end', onChange);
+    };
+  }, [camera, rafThrottle]);
+
   // Disable orbit controls when in FPS mode, WASD is active, or transform is active
   useEffect(() => {
     if (orbitControlsRef.current) {
-      const shouldDisable = (cameraMode === 'fps' && isWASDActive) || selection.isTransforming;
+      const shouldDisable = (cameraMode === 'fps' && isWASDActive) || isTransforming;
       orbitControlsRef.current.enabled = !shouldDisable;
     }
-  }, [cameraMode, isWASDActive, selection.isTransforming]);
+  }, [cameraMode, isWASDActive, isTransforming]);
 
   if (cameraMode === 'fps') {
     return (

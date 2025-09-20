@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback } from 'react';
 import { useThree } from '@react-three/fiber';
 import { Raycaster, Vector2, Vector3, Object3D } from 'three';
 import * as THREE from 'three';
-import { useSelection } from './SelectionContext';
+import { useSelectionStore } from '../../stores/selectionStore';
 
 interface ClickSelectionProps {
   enabled: boolean; // Disable when in FPS mode or transforming
@@ -10,7 +10,37 @@ interface ClickSelectionProps {
 
 export function ClickSelection({ enabled }: ClickSelectionProps) {
   const { camera, gl, scene } = useThree();
-  const { selectObject, deselectObject, selection } = useSelection();
+  const isTransforming = useSelectionStore((s) => s.isTransforming);
+  const setSelected = useSelectionStore((s) => s.set);
+  const clearSelection = useSelectionStore((s) => s.clear);
+
+  // Helper functions that match the old context API
+  const selectObject = useCallback((object: Object3D) => {
+    const userData = object.userData;
+    if (!userData || !userData.itemId || !userData.selectable) {
+      console.warn('⚠️ Object is not selectable:', object.name);
+      return;
+    }
+
+    if (userData.locked) {
+      console.warn('🔒 Object is locked:', userData.itemId);
+      return;
+    }
+
+    setSelected({
+      assetId: userData.meta?.assetId || userData.itemId,
+      itemId: userData.itemId,
+      object,
+      category: userData.category,
+      originalPosition: object.position.clone(),
+      originalRotation: object.rotation.clone(),
+      originalScale: object.scale.clone(),
+    });
+  }, [setSelected]);
+
+  const deselectObject = useCallback(() => {
+    clearSelection();
+  }, [clearSelection]);
   
   const raycasterRef = useRef(new Raycaster());
   const mouseRef = useRef(new Vector2());
@@ -24,7 +54,7 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
 
   // Handle mouse click for selection
   const handlePointerDown = useCallback((event: PointerEvent) => {
-    if (!enabled || selection.isTransforming) return;
+    if (!enabled || isTransforming) return;
 
     // Check if pointer is locked (FPS mode)
     if (document.pointerLockElement) return;
@@ -33,7 +63,7 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
     isClickingRef.current = true;
     clickStartPos.current = { x: event.clientX, y: event.clientY };
     clickStartTime.current = Date.now();
-  }, [enabled, selection.isTransforming]);
+  }, [enabled, isTransforming]);
 
   const handlePointerUp = useCallback((event: PointerEvent) => {
     if (!enabled || !isClickingRef.current) return;
