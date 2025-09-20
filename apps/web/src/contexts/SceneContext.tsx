@@ -161,16 +161,44 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     enabled: !!sceneId && !!token && !!user && !authLoading // Only load if we have a sceneId and auth is ready
   });
 
-  console.log('SceneContext: Categories data', {
-    sceneId,
-    allCategoriesCount: allCategories.length,
-    allCategories: allCategories,
-    categoriesLoading
-  });
+  // Categories data logging removed to prevent console spam
 
-  // COMPLETELY DISABLED - DO NOT TOUCH
-  // useSceneChannel is causing infinite loops
-  // Real-time collaboration is DISABLED until further investigation
+  // Memoize callbacks to prevent infinite re-renders (defined after refreshScene)
+  const onDelta = useCallback((delta: any) => {
+    log('info', '🔄 Real-time scene delta received:', delta);
+    
+    // Throttled refresh to prevent loops - increased debounce time
+    setTimeout(() => {
+      log('info', '🔄 Refreshing scene from real-time delta');
+      if (refreshManifestRef.current) {
+        refreshManifestRef.current();
+      }
+    }, 2000); // Increased from 1s to 2s debounce
+    
+    
+  }, []); 
+
+  const onError = useCallback((error: Error) => {
+    log('error', ' Scene channel error:', error);
+  }, []);
+
+  const onConnectionChange = useCallback((state: any) => {
+    log('info', '🔌 Scene channel state changed:', {
+      connected: state.connected,
+      type: state.connectionType,
+      error: state.error,
+      reconnecting: state.reconnecting
+    });
+  }, []);
+
+  // Real-time scene updates - RE-ENABLED with FIXED circuit breaker
+  // Using void operator to indicate we only want side effects, not return value
+  void useSceneChannel(sceneId || '', {
+    enabled: !!sceneId && !!token && !authLoading, // FIXED: Circuit breaker now works properly
+    onDelta,
+    onError,
+    onConnectionChange
+  });
 
   // Scene actions
   const setScene = useCallback((newProjectId: string, newSceneId: string) => {
@@ -211,7 +239,7 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     if (refreshManifest) {
       refreshManifest();
     }
-  }, [refreshManifest]);
+  }, []);
 
   // Create loading state
   const sceneLoadingState: SceneLoadingState = {
@@ -277,8 +305,6 @@ export const useSceneContext = (): SceneContextState => {
 
 // Hook for scene ID extraction from URL params
 export const useSceneParams = () => {
-  // This would typically use useParams from react-router-dom
-  // For now, we'll create a simple version
   const extractSceneParams = useCallback(() => {
     const path = window.location.pathname;
 
@@ -308,7 +334,7 @@ export const useSceneParams = () => {
       };
     }
 
-    // Match /app/projects/:id (this is a project, not a scene)
+    // Match /app/projects/:id
     const projectMatch = path.match(/\/app\/projects\/([^/]+)$/);
     if (projectMatch) {
       const projectId = decodeURIComponent(projectMatch[1]);

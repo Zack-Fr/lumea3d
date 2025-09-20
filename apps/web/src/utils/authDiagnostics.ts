@@ -139,7 +139,8 @@ export async function runAuthDiagnostics(projectId: string): Promise<AuthDiagnos
 
   // Test without auth first
   try {
-    const responseWithoutAuth = await fetch(`http://localhost:3000/projects/${projectId}/scenes`);
+    const apiBaseUrl = import.meta?.env?.VITE_API_URL || 'http://192.168.1.10:3000';
+    const responseWithoutAuth = await fetch(`${apiBaseUrl}/projects/${projectId}/scenes`);
     results.networkTest.withoutAuth.status = responseWithoutAuth.status;
     results.networkTest.withoutAuth.message = responseWithoutAuth.statusText;
     console.log('🌐 Request without auth:', results.networkTest.withoutAuth);
@@ -161,7 +162,8 @@ export async function runAuthDiagnostics(projectId: string): Promise<AuthDiagnos
         tokenPreview: storedToken.substring(0, 30) + '...',
       });
 
-      const responseWithAuth = await fetch(`http://localhost:3000/projects/${projectId}/scenes`, {
+      const apiBaseUrl = import.meta?.env?.VITE_API_URL || 'http://192.168.1.10:3000';
+      const responseWithAuth = await fetch(`${apiBaseUrl}/projects/${projectId}/scenes`, {
         headers,
       });
 

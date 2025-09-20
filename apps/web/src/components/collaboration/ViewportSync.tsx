@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { useRealtimeConnection } from '../../features/realtime/hooks/useRealtimeConnection';
 import { useAuth } from '../../providers/AuthProvider';
+import { cameraStore } from '../../stores/cameraStore';
 import type { ViewportState } from '../../features/realtime/types/realtime';
 
 interface ViewportSyncProps {
@@ -48,7 +49,48 @@ const ViewportSync: React.FC<ViewportSyncProps> = ({
   } = useRealtimeConnection({
     token,
     sceneId,
-    enabled: !!sceneId
+    enabled: !!sceneId,
+    onViewportSync: (event) => {
+      console.log('📹 Received viewport sync from:', event.from, event.viewport);
+      
+      // Update camera store with remote camera position
+      if (event.viewport.camera) {
+        cameraStore.getState().setPose(
+          { 
+            p: event.viewport.camera.position, 
+            t: event.viewport.camera.target || [0, 0, 0] 
+          }, 
+          'remote'
+        );
+        
+        // Also call the callback for additional handling
+        _onCameraUpdate?.(
+          event.viewport.camera.position,
+          event.viewport.camera.rotation || [0, 0, 0]
+        );
+      }
+      
+      // Update viewport indicators for visual feedback
+      setViewportIndicators(prev => new Map(prev.set(event.from, {
+        userId: event.from,
+        userName: users.find(u => u.userId === event.from)?.name || 'Unknown',
+        color: users.find(u => u.userId === event.from)?.color || '#ffffff',
+        viewport: event.viewport,
+        lastUpdate: Date.now()
+      })));
+      
+      // If we're following this user, update our camera
+      if (followingUserId === event.from && syncMode === 'follow' && event.viewport.camera) {
+        console.log('👁️ Following user camera update:', event.from);
+        cameraStore.getState().setPose(
+          { 
+            p: event.viewport.camera.position, 
+            t: event.viewport.camera.target || [0, 0, 0] 
+          }, 
+          'remote'
+        );
+      }
+    }
   });
 
   // Send viewport updates to other users
@@ -78,7 +120,40 @@ const ViewportSync: React.FC<ViewportSyncProps> = ({
     lastCameraUpdateRef.current = now;
   }, [currentCamera, connectionState.isConnected, sendMessage]);
 
-  // Auto-broadcast when in broadcast mode
+  // Auto-broadcast camera changes for collaboration
+  useEffect(() => {
+    if (!connectionState.isConnected) return;
+    
+    const unsubscribe = cameraStore.subscribe(
+      (state) => state,
+      ({ pose, by }) => {
+        // Only broadcast local camera changes to avoid loops
+        if (by === 'local' && sceneId) {
+          console.log('📹 Broadcasting local camera change:', pose);
+          const viewportState: ViewportState = {
+            camera: {
+              position: pose.p,
+              rotation: [0, 0, 0], // TODO: Add rotation support
+              target: pose.t
+            },
+            viewport: {
+              width: window.innerWidth,
+              height: window.innerHeight
+            }
+          };
+
+          sendMessage({
+            t: 'VIEWPORT_SYNC',
+            viewport: viewportState
+          });
+        }
+      }
+    );
+
+    return unsubscribe;
+  }, [connectionState.isConnected, sceneId, sendMessage]);
+
+  // Auto-broadcast when in broadcast mode (legacy)
   useEffect(() => {
     if (syncMode === 'broadcast' && currentCamera) {
       broadcastIntervalRef.current = setInterval(broadcastViewport, 200); // 5fps

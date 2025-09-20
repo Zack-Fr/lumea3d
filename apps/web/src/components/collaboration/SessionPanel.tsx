@@ -62,8 +62,13 @@ const SessionPanel: React.FC<SessionPanelProps> = ({
   };
 
   const getParticipantStatus = (participantId: string) => {
+    console.log('🔍 Looking for participant:', participantId, 'in realtime users:', realtimeUsers.map(u => ({ userId: u.userId, id: u.id, name: u.name, status: u.status })));
     const realtimeUser = realtimeUsers.find(u => u.userId === participantId);
-    if (!realtimeUser) return 'offline';
+    if (!realtimeUser) {
+      console.log('❌ Participant not found in realtime users, marking as offline');
+      return 'offline';
+    }
+    console.log('✅ Found realtime user:', realtimeUser.name, 'status:', realtimeUser.status);
     return realtimeUser.status;
   };
 
