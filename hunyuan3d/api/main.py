@@ -31,6 +31,7 @@ load_dotenv()
 sys.path.append(str(Path(__file__).parent.parent))
 
 from scripts.baseline_inference import Hunyuan3DInference
+from .storage_service import storage_service
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -157,16 +158,70 @@ async def process_generation(job_id: str, request: GenerationRequest, user_id: s
         generation_time = time.time() - start_time
 
         if result["success"]:
-            active_jobs[job_id].update({
-                "status": "completed",
-                "progress": 1.0,
-                "message": "Generation completed successfully",
-                "result": {
-                    **result,
-                    "generation_time": generation_time
-                }
-            })
-            logger.info(f"Generation completed for job {job_id} in {generation_time:.2f}s")
+            # Export mesh to temporary file for upload
+            temp_dir = Path("temp")
+            temp_dir.mkdir(exist_ok=True)
+            temp_file = temp_dir / f"{job_id}.glb"
+
+            try:
+                # Export the generated mesh
+                mesh = result["mesh"]
+                mesh.export(str(temp_file))
+
+                # Upload to storage
+                artifacts = {"mesh": str(temp_file)}
+                upload_result = storage_service.upload_job_artifacts(job_id, artifacts)
+
+                if upload_result["success"]:
+                    # Update job with storage URLs
+                    active_jobs[job_id].update({
+                        "status": "completed",
+                        "progress": 1.0,
+                        "message": "Generation completed and uploaded successfully",
+                        "result": {
+                            **result,
+                            "generation_time": generation_time,
+                            "storage_urls": upload_result["urls"],
+                            "storage_paths": {k: v["storage_path"] for k, v in upload_result["uploads"].items()}
+                        }
+                    })
+                    logger.info(f"Generation and upload completed for job {job_id} in {generation_time:.2f}s")
+                else:
+                    # Upload failed, but generation succeeded - keep local file
+                    active_jobs[job_id].update({
+                        "status": "completed",
+                        "progress": 1.0,
+                        "message": "Generation completed (upload failed - using local storage)",
+                        "result": {
+                            **result,
+                            "generation_time": generation_time,
+                            "temp_file": str(temp_file)
+                        }
+                    })
+                    logger.warning(f"Generation completed but upload failed for job {job_id}")
+
+            except Exception as upload_error:
+                logger.error(f"Failed to upload generated file for job {job_id}: {upload_error}")
+                # Keep the result but mark upload as failed
+                active_jobs[job_id].update({
+                    "status": "completed",
+                    "progress": 1.0,
+                    "message": "Generation completed (upload failed)",
+                    "result": {
+                        **result,
+                        "generation_time": generation_time,
+                        "upload_error": str(upload_error)
+                    }
+                })
+            finally:
+                # Clean up temporary file
+                if temp_file.exists():
+                    try:
+                        temp_file.unlink()
+                        logger.info(f"Cleaned up temporary file: {temp_file}")
+                    except Exception as cleanup_error:
+                        logger.warning(f"Failed to clean up temporary file {temp_file}: {cleanup_error}")
+
         else:
             active_jobs[job_id].update({
                 "status": "failed",
@@ -284,7 +339,7 @@ async def cancel_job(job_id: str, current_user: TokenData = Depends(get_current_
 
 @app.get("/download/{job_id}")
 async def download_result(job_id: str, current_user: TokenData = Depends(get_current_user)):
-    """Download the generated GLB file"""
+    """Download the generated GLB file or return presigned URL"""
     if job_id not in active_jobs:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -298,32 +353,29 @@ async def download_result(job_id: str, current_user: TokenData = Depends(get_cur
     if job["status"] != "completed":
         raise HTTPException(status_code=400, detail="Job not completed yet")
 
-    # Get file path from result
+    # Get result data
     result = job.get("result", {})
-    mesh = result.get("mesh")
 
-    if mesh is None:
-        raise HTTPException(status_code=404, detail="Generated file not found")
+    # Check if we have storage URLs (preferred)
+    storage_urls = result.get("storage_urls", {})
+    if "mesh" in storage_urls:
+        return {
+            "download_url": storage_urls["mesh"],
+            "expires_in": "15 minutes",
+            "content_type": "model/gltf-binary"
+        }
 
-    # Create temporary file path
-    temp_dir = Path("temp")
-    temp_dir.mkdir(exist_ok=True)
-    temp_file = temp_dir / f"{job_id}.glb"
-
-    try:
-        # Export mesh to temporary file
-        mesh.export(str(temp_file))
-
-        # Return file response
+    # Fallback to local file if available
+    temp_file = result.get("temp_file")
+    if temp_file and Path(temp_file).exists():
         return FileResponse(
             path=temp_file,
             media_type="model/gltf-binary",
             filename=f"shape_{job_id}.glb"
         )
 
-    except Exception as e:
-        logger.error(f"Failed to export mesh: {e}")
-        raise HTTPException(status_code=500, detail="Failed to prepare download")
+    # No file available
+    raise HTTPException(status_code=404, detail="Generated file not found")
 
 @app.get("/stream/{job_id}")
 async def stream_job_status(job_id: str, current_user: TokenData = Depends(get_current_user)):
