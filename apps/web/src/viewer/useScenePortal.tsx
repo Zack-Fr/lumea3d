@@ -13,5 +13,5 @@ export function useScenePortal(factory: () => React.ReactNode, key: string) {
     mountElement(factoryRef.current());
     // once per key
     return () => clear();
-  }, [key, mountElement, clear]); // ✅ only key matters for remounting
+  }, [key, mountElement, clear]); //only key matters for remounting
 }

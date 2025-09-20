@@ -5,6 +5,7 @@ import InvitationManager from './InvitationManager';
 import SessionPanel from './SessionPanel';
 import ViewportSync from './ViewportSync';
 import { useInvitations } from '../../hooks/useInvitations';
+import { useCameraStore } from '../../stores/cameraStore';
 
 interface CollaborationPanelProps {
   projectId: string;
@@ -22,6 +23,7 @@ const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
   className = ''
 }) => {
   const [activeTab, setActiveTab] = useState<'invites' | 'sessions' | 'viewport'>('invites');
+  const { pose, setPose } = useCameraStore();
 
   const {
     activeSessions,
@@ -173,12 +175,18 @@ const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
             <ViewportSync
               sceneId={sceneId || null}
               currentCamera={{
-                position: [0, 1.7, 5],
-                rotation: [0, 0, 0],
-                target: [0, 0, 0]
+                position: pose.p,
+                rotation: [0, 0, 0], // TODO: Add rotation to camera store
+                target: pose.t
               }}
-              onCameraUpdate={() => {}} // TODO: Implement real camera sync
-              onFollowUser={() => {}} // TODO: Implement user following
+              onCameraUpdate={(position, rotation) => {
+                // Update camera store when remote user changes view
+                setPose({ p: position, t: rotation }, 'remote');
+              }}
+              onFollowUser={(userId) => {
+                // TODO: Implement user following logic
+                console.log('Following user:', userId);
+              }}
             />
           </div>
         )}

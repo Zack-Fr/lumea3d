@@ -169,22 +169,21 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
       }
     }, 2000); // Increased from 1s to 2s debounce
     
-    // Note: No return statement - onDelta should not return cleanup functions
-  }, []); // FIXED: Empty dependencies to prevent circular references
+    
+  }, []); 
 
   const onError = useCallback((error: Error) => {
-    log('error', '❌ Scene channel error:', error);
+    log('error', ' Scene channel error:', error);
   }, []);
 
   const onConnectionChange = useCallback((state: any) => {
-    // Simplified logging without dependency on sceneChannel state
     log('info', '🔌 Scene channel state changed:', {
       connected: state.connected,
       type: state.connectionType,
       error: state.error,
       reconnecting: state.reconnecting
     });
-  }, []); // FIXED: Empty dependencies to prevent circular references
+  }, []);
 
   // Real-time scene updates - RE-ENABLED with FIXED circuit breaker
   // Using void operator to indicate we only want side effects, not return value
@@ -194,8 +193,6 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     onError,
     onConnectionChange
   });
-
-  // Real-time channel state logging removed to prevent console spam
 
   // Scene actions
   const setScene = useCallback((newProjectId: string, newSceneId: string) => {
@@ -240,7 +237,7 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({
     if (refreshManifestRef.current) {
       refreshManifestRef.current();
     }
-  }, []); // FIXED: Empty dependencies to prevent infinite loops
+  }, []);
 
   // Create loading state
   const sceneLoadingState: SceneLoadingState = {
@@ -306,8 +303,6 @@ export const useSceneContext = (): SceneContextState => {
 
 // Hook for scene ID extraction from URL params
 export const useSceneParams = () => {
-  // This would typically use useParams from react-router-dom
-  // For now, we'll create a simple version
   const extractSceneParams = useCallback(() => {
     const path = window.location.pathname;
 
@@ -333,7 +328,7 @@ export const useSceneParams = () => {
       };
     }
 
-    // Match /app/projects/:id (this is a project, not a scene)
+    // Match /app/projects/:id
     const projectMatch = path.match(/\/app\/projects\/([^/]+)$/);
     if (projectMatch) {
       const projectId = decodeURIComponent(projectMatch[1]);

@@ -286,11 +286,13 @@ export const useRealtimeConnection = ({
           const presenceData = data as PresenceEvent;
           const updatedUsers = presenceData.users.map((user, index) => ({
             ...user,
+            userId: user.userId || user.id, // Map id to userId for compatibility
             color: user.color || USER_COLORS[index % USER_COLORS.length],
-            isCurrentUser: user.userId === 'current-user' // TODO: Get from auth
+            status: user.status || 'online', // Default to online if not provided
+            isCurrentUser: user.userId === 'current-user' || user.id === 'current-user' // TODO: Get from auth
           }));
           setUsers(updatedUsers);
-          log('debug', `Presence update: ${updatedUsers.length} users online`);
+          log('info', `🟢 Presence update: ${updatedUsers.length} users online`, updatedUsers);
           break;
 
         case 'CHAT':
