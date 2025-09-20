@@ -1,4 +1,4 @@
-const { ProcessingService } = require('./dist/apps/api/src/processing/processing.service');
+const { ProcessingService } = require('../dist/apps/api/src/processing/processing.service');
 const { ConfigService } = require('@nestjs/config');
 
 // Simple test to verify basic processing works
