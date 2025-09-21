@@ -145,6 +145,48 @@ export const useSaveQueueStore = create<SaveQueueState>()(
             body: errorText,
             url: response.url
           });
+
+          // Special handling: drop operations referencing missing temp IDs to avoid infinite 404 loops
+          if (response.status === 404) {
+            try {
+              // Try to extract missing item id from backend message
+              // e.g. "Scene item point-light-1758400944888 not found"
+              const match = /Scene item\s+([^\s"']+)\s+not found/i.exec(errorText);
+              const missingId = match?.[1];
+              if (missingId) {
+                const filtered = operations.filter(op => {
+                  const opId = (op as any).id as string | undefined;
+                  return !opId || opId !== missingId;
+                });
+
+                console.warn('🧹 Dropping stale operations for missing itemId:', missingId);
+
+                // Track missing IDs globally to prevent re-staging
+                try {
+                  (window as any).__lumeaNotFoundIds = (window as any).__lumeaNotFoundIds || new Set<string>();
+                  (window as any).__lumeaNotFoundIds.add(missingId);
+                } catch {}
+
+                // Re-enqueue only the remaining operations
+                set(state => ({ queue: [...filtered, ...state.queue] }));
+                
+                // Update save state and exit gracefully (no throw)
+                set({
+                  pending: false,
+                  saveState: {
+                    ...get().saveState,
+                    isSaving: false,
+                    saveError: `Removed stale item ${missingId} from save queue`,
+                  },
+                });
+                return; // Do not fall-through to generic error handling
+              }
+            } catch (parseErr) {
+              // fallback to generic handling
+              console.warn('⚠️ Failed to parse 404 error body:', parseErr);
+            }
+          }
+
           throw new Error(`Save failed: ${response.status} ${response.statusText} - ${errorText}`);
         }
 
@@ -368,8 +410,17 @@ if (typeof window !== 'undefined') {
   const savedOperations = localStorage.getItem('lumea_unsent_operations');
   if (savedOperations) {
     try {
-      const operations = JSON.parse(savedOperations);
-      useSaveQueueStore.setState({ queue: operations });
+      const operations = JSON.parse(savedOperations) as DeltaOp[];
+      // Sanitize: drop ops that reference temporary IDs (e.g., lights created but not yet persisted)
+      const isTempId = (id?: string) => !!id && (id.startsWith('temp_') || id.startsWith('tmp-') || id.startsWith('point-light-') || id.startsWith('spot-light-') || id.startsWith('directional-light-'));
+      const sanitized = (operations || []).filter(op => {
+        if ((op as any).id && isTempId((op as any).id)) {
+          console.warn('🧹 Dropping stale unsent op for temp id:', (op as any).id);
+          return false;
+        }
+        return true;
+      });
+      useSaveQueueStore.setState({ queue: sanitized });
     } catch (error) {
       console.error('❌ Failed to restore unsent operations:', error);
       localStorage.removeItem('lumea_unsent_operations');

@@ -45,9 +45,14 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
     );
   }
   
-  // Filter items that belong to this category
+  // Filter items that belong to this category and are NOT lights
   const categoryItems = items.filter(item => {
     const itemCategory = typeof item.category === 'string' ? item.category : (item.category as any)?.categoryKey || '';
+    const isLight = (item as any)?.meta?.isLight === true;
+    if (isLight) {
+      // Skip rendering lights as GLB meshes; they are handled by LightsFromManifest
+      return false;
+    }
     return itemCategory === categoryKey;
   });
   

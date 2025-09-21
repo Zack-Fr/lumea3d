@@ -3,6 +3,7 @@ import { useSceneManifestStaged } from '../../hooks/scenes/useSceneManifestStage
 import { CategoryRenderer } from './CategoryRenderer';
 import { SafeSceneItem } from './SafeSceneItem';
 import { log } from '../../utils/logger';
+import { LightsFromManifest } from './LightsFromManifest';
 
 interface SceneRendererProps {
   sceneId: string;
@@ -97,7 +98,10 @@ export function SceneRenderer({ sceneId }: SceneRendererProps) {
 
   return (
     <group name="scene-root">
-      {/* Render manifest items via CategoryRenderer */}
+      {/* Reconstruct lights from manifest first to ensure helpers and selection work */}
+      <LightsFromManifest items={items} />
+
+      {/* Render manifest items via CategoryRenderer (lights are filtered out) */}
       {Object.entries(categories).map(([categoryKey, category]) => (
         <Suspense key={`${sceneId}-${categoryKey}`} fallback={null}>
           <CategoryRenderer

@@ -274,7 +274,7 @@ export const scenesApi = {
     
     const headers = {
       'Content-Type': 'application/json',
-      ...(version && { 'If-Match': `W/"${version}"` }),
+      ...(version && { 'If-Match': parseInt(version.toString(), 10).toString() }),
       ...(token && { 'Authorization': `Bearer ${token}` }),
     };
     

@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { useThree } from '@react-three/fiber';
+import { useSceneContext } from '../../contexts/SceneContext';
 
 // Helper function to create visual helpers for lights
 function createLightHelper(light: THREE.Light): THREE.Object3D | null {
@@ -75,6 +76,25 @@ export class LightsManager {
     this.notifyCallbacks();
   }
 
+  clear(scene?: THREE.Scene): void {
+    // Remove all lights from scene if provided
+    if (scene) {
+      for (const light of this.lights) {
+        scene.remove(light);
+        if (light instanceof THREE.DirectionalLight || light instanceof THREE.SpotLight) {
+          scene.remove(light.target);
+        }
+        if ((light as any).userData?.helper) {
+          const helper = (light as any).userData.helper as THREE.Object3D;
+          if (helper.userData?.cleanup) try { helper.userData.cleanup(); } catch {}
+          scene.remove(helper);
+        }
+      }
+    }
+    this.lights = [];
+    this.notifyCallbacks();
+  }
+
   removeLight(lightName: string): void {
     const index = this.lights.findIndex(light => light.name === lightName);
     if (index !== -1) {
@@ -117,6 +137,7 @@ const LightsContainer: React.FC<LightsContainerProps> = ({ onLightAdded }) => {
   const { scene } = useThree();
   const [lights, setLights] = useState<THREE.Light[]>([]);
   const lightsManager = useRef(LightsManager.getInstance());
+  const { sceneId } = useSceneContext();
 
   useEffect(() => {
     const unsubscribe = lightsManager.current.subscribe((updatedLights) => {
@@ -139,12 +160,16 @@ const LightsContainer: React.FC<LightsContainerProps> = ({ onLightAdded }) => {
             
             // Make helper selectable and link to the actual light for transforms
             helper.userData = {
-              ...light.userData,
               isHelper: true,
               originalLight: light.name,
               actualLightObject: light, // Reference to the actual light for transforms
               selectable: true, // Explicitly ensure helper is selectable
-              itemId: light.userData.itemId || light.name, // Ensure itemId is set
+              itemId: light.userData.itemId || light.name, // Use light's itemId for selection
+              // Don't copy all userData to prevent duplicate layer entries
+              meta: {
+                isHelper: true,
+                lightType: light.userData.meta?.lightType
+              }
             };
             
             console.log('💡 Created light helper with userData:', {
@@ -198,21 +223,20 @@ const LightsContainer: React.FC<LightsContainerProps> = ({ onLightAdded }) => {
     return unsubscribe;
   }, [scene, onLightAdded]);
 
+  // Reset lights when scene changes
+  useEffect(() => {
+    if (!sceneId) return;
+    console.log('💡 LightsContainer: Scene changed, clearing existing lights');
+    lightsManager.current.clear(scene);
+    setLights([]);
+  }, [sceneId, scene]);
+
   // Clean up lights when component unmounts
   useEffect(() => {
     return () => {
-      lights.forEach(light => {
-        scene.remove(light);
-        if (light instanceof THREE.DirectionalLight || light instanceof THREE.SpotLight) {
-          scene.remove(light.target);
-        }
-        // Remove helper if it exists
-        if (light.userData.helper) {
-          scene.remove(light.userData.helper);
-        }
-      });
+      lightsManager.current.clear(scene);
     };
-  }, [scene, lights]);
+  }, [scene]);
 
   // This component doesn't render anything visible
   // It just manages the lights in the scene
