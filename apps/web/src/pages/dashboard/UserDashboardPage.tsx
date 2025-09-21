@@ -2,6 +2,7 @@ import React, { memo, useCallback, useEffect, useState } from "react";
 import { once as logOnce } from '../../utils/logger';
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { toast } from "react-toastify";
 import { 
   // Settings, 
   LogOut, 
@@ -146,7 +147,7 @@ const UserDashboardPage = memo(() => {
     }));
     
     // Show success message
-    alert('✅ Thumbnail updated successfully!');
+    toast.success('Thumbnail updated successfully!');
   }, []);
 
   // Handle project deletion
@@ -171,10 +172,10 @@ const UserDashboardPage = memo(() => {
       
       // Refresh the data without full page reload
       await refetch();
-      alert('✅ Project deleted successfully!');
+      toast.success('Project deleted successfully!');
     } catch (error) {
       console.error('❌ Project deletion failed:', error);
-      alert('Failed to delete project. Please try again.');
+      toast.error('Failed to delete project. Please try again.');
     }
   }, [refetch]);
 

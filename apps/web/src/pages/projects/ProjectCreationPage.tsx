@@ -6,6 +6,7 @@ import { log } from '../../utils/logger';
 import { ROUTES } from '../../app/paths';
 import { CtaLink } from '../../shared/ui/CtaLink';
 import { ArrowLeft, Sparkles } from 'lucide-react';
+import { toast } from 'react-toastify';
 import s from './ProjectCreation.module.css';
 
 interface ProjectCreationPageProps {
@@ -42,7 +43,7 @@ const ProjectCreationPage: React.FC<ProjectCreationPageProps> = () => {
 
   const handleCreateProject = async () => {
     if (!projectName.trim()) {
-      alert('Please enter a project name');
+      toast.error('Please enter a project name');
       return;
     }
 

@@ -2,6 +2,8 @@ import { memo, useState, useRef, useEffect } from "react";
 import { Project } from "../../types/dashboard";
 import { Calendar, MoreVertical, Upload, Trash2 } from "lucide-react";
 import { uploadCanvasScreenshot } from "../../utils/canvasScreenshot";
+import { toast } from "react-toastify";
+import ConfirmationModal from "../ui/ConfirmationModal";
 import styles from "../../pages/dashboard/UserDashboard.module.css";
 
 interface ProjectCardProps {
@@ -14,6 +16,8 @@ interface ProjectCardProps {
 const ProjectCard = memo(({ project, onClick, onThumbnailUpdate, onProjectDelete }: ProjectCardProps) => {
   const [showMenu, setShowMenu] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -58,13 +62,13 @@ const ProjectCard = memo(({ project, onClick, onThumbnailUpdate, onProjectDelete
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file.');
+      toast.error('Please select an image file.');
       return;
     }
 
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB.');
+      toast.error('File size must be less than 5MB.');
       return;
     }
 
@@ -84,7 +88,7 @@ const ProjectCard = memo(({ project, onClick, onThumbnailUpdate, onProjectDelete
           onThumbnailUpdate?.(project, result.thumbnailUrl);
         } catch (error) {
           console.error('❌ Thumbnail upload failed:', error);
-          alert('Failed to upload thumbnail. Please try again.');
+          toast.error('Failed to upload thumbnail. Please try again.');
         } finally {
           setIsUploading(false);
         }
@@ -92,7 +96,7 @@ const ProjectCard = memo(({ project, onClick, onThumbnailUpdate, onProjectDelete
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('❌ File reading failed:', error);
-      alert('Failed to read file. Please try again.');
+      toast.error('Failed to read file. Please try again.');
       setIsUploading(false);
     }
 
@@ -105,10 +109,21 @@ const ProjectCard = memo(({ project, onClick, onThumbnailUpdate, onProjectDelete
     e.stopPropagation();
     e.nativeEvent.stopImmediatePropagation();
     setShowMenu(false);
-    
-    if (confirm(`Are you sure you want to delete the project "${project.name}"? This action cannot be undone.`)) {
-      onProjectDelete?.(project);
+    setShowDeleteConfirmation(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await onProjectDelete?.(project);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirmation(false);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirmation(false);
   };
 
   const getBadgeClass = () => {
@@ -241,6 +256,19 @@ const ProjectCard = memo(({ project, onClick, onThumbnailUpdate, onProjectDelete
         onChange={handleFileChange}
         style={{ display: 'none' }}
         data-menu
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirmation}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Delete Project"
+        message={`Are you sure you want to delete the project "${project.name}"? This action cannot be undone and will permanently remove all project data.`}
+        confirmText="Delete Project"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
       />
     </div>
   );

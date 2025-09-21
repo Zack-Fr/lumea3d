@@ -1,4 +1,5 @@
 import React from 'react';
+import { toast } from 'react-toastify';
 
 const ApiUrlDebug: React.FC = () => {
   const apiUrl = import.meta.env.VITE_API_URL;
@@ -9,11 +10,11 @@ const ApiUrlDebug: React.FC = () => {
       const response = await fetch(`${apiUrl}/monitoring/health`);
       const data = await response.json();
       console.log('API Response:', data);
-      alert(`API Connection Success!\nURL: ${apiUrl}\nStatus: ${response.status}`);
+      toast.success(`API Connection Success!\nURL: ${apiUrl}\nStatus: ${response.status}`);
     } catch (error) {
       console.error('API Connection Failed:', error);
       const errorMessage = typeof error === 'object' && error !== null && 'message' in error ? (error as { message: string }).message : String(error);
-      alert(`API Connection Failed!\nURL: ${apiUrl}\nError: ${errorMessage}`);
+      toast.error(`API Connection Failed!\nURL: ${apiUrl}\nError: ${errorMessage}`);
     }
   };
 

@@ -4,6 +4,7 @@ import { AssetStatus, AssetLicense } from '@/api/sdk';
 import { useAssetProcessing } from '@/hooks/useAssetProcessing';
 import AssetProcessingStatusCard from '@/components/asset/AssetProcessingStatusCard';
 import { assetsApi } from '@/services/assetsApi';
+import { toast } from 'react-toastify';
 
 interface AssetImportModalProps {
     isOpen: boolean;
@@ -110,14 +111,14 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
 
     // Validate file type
     if (!file.name.toLowerCase().endsWith('.glb')) {
-      alert('Please select a GLB file (.glb extension)');
+      toast.error('Please select a GLB file (.glb extension)');
       return;
     }
 
     // Validate file size (100MB max)
     const maxSize = 100 * 1024 * 1024; // 100MB
     if (file.size > maxSize) {
-      alert('File size must be less than 100MB');
+      toast.error('File size must be less than 100MB');
       return;
     }
 
@@ -143,7 +144,7 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
     const glbFile = files.find(file => file.name.toLowerCase().endsWith('.glb'));
 
     if (!glbFile) {
-      alert('Please drop a GLB file (.glb extension)');
+      toast.error('Please drop a GLB file (.glb extension)');
       return;
     }
 
@@ -233,7 +234,7 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
 
     const validationError = validateForm();
     if (validationError) {
-      alert(validationError);
+      toast.error(validationError);
       return;
     }
 

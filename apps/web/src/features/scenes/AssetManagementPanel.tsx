@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { AssetStatus, AssetLicense } from '@/api/sdk';
 import { assetsApi } from '../../services/assetsApi';
+import { toast } from 'react-toastify';
 
 interface Asset {
   id: string;
@@ -119,7 +120,7 @@ export function AssetManagementPanel({
       console.log('🗑️ AssetManagement: Deleted asset:', assetId);
     } catch (err) {
       console.error('❌ AssetManagement: Failed to delete asset:', err);
-      alert('Failed to delete asset');
+      toast.error('Failed to delete asset');
     }
   };
 
