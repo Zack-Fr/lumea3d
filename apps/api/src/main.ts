@@ -84,6 +84,19 @@ async function bootstrap() {
     }
   }));
 
+  // Use express cors middleware with permissive settings for testing
+  const cors = require('cors');
+  
+  app.use(cors({
+    origin: true, // Allow all origins for now
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'If-Match', 'X-Requested-With', 'Accept', 'Origin'],
+    exposedHeaders: ['X-Total-Count'],
+    preflightContinue: false,
+    optionsSuccessStatus: 200
+  }));
+  
   // Add custom middleware to handle mobile browser access
   app.use((req, res, next) => {
     // Allow mobile browsers by relaxing security headers
@@ -93,16 +106,7 @@ async function bootstrap() {
     next();
   });
 
-  // CORS with security considerations
-  app.enableCors({
-    origin: process.env.NODE_ENV === 'production' 
-      ? process.env.ALLOWED_ORIGINS?.split(',') || false
-      : true, // Allow all origins for development
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'If-Match'],
-    exposedHeaders: ['X-Total-Count'],
-  });
+  // CORS is now handled by express cors middleware above
 
   // Swagger documentation
   let swaggerBase = process.env.API_PUBLIC_URL;

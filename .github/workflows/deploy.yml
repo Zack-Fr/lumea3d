@@ -16,7 +16,7 @@ jobs:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev'
-    environment: staging
+    # environment: staging  # Commented out - create this environment in GitHub repo settings if needed
     
     steps:
       - name: Checkout code
@@ -59,10 +59,6 @@ jobs:
             -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:staging \
             --push ./apps/web
           
-          # Build and push Solver
-          docker buildx build --platform linux/amd64 \
-            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-solver:staging \
-            --push ./apps/solver
 
       - name: Deploy to staging
         run: |
@@ -74,8 +70,7 @@ jobs:
     name: Deploy to Production
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    environment: production
-    
+    # environment: production  # Commented out - create this environment in GitHub repo settings if needed
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -119,11 +114,6 @@ jobs:
             -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:${{ github.sha }} \
             --push ./apps/web
           
-          # Build and push Solver
-          docker buildx build --platform linux/amd64 \
-            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-solver:latest \
-            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-solver:${{ github.sha }} \
-            --push ./apps/solver
 
       - name: Deploy to production
         run: |
@@ -131,12 +121,12 @@ jobs:
           # Add your production deployment commands here
 
       - name: Create GitHub release
-        uses: actions/create-release@v1.1.4
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ github.run_number }}
-          release_name: Release v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
           body: |
             Automated release from commit ${{ github.sha }}
             

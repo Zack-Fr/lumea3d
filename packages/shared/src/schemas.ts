@@ -129,7 +129,6 @@ export interface SceneDto {
   placements: PlacementDto[];
   checks: ComplianceCheckDto[];
   rationale: Record<string, string[]>;
-  solver_ms: number;
   status: 'ok' | 'fallback' | 'error';
   created_at: string;
 }

@@ -7,28 +7,38 @@ Users [icon: user, color: blue] {
   displayName string
   role         Role
   isActive     Boolean
-  createdAt    DateTime
+  createdA  spawnPositionZ  Float     @default(5.0)    DateTime
   updatedAt    DateTime
 }
-Users.project <> Projects.id
+Users.projects <> Projects.id
 Users.feedback <> Feedback.id
-Users.session <> Sessions.id
-Users.invite <> Invites.id
-Users.asset <> Assets.id
+Users.sessions <> Sessions.id
+Users.invites <> Invites.id
+Users.assets <> Assets.id
+Users.projectMembers <> ProjectMember.id
+Users.ownedSessions <> CollabSession.id
+Users.sessionParticipations <> CollabParticipant.id
+Users.sentInvites <> CollabInvite.id
 
 Projects [icon: project, color: orange] {
   id              String               @id @default(cuid())
   name            String
   userId          String
+  thumbnailUrl    String?
+  customThumbnailUrl String?
+  thumbnailUpdatedAt DateTime?
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 }
 
   // Relations
   Projects.user <>  Users.id                
-  Projects.scene <>  Scenes.id
-  Projects.scene3D <>  scene3D.id
+  Projects.scenes <>  Scenes.id
+  Projects.scenes3D <> scene3D.id
   Projects.categories3D  <>  projectCategory3D.id
+  Projects.members <> ProjectMember.id
+  Projects.collabSessions <> CollabSession.id
+  Projects.collabInvites <> CollabInvite.id
 
 Scenes [icon: project, color: teal] {
   id                    String              @id @default(cuid())
@@ -45,10 +55,10 @@ Scenes [icon: project, color: teal] {
 }
   // // Relations
   Scenes.project <> Projects.id      
-  Scenes.placement <> Placements.id
-  Scenes.complianceCheck <>ComplianceChecks.id
+  Scenes.placements <> Placements.id
+  Scenes.complianceChecks <>ComplianceChecks.id
   Scenes.feedback <>Feedback.id
-  Scenes.placementAdjustment <> placementAdjustments.id
+  Scenes.placementAdjustments <> placementAdjustments.id
 
 Placements [icon: project, color: white] {
   id           String              @id @default(cuid())
@@ -100,7 +110,7 @@ ComplianceChecks [icon: project, color: white] {
 }
   // Relations
   Sessions.user<> Users.id   
-  Sessions.invite<> Invites.id
+  Sessions.invites<> Invites.id
 
   Invites [icon: project, color: red] {
   id         String    @id @default(cuid())
@@ -145,6 +155,7 @@ Assets [icon: project, color: purple]{
   originalUrl   String?
   meshoptUrl    String?
   dracoUrl      String?
+  ktx2Url       String?       // KTX2 compressed textures
   navmeshUrl    String?
   reportJson    Json?
   errorMessage  String?
@@ -159,7 +170,8 @@ Assets [icon: project, color: purple]{
   // Relations
   Assets.uploader<>Users.id            
   Assets.categories<>projectCategory3D.id
-  Assets.navmeshScene<>scene3D.id
+  Assets.navmeshScenes<>scene3D.id
+  Assets.shellScenes<>scene3D.id
 
   projectCategory3D [icon: project, color: purple] {
 
@@ -185,6 +197,7 @@ Assets [icon: project, color: purple]{
   projectId       String
   name            String
   version         Int       @default(1)
+  props           Json?
 
   scale           Float?    @default(1.0)
   exposure        Float?    @default(1.0)
@@ -198,13 +211,20 @@ Assets [icon: project, color: purple]{
 
   navmeshAssetId  String?
 
+  // Shell properties
+  shellAssetId    String?
+  shellCastShadow Boolean   @default(true)
+  shellReceiveShadow Boolean @default(true)
+
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 }
 // Relations
   scene3D.project<>Projects.id   
   scene3D.navmeshAsset<>Assets.id 
+  scene3D.shellAsset<>Assets.id
   scene3D.items<>sceneItem3D.id
+  scene3D.snapshots<>SceneSnapshot.id
   
 
 
@@ -238,3 +258,70 @@ Assets [icon: project, color: purple]{
 }
 // Relations
   sceneItem3D.scene<>scene3D.id
+
+ProjectMember [icon: project, color: green] {
+  userId    String
+  projectId String
+  role      ProjectRole @default(CLIENT)
+}
+// Relations
+ProjectMember.user <> Users.id
+ProjectMember.project <> Projects.id
+
+CollabSession [icon: project, color: yellow] {
+  id            String        @id @default(cuid())
+  projectId     String
+  ownerId       String        // Session creator
+  name          String?
+  status        SessionStatus @default(ACTIVE)
+  createdAt     DateTime      @default(now())
+  endedAt       DateTime?
+  updatedAt     DateTime      @updatedAt
+}
+// Relations
+CollabSession.project <> Projects.id
+CollabSession.owner <> Users.id
+CollabSession.participants <> CollabParticipant.id
+CollabSession.invites <> CollabInvite.id
+
+CollabParticipant [icon: project, color: yellow] {
+  id            String        @id @default(cuid())
+  sessionId     String
+  userId        String
+  joinedAt      DateTime      @default(now())
+  leftAt        DateTime?
+  isActive      Boolean       @default(true)
+}
+// Relations
+CollabParticipant.session <> CollabSession.id
+CollabParticipant.user <> Users.id
+
+CollabInvite [icon: project, color: yellow] {
+  id              String       @id @default(cuid())
+  projectId       String
+  fromUserId      String       // Who sent the invite
+  toUserEmail     String       // Email of recipient
+  sessionId       String?      // Associated session (if any)
+  token           String       @unique
+  message         String?      // Optional personal message
+  status          InviteStatus @default(PENDING)
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  declinedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+// Relations
+CollabInvite.project <> Projects.id
+CollabInvite.fromUser <> Users.id
+CollabInvite.session <> CollabSession.id
+
+SceneSnapshot [icon: project, color: purple] {
+  id        String   @id @default(cuid())
+  sceneId   String   
+  label     String   // e.g., "Manual Save" or auto timestamp
+  manifest  Json     // entire scene manifest v2 for restore
+  createdAt DateTime @default(now())
+}
+// Relations
+SceneSnapshot.scene <> scene3D.id

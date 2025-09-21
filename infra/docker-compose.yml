@@ -27,15 +27,14 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/lumea_db
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-refresh-in-production}
-      SOLVER_URL: http://solver:8000
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3000
       # API configuration
-      API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
+      API_BASE_URL: ${API_BASE_URL:-http://192.168.1.10:3000}
       # Storage configuration
       STORAGE_PROVIDER: ${STORAGE_PROVIDER:-minio}
       STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-http://minio:9000}
-      STORAGE_EXTERNAL_ENDPOINT: ${STORAGE_EXTERNAL_ENDPOINT:-http://localhost:9000}
+      STORAGE_EXTERNAL_ENDPOINT: ${STORAGE_EXTERNAL_ENDPOINT:-http://192.168.1.10:9000}
       STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
       STORAGE_BUCKET_NAME: ${STORAGE_BUCKET_NAME:-lumea-assets}
       STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-minioadmin}
@@ -49,33 +48,16 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      solver:
-        condition: service_healthy
       minio:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://192.168.1.10:3000/monitoring/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/monitoring/health"]
       interval: 30s
       timeout: 10s
       retries: 3
 
-  solver:
-    build: 
-      context: ../apps/solver
-      dockerfile: Dockerfile
-    container_name: lumea-solver
-    environment:
-      PYTHONPATH: /app
-      LOG_LEVEL: ${LOG_LEVEL:-info}
-    ports:
-      - "${SOLVER_PORT:-8000}:8000"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   minio:
     image: minio/minio:latest
@@ -116,10 +98,10 @@ services:
       dockerfile: ./apps/web/Dockerfile
       target: production
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+        VITE_API_URL: ${VITE_API_URL:-http://192.168.1.10:3000}
     container_name: lumea-web
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+      VITE_API_URL: ${VITE_API_URL:-http://192.168.1.10:3000}
     ports:
       - "0.0.0.0:${WEB_PORT:-80}:80"  # Bind to all interfaces for network access
     depends_on:

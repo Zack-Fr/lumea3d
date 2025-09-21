@@ -1,12 +1,13 @@
 # Lumea Development Automation
 # Usage: make <command>
+# Environment: Set ENV=production|test|development (default: development)
 
-.PHONY: help up down wait migrate seed generate metrics demo-fail restore openapi types-openapi clean logs
+.PHONY: help up down wait migrate seed generate metrics openapi types-openapi clean logs health dev-reset dev-quick backfill
 
 # Default target
 help:
 	@echo "Lumea Development Commands:"
-	@echo "  up              - Start all services with Docker Compose"
+	@echo "  up              - Start all services (ENV=production|test|development)"
 	@echo "  down            - Stop all services"
 	@echo "  wait            - Wait for services to be healthy"
 	@echo "  migrate         - Run database migrations"
@@ -14,22 +15,28 @@ help:
 	@echo "  backfill        - Backfill ProjectMember records for existing projects"
 	@echo "  generate        - Test scene generation pipeline"
 	@echo "  metrics         - View API metrics"
-	@echo "  demo-fail       - Simulate solver failure for testing"
-	@echo "  restore         - Restore services after demo-fail"
+	@echo "  health          - Check service health"
 	@echo "  openapi         - Generate OpenAPI documentation"
 	@echo "  types-openapi   - Generate TypeScript types from OpenAPI"
 	@echo "  logs            - View service logs"
 	@echo "  clean           - Clean up containers and volumes"
+	@echo ""
+	@echo "Environment Examples:"
+	@echo "  make up ENV=production    - Start with production config"
+	@echo "  make up ENV=test         - Start with test config"
+
+# Environment variable (default to development if not set)
+ENV ?= development
 
 # Start services
 up:
-	@echo "🚀 Starting Lumea services..."
-	cd infra && docker-compose up --build -d
+	@echo "🚀 Starting Lumea services with environment: $(ENV)..."
+	cd infra && docker compose --env-file .env.$(ENV) up --build -d
 
 # Stop services
 down:
 	@echo "🛑 Stopping Lumea services..."
-	cd infra && docker-compose down
+	cd infra && docker compose --env-file .env.$(ENV) down
 
 # Wait for services to be healthy
 wait:
@@ -37,8 +44,7 @@ wait:
 	@timeout=60; \
 	while [ $$timeout -gt 0 ]; do \
 		if docker ps --filter "name=lumea-db" --filter "health=healthy" | grep -q lumea-db && \
-		docker ps --filter "name=lumea-api" --filter "health=healthy" | grep -q lumea-api && \
-		docker ps --filter "name=lumea-solver" --filter "health=healthy" | grep -q lumea-solver; then \
+		docker ps --filter "name=lumea-api" --filter "health=healthy" | grep -q lumea-api; then \
 			echo "✅ All services are healthy"; \
 			exit 0; \
 		fi; \
@@ -77,15 +83,6 @@ metrics:
 		@echo "📊 API Metrics:"
 		@curl -s http://localhost:3000/admin/metrics | python -m json.tool || echo "❌ Metrics unavailable"
 
-# Simulate solver failure for testing graceful degradation
-demo-fail:
-		@echo "💥 Simulating solver failure..."
-		docker stop lumea-solver
-
-# Restore solver after demo-fail
-restore:
-		@echo "🔧 Restoring solver service..."
-		docker start lumea-solver
 
 # Generate OpenAPI documentation
 openapi:
@@ -101,12 +98,12 @@ types-openapi:
 # View logs from all services
 logs:
 		@echo "📋 Service logs:"
-		cd infra && docker-compose logs -f
+		cd infra && docker compose --env-file .env.$(ENV) logs -f
 
 # Clean up everything
 clean:
 	@echo "🧹 Cleaning up containers and volumes..."
-	cd infra && docker-compose down -v --remove-orphans
+	cd infra && docker compose --env-file .env.$(ENV) down -v --remove-orphans
 	docker system prune -f
 
 # Development workflow shortcuts
@@ -119,7 +116,6 @@ dev-quick: up wait
 # Health check all services
 health:
 	@echo "🏥 Health check:"
-	@echo -n "Database: "; curl -s http://localhost:5432 && echo "✅" || echo "❌"
-	@echo -n "API: "; curl -s http://localhost:3000/health && echo "✅" || echo "❌"
-	@echo -n "Solver: "; curl -s http://localhost:8000/health && echo "✅" || echo "❌"
-	@echo -n "Web: "; curl -s http://localhost:5173 && echo "✅" || echo "❌"
+	@echo -n "Database: "; curl -s http://localhost:5434 && echo "✅" || echo "❌"
+	@echo -n "API: "; curl -s http://localhost:3000/monitoring/health && echo "✅" || echo "❌"
+	@echo -n "Web: "; curl -s http://localhost:80 && echo "✅" || echo "❌"

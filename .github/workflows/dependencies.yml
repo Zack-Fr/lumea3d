@@ -38,12 +38,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Update Python dependencies
-        working-directory: apps/solver
-        run: |
-          # Update requirements
-          pip install pip-upgrader
-          pip-upgrade requirements.txt
 
       - name: Run tests
         run: |
