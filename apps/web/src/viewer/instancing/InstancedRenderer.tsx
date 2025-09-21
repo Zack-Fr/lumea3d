@@ -157,7 +157,7 @@ export function InstancedRenderer({ assetId, glbUrl, items }: InstancedRendererP
           selection={selection}
           transformMode={"translate"} // You can make this dynamic
           onTransformStart={() => console.log('Transform started')}
-          onTransformEnd={() => {
+          onTransformEnd={(_transformData) => {
             console.log('Transform ended');
             // Update bounding box after transform
             if (selection) {

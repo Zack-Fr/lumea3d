@@ -47,13 +47,14 @@ export function LayerHierarchyBridge() {
     const processedItems = new Set<string>();
 
     scene.traverse((object) => {
-      // Skip debug objects, ground plane, grid system, and other utility objects
+      // Skip debug objects, ground plane, grid system, helpers, and other utility objects
       if (!object.userData?.itemId || 
           object.userData?.meta?.isDebug || 
+          object.userData?.isHelper ||
           object.name === 'ground-plane' ||
           object.name?.includes('debug') ||
           object.name?.includes('grid') ||
-          object.name?.includes('light-helper')) {
+          object.name?.includes('-helper')) {
         return;
       }
 

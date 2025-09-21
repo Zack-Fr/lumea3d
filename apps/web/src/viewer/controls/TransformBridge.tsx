@@ -12,7 +12,7 @@ interface TransformBridgeProps {
   } | null;
   transformMode: 'translate' | 'rotate' | 'scale';
   onTransformStart?: () => void;
-  onTransformEnd?: () => void;
+  onTransformEnd?: (transform?: { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] }) => void;
   enabled?: boolean;
 }
 
@@ -99,9 +99,19 @@ export function TransformBridge({
     console.log('🔧 Transform drag ended');
     if (selection) {
       writeBackToInstance(selection.assetId, selection.index);
+      
+      // Extract current transform data to pass to callback
+      const transformData = {
+        position: [proxy.position.x, proxy.position.y, proxy.position.z] as [number, number, number],
+        rotation: [proxy.rotation.x, proxy.rotation.y, proxy.rotation.z] as [number, number, number],
+        scale: [proxy.scale.x, proxy.scale.y, proxy.scale.z] as [number, number, number]
+      };
+      
+      onTransformEnd?.(transformData);
+    } else {
+      onTransformEnd?.();
     }
-    onTransformEnd?.();
-  }, [selection, writeBackToInstance, onTransformEnd]);
+  }, [selection, writeBackToInstance, onTransformEnd, proxy]);
   
   const handleObjectChange = useCallback(() => {
     // Real-time updates during dragging

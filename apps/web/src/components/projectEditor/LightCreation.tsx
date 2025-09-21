@@ -3,7 +3,9 @@ import { Button } from '../ui/Button';
 import { Lightbulb, Sun, Zap, Flashlight } from 'lucide-react';
 import * as THREE from 'three';
 import { useSceneContext } from '../../contexts/SceneContext';
+import { scenesApi } from '../../services/scenesApi';
 import { addLightToScene } from './LightsContainer';
+import { useSaveQueueStore } from '../../stores/saveQueueStore';
 
 interface LightCreationProps {
   onLightCreated?: (lightObject: THREE.Light) => void;
@@ -23,9 +25,17 @@ interface LightConfig {
 }
 
 const LightCreation: React.FC<LightCreationProps> = ({ onLightCreated }) => {
-  const { sceneId } = useSceneContext();
+  const { sceneId, manifest } = useSceneContext();
+  
+  // Debug: Log available categories
+  React.useEffect(() => {
+    if (manifest?.categories) {
+      console.log('Available categories in project:', Object.keys(manifest.categories));
+    }
+  }, [manifest]);
   
   const [selectedLightType, setSelectedLightType] = useState<LightType>('directional');
+  const setSaveQueueSceneId = useSaveQueueStore(s => s.setSceneId);
   const [isCreatingLight, setIsCreatingLight] = useState(false);
 
   const lightConfigs: Record<LightType, Omit<LightConfig, 'type'>> = {
@@ -109,7 +119,7 @@ const LightCreation: React.FC<LightCreationProps> = ({ onLightCreated }) => {
       }
 
       // Set common properties
-      light.name = `${lightType}-light-${Date.now()}`;
+      light.name = lightType === 'directional' ? 'Directional Light' : lightType === 'spot' ? 'Spot Light' : 'Point Light';
       
       // Enable shadows for point and spot lights (directional already configured above)
       if (lightType === 'point' || lightType === 'spot') {
@@ -146,90 +156,94 @@ const LightCreation: React.FC<LightCreationProps> = ({ onLightCreated }) => {
         selectable: light.userData.selectable
       });
 
-      // Add light to the 3D scene
+      // Add light to the 3D scene visually
       addLightToScene(light);
       
-      // Save light to backend as scene item
+      // Add light to scene persistence system
+      console.log('� Adding light to scene persistence:', {
+        lightName: light.name,
+        itemId: light.userData.itemId,
+        lightType: lightType
+      });
+      
+      // Save light to backend using direct API
       if (sceneId) {
-        console.log('💾 Attempting to save light to backend...');
-        
-        // Try to save asynchronously without blocking the UI
-        setTimeout(async () => {
+        try {
+          // Get a valid category key (prefer 'lighting' if available, otherwise use first available)
+          const availableCategories = manifest?.categories ? Object.keys(manifest.categories) : [];
+          const categoryKey = availableCategories.includes('lighting') 
+            ? 'lighting' 
+            : availableCategories.length > 0 
+              ? availableCategories[0] 
+              : 'furniture'; // fallback
+          
+          console.log('Using categoryKey for light:', categoryKey, 'from available:', availableCategories);
+
+          // Create the request in the format expected by the backend API
+          const createRequest = {
+            categoryKey: categoryKey,
+            model: lightType,
+            positionX: light.position.x,
+            positionY: light.position.y,
+            positionZ: light.position.z,
+            rotationX: light.rotation.x,
+            rotationY: light.rotation.y,
+            rotationZ: light.rotation.z,
+            scaleX: light.scale.x,
+            scaleY: light.scale.y,
+            scaleZ: light.scale.z,
+            selectable: true,
+            locked: false,
+            meta: {
+              isLight: true,
+              lightType: lightType,
+              lightName: light.name,
+              lightProperties: {
+                color: light.color.getHexString(),
+                intensity: light.intensity,
+                ...(lightType === 'point' && { 
+                  distance: (light as THREE.PointLight).distance,
+                  decay: (light as THREE.PointLight).decay 
+                }),
+                ...(lightType === 'spot' && { 
+                  distance: (light as THREE.SpotLight).distance,
+                  decay: (light as THREE.SpotLight).decay,
+                  angle: (light as THREE.SpotLight).angle 
+                })
+              }
+            }
+          };
+
+          const result = await scenesApi.addItem(sceneId, createRequest, manifest?.scene?.version?.toString());
+          console.log('✅ Light saved to backend:', {
+            lightName: light.name,
+            backendId: result.id,
+            lightType: lightType
+          });
+
+          // Update the light's userData with the backend-generated ID
+          light.userData.itemId = result.id;
+          light.name = result.id; // Use backend ID for consistency
+
+          // Sync save queue version after backend increments scene version
           try {
-            const { scenesApi } = await import('../../services/scenesApi');
-            
-            // Get available categories first
-            let categoryKey = 'lighting'; // Default fallback
-            try {
-              const categories = await scenesApi.getCategories(sceneId);
-              console.log('📋 Available categories:', categories);
-              
-              // Use first available category if any exist
-              if (categories && categories.length > 0) {
-                categoryKey = categories[0].categoryKey || 'lighting';
-                console.log('📋 Using category:', categoryKey);
-              }
-            } catch (categoryError) {
-              console.log('⚠️ Could not fetch categories, using default');
+            const vResp = await scenesApi.getVersion(sceneId);
+            const newVersionNum = parseInt((vResp?.version ?? '1').toString(), 10);
+            if (!Number.isNaN(newVersionNum)) {
+              setSaveQueueSceneId(sceneId, newVersionNum);
             }
-            
-            // Create scene item for the light
-            const lightItem = {
-              categoryKey: categoryKey,
-              model: lightType,
-              positionX: light.position.x,
-              positionY: light.position.y,
-              positionZ: light.position.z,
-              rotationX: light.rotation.x,
-              rotationY: light.rotation.y,
-              rotationZ: light.rotation.z,
-              scaleX: light.scale.x,
-              scaleY: light.scale.y,
-              scaleZ: light.scale.z,
-              selectable: true,
-              locked: false,
-              meta: {
-                isLight: true,
-                lightType: lightType,
-                lightName: light.name,
-                originalLightId: light.userData.itemId,
-                lightProperties: {
-                  color: light.color.getHexString(),
-                  intensity: light.intensity,
-                  ...(lightType === 'point' && { 
-                    distance: (light as THREE.PointLight).distance,
-                    decay: (light as THREE.PointLight).decay 
-                  }),
-                  ...(lightType === 'spot' && { 
-                    distance: (light as THREE.SpotLight).distance,
-                    decay: (light as THREE.SpotLight).decay,
-                    angle: (light as THREE.SpotLight).angle 
-                  })
-                }
-              }
-            };
-            
-            console.log('💾 Creating light item:', lightItem);
-            
-            const result = await scenesApi.addItem(sceneId, lightItem);
-            
-            if (result && result.id) {
-              const oldItemId = light.userData.itemId;
-              light.userData.itemId = result.id;
-              light.userData.dbId = result.id;
-              
-              console.log('✅ Light successfully saved:', {
-                lightName: light.name,
-                tempId: oldItemId,
-                dbId: result.id
-              });
-            }
-            
-          } catch (error) {
-            console.error('❌ Failed to save light:', error);
-            // Light remains with temp ID - still moveable locally
+          } catch (e) {
+            console.warn('⚠️ Failed to sync save queue version after addItem:', e);
           }
-        }, 100);
+          
+        } catch (error) {
+          console.error('❌ Failed to save light to backend:', error);
+          
+          // Mark light as local-only if persistence fails
+          light.userData.saveError = true;
+          light.userData.errorMessage = error instanceof Error ? error.message : String(error);
+          light.userData.localOnly = true;
+        }
       }
       
       // Notify parent component

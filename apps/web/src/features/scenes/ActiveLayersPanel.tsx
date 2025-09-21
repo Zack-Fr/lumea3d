@@ -31,6 +31,12 @@ export function ActiveLayersPanel({ isOpen, onClose }: ActiveLayersPanelProps) {
     const processedItems = new Set<string>();
 
     scene.traverse((object) => {
+      // Skip lights and their helpers from the Objects list
+      const isLight = object.type.includes('Light') || object.userData?.meta?.isLight === true || object.userData?.isHelper === true;
+      if (isLight) {
+        return;
+      }
+
       // Look for parent objects with itemId
       if (object.userData?.itemId && !processedItems.has(object.userData.itemId)) {
         const itemId = object.userData.itemId;

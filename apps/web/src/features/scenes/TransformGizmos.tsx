@@ -4,13 +4,23 @@ import { TransformControls } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 import { useSelectionStore } from '../../stores/selectionStore';
 import { useSaveQueueStore } from '../../stores/saveQueueStore';
+import * as THREE from 'three';
 
 interface TransformGizmosProps {
   enabled: boolean;
 }
 
+function isInSceneGraph(object: THREE.Object3D | null | undefined, scene: THREE.Scene): boolean {
+  let cur: THREE.Object3D | null | undefined = object || null;
+  while (cur) {
+    if (cur === scene) return true;
+    cur = cur.parent as any;
+  }
+  return false;
+}
+
 export function TransformGizmos({ enabled }: TransformGizmosProps) {
-  const { camera } = useThree();
+  const { camera, scene } = useThree();
   const selected = useSelectionStore((s) => s.selected);
   const transformMode = useSelectionStore((s) => s.transformMode);
   const isTransforming = useSelectionStore((s) => s.isTransforming);
@@ -40,7 +50,8 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
       
       try {
         // Verify object is still part of scene graph before attaching
-        if (!selectedObject.parent) {
+        const inGraph = isInSceneGraph(selectedObject, scene as any);
+        if (!inGraph) {
           log('warn', '⚠️ Cannot attach transform controls: object not in scene graph');
           return;
         }
@@ -93,67 +104,47 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
     // Update the transform in our state
     if (selectedObject) {
 
-      // Handle transform updates for all objects
-      const isLight = selectedObject.userData?.meta?.isLight || false;
-      const dbId = selectedObject.userData?.dbId;
-      const tempId = selectedObject.userData?.itemId;
-      const itemId = dbId || tempId || selectedObject.userData?.id;
-      
-      console.log('🔧 Transform update:', {
-        name: selectedObject.name,
-        isLight,
-        dbId,
-        tempId,
-        finalItemId: itemId
-      });
-      
-      if (itemId) {
-        // Try to stage the update if we have a backend ID
-        if (dbId) {
-          // Object is saved in backend, safe to stage update
-          const deltaOp = {
-            op: 'update_item' as const,
-            id: dbId,
-            transform: {
-              position: [selectedObject.position.x, selectedObject.position.y, selectedObject.position.z] as [number, number, number],
-              rotation_euler: [selectedObject.rotation.x, selectedObject.rotation.y, selectedObject.rotation.z] as [number, number, number],
-              scale: [selectedObject.scale.x, selectedObject.scale.y, selectedObject.scale.z] as [number, number, number],
-            }
-          };
-          
-          stage(deltaOp);
-          console.log('💾 Staged transform update for saved item:', dbId);
-          
-        } else if (isLight && tempId) {
-          // Light with temp ID - try to stage update but handle gracefully if it fails
-          console.log('⏳ Attempting to stage update for unsaved light:', tempId);
-          
-          try {
-            const deltaOp = {
-              op: 'update_item' as const,
-              id: tempId,
-              transform: {
-                position: [selectedObject.position.x, selectedObject.position.y, selectedObject.position.z] as [number, number, number],
-                rotation_euler: [selectedObject.rotation.x, selectedObject.rotation.y, selectedObject.rotation.z] as [number, number, number],
-                scale: [selectedObject.scale.x, selectedObject.scale.y, selectedObject.scale.z] as [number, number, number],
-              }
-            };
-            
-            stage(deltaOp);
-            console.log('💾 Staged update for temp light (may fail gracefully):', tempId);
-            
-          } catch (error) {
-            console.log('⚠️ Could not stage temp light update (expected):', error);
-            // This is fine - the light will move visually but not persist until saved
-          }
-        } else {
-          // Regular object without backend ID
-          console.log('ℹ️ Local-only transform update for object:', selectedObject.name);
+      // If the selected object has a helper, sync it visually after moving
+      try {
+        if (selectedObject.userData?.updateHelper && typeof selectedObject.userData.updateHelper === 'function') {
+          selectedObject.userData.updateHelper();
         }
-      } else {
-        // No ID at all - this is unusual but we still allow the visual movement
-        console.warn('⚠️ Transform update with no ID - visual only');
+      } catch {}
+
+      // Stage the transform change for delta save - only when we have a real backend ID
+      const itemId = selectedObject.userData?.itemId as string | undefined;
+      const isTemp = !itemId || itemId.startsWith('temp_') || itemId.startsWith('tmp-') || itemId.startsWith('point-light-') || itemId.startsWith('spot-light-') || itemId.startsWith('directional-light-') || selectedObject.userData?.localOnly;
+      if (isTemp) {
+        console.warn('⚠️ Skipping transform stage for unsaved object (no real itemId yet)', {
+          name: selectedObject.name,
+          userData: selectedObject.userData,
+        });
+        log('warn', '⚠️ Skipping transform stage for unsaved object (no real itemId yet)', { name: selectedObject.name });
+        return;
       }
+
+      // Skip if backend previously reported this ID missing (avoid re-404 loops)
+      try {
+        const missing = (window as any).__lumeaNotFoundIds as Set<string> | undefined;
+        if (missing && itemId && missing.has(itemId)) {
+          console.warn('⚠️ Skipping transform stage for ID previously reported missing:', itemId);
+          return;
+        }
+      } catch {}
+
+      const deltaOp = {
+        op: 'update_item' as const,
+        id: itemId,
+        transform: {
+          position: [selectedObject.position.x, selectedObject.position.y, selectedObject.position.z] as [number, number, number],
+          rotation_euler: [selectedObject.rotation.x, selectedObject.rotation.y, selectedObject.rotation.z] as [number, number, number],
+          scale: [selectedObject.scale.x, selectedObject.scale.y, selectedObject.scale.z] as [number, number, number],
+        }
+      };
+      
+      stage(deltaOp);
+      console.log('💾 Staged transform update for item:', itemId);
+      log('debug', '💾 Transform staged for delta save', { itemId, transform: deltaOp.transform });
     }
   };
 

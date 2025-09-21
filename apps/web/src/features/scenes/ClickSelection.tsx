@@ -27,14 +27,17 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
       return;
     }
 
+    // If this is a light helper, attach gizmos to the actual light, not the helper mesh
+    const targetObject = (userData.isHelper && userData.actualLightObject) ? userData.actualLightObject as Object3D : object;
+
     setSelected({
       assetId: userData.meta?.assetId || userData.itemId,
       itemId: userData.itemId,
-      object,
+      object: targetObject,
       category: userData.category,
-      originalPosition: object.position.clone(),
-      originalRotation: object.rotation.clone(),
-      originalScale: object.scale.clone(),
+      originalPosition: targetObject.position.clone(),
+      originalRotation: targetObject.rotation.clone(),
+      originalScale: targetObject.scale.clone(),
     });
   }, [setSelected]);
 
@@ -153,10 +156,7 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
       }
       
       // Include mesh objects and light helpers with selectable userData
-      const isSelectableMesh = child.type === 'Mesh' && child.userData && child.userData.selectable && child.userData.itemId;
-      const isSelectableHelper = child.userData?.isHelper && child.userData.selectable && child.userData.itemId;
-      
-      if (isSelectableMesh || isSelectableHelper) {
+      if ((child.type === 'Mesh' || child.userData?.isHelper) && child.userData && child.userData.selectable && child.userData.itemId) {
         intersectableObjects.push(child);
       }
     });

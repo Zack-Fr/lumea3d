@@ -31,7 +31,7 @@ export const useViewportControls = (onAchievement?: (message: string) => void): 
   // Handle WASD controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isWASDActive) return;
+      if (!isWASDActive || !e.key) return;
       
       switch(e.key.toLowerCase()) {
         case 'w':
@@ -50,7 +50,7 @@ export const useViewportControls = (onAchievement?: (message: string) => void): 
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (!isWASDActive) return;
+      if (!isWASDActive || !e.key) return;
       
       switch(e.key.toLowerCase()) {
         case 'w':

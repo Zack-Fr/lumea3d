@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import type { SceneManifestV2, SceneDelta, DeltaOperation } from '../../services/scenesApi';
+import { getCurrentToken } from '../../services/scenesApi';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 interface ScenePersistenceState {
   manifest: SceneManifestV2;
@@ -283,16 +286,46 @@ export function ScenePersistenceProvider({
 
     try {
       console.log('💾 ScenePersistence: Saving scene with ops:', state.pendingOps);
+      
+      const token = getCurrentToken();
+      const url = `${API_BASE_URL}/scenes/${sceneId}/items`;
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'If-Match': state.version.toString(),
+      };
+      
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
 
-      const response = await fetch(`/api/scenes/${sceneId}/deltas`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      // Convert operations to backend format
+      const backendOps = state.pendingOps.map(op => {
+        if (op.type === 'update') {
+          return {
+            op: 'update_item',
+            id: op.id,
+            ...(op.transform && { transform: op.transform })
+          };
+        } else if (op.type === 'add') {
+          return {
+            op: 'add_item',
+            ...op.item
+          };
+        } else if (op.type === 'remove') {
+          return {
+            op: 'remove_item',
+            id: op.id
+          };
+        }
+        return op;
+      });
+
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers,
         body: JSON.stringify({
-          baseVersion: state.version,
-          ops: state.pendingOps,
-          actor: { id: userId, role: userRole }
+          operations: backendOps
         })
       });
 

@@ -27,6 +27,7 @@ interface InstancingPoolState {
   // Instance operations
   addInstance: (assetId: string, itemId: string, transform: { position: [number, number, number]; yaw_deg?: number; scale?: [number, number, number] }) => number;
   removeInstance: (assetId: string, itemId: string) => boolean;
+  updateInstanceId: (assetId: string, oldItemId: string, newItemId: string) => boolean;
   duplicateInstance: (assetId: string, fromItemId: string, newItemId: string) => number | null;
   
   // Optimistic operations with backend sync
@@ -206,6 +207,36 @@ export const useInstancingPool = create<InstancingPoolState>()(
       pool.indexOf.delete(itemId);
       
       console.log(`➖ Removed instance ${itemId} from index ${index} in pool ${assetId} (swap-remove)`);
+      return true;
+    },
+    
+    updateInstanceId: (assetId: string, oldItemId: string, newItemId: string) => {
+      const { pools } = get();
+      const pool = pools.get(assetId);
+      
+      if (!pool) {
+        console.error(`❌ Pool not found for asset ${assetId}`);
+        return false;
+      }
+      
+      const index = pool.indexOf.get(oldItemId);
+      if (index === undefined) {
+        console.warn(`⚠️ Instance ${oldItemId} not found in pool ${assetId}`);
+        return false;
+      }
+      
+      // Check if new ID already exists
+      if (pool.indexOf.has(newItemId)) {
+        console.warn(`⚠️ New ID ${newItemId} already exists in pool ${assetId}`);
+        return false;
+      }
+      
+      // Update the mappings
+      pool.ids[index] = newItemId;
+      pool.indexOf.delete(oldItemId);
+      pool.indexOf.set(newItemId, index);
+      
+      console.log(`🔄 Updated instance ID from ${oldItemId} to ${newItemId} at index ${index} in pool ${assetId}`);
       return true;
     },
     

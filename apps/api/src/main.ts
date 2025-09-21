@@ -207,9 +207,10 @@ async function bootstrap() {
   });
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
-  console.log(`🚀 Lumea API running on port ${port}`);
-  console.log(`📚 API documentation available at http://localhost:${port}/docs (Swagger server: ${swaggerBase})`);
+  const host = process.env.HOST || '0.0.0.0'; // Listen on all interfaces for network access
+  await app.listen(port, host);
+  console.log(`🚀 Lumea API running on ${host}:${port}`);
+  console.log(`📚 API documentation available at http://${host}:${port}/docs (Swagger server: ${swaggerBase})`);
 }
 
 bootstrap();
