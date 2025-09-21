@@ -181,7 +181,7 @@ export const createTransports = () => {
   if (process.env.NODE_ENV === 'production' && process.env.LOG_AGGREGATION_URL) {
     transportsList.push(
       new transports.Http({
-        host: process.env.LOG_AGGREGATION_HOST || 'localhost',
+        host: process.env.LOG_AGGREGATION_HOST || '192.168.1.10',
         port: parseInt(process.env.LOG_AGGREGATION_PORT || '3000'),
         path: process.env.LOG_AGGREGATION_PATH || '/logs',
         format: productionFormat,

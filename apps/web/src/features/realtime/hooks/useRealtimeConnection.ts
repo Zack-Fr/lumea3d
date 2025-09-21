@@ -163,7 +163,7 @@ export const useRealtimeConnection = ({
 
     setConnectionState(prev => ({ ...prev, isConnecting: true, reconnectAttempts: 0 }));
 
-    const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const serverUrl = import.meta.env.VITE_API_URL || 'http://192.168.1.10:3000';
     log('info', 'Connecting to realtime server', { serverUrl, sceneId, tokenPreview: token.substring(0, 20) + '...' });
 
     const socket = io(`${serverUrl}/rt`, {
