@@ -408,12 +408,14 @@ export class RtGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     };
 
     // Broadcast to all sockets of the invited user
-    this.server.sockets.sockets.forEach((socket) => {
-      const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
-      if (authSocket.userEmail === userEmail) {
-        socket.emit('evt', inviteEvent);
-      }
-    });
+    if (this.server && this.server.sockets && this.server.sockets.sockets) {
+      this.server.sockets.sockets.forEach((socket) => {
+        const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
+        if (authSocket.userEmail === userEmail) {
+          socket.emit('evt', inviteEvent);
+        }
+      });
+    }
     
     this.incrementMetric('messagesOut', 'INVITE_RECEIVED');
   }
@@ -435,12 +437,14 @@ export class RtGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     };
 
     // Broadcast to all sockets of the invite sender
-    this.server.sockets.sockets.forEach((socket) => {
-      const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
-      if (authSocket.userId === toUserId) {
-        socket.emit('evt', responseEvent);
-      }
-    });
+    if (this.server && this.server.sockets && this.server.sockets.sockets) {
+      this.server.sockets.sockets.forEach((socket) => {
+        const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
+        if (authSocket.userId === toUserId) {
+          socket.emit('evt', responseEvent);
+        }
+      });
+    }
     
     this.incrementMetric('messagesOut', 'INVITE_RESPONSE');
   }
@@ -455,14 +459,16 @@ export class RtGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     };
 
     // Broadcast to all participants
-    session.participants.forEach((participant) => {
-      this.server.sockets.sockets.forEach((socket) => {
-        const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
-        if (authSocket.userId === participant.id) {
-          socket.emit('evt', sessionEvent);
-        }
+    if (this.server && this.server.sockets && this.server.sockets.sockets) {
+      session.participants.forEach((participant) => {
+        this.server.sockets.sockets.forEach((socket) => {
+          const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
+          if (authSocket.userId === participant.id) {
+            socket.emit('evt', sessionEvent);
+          }
+        });
       });
-    });
+    }
     
     this.incrementMetric('messagesOut', 'SESSION_STARTED');
   }
@@ -478,14 +484,16 @@ export class RtGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     };
 
     // Broadcast to all participants
-    participantUserIds.forEach((userId) => {
-      this.server.sockets.sockets.forEach((socket) => {
-        const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
-        if (authSocket.userId === userId) {
-          socket.emit('evt', sessionEndedEvent);
-        }
+    if (this.server && this.server.sockets && this.server.sockets.sockets) {
+      participantUserIds.forEach((userId) => {
+        this.server.sockets.sockets.forEach((socket) => {
+          const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
+          if (authSocket.userId === userId) {
+            socket.emit('evt', sessionEndedEvent);
+          }
+        });
       });
-    });
+    }
     
     this.incrementMetric('messagesOut', 'SESSION_ENDED');
   }
@@ -505,16 +513,18 @@ export class RtGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     };
 
     // Broadcast to all other participants
-    participantUserIds.forEach((userId) => {
-      if (userId !== participant.id) { // Don't send to the participant who just joined
-        this.server.sockets.sockets.forEach((socket) => {
-          const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
-          if (authSocket.userId === userId) {
-            socket.emit('evt', participantEvent);
-          }
-        });
-      }
-    });
+    if (this.server && this.server.sockets && this.server.sockets.sockets) {
+      participantUserIds.forEach((userId) => {
+        if (userId !== participant.id) { // Don't send to the participant who just joined
+          this.server.sockets.sockets.forEach((socket) => {
+            const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
+            if (authSocket.userId === userId) {
+              socket.emit('evt', participantEvent);
+            }
+          });
+        }
+      });
+    }
     
     this.incrementMetric('messagesOut', 'SESSION_PARTICIPANT_JOINED');
   }
@@ -536,16 +546,18 @@ export class RtGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     };
 
     // Broadcast to all other participants
-    participantUserIds.forEach((participantUserId) => {
-      if (participantUserId !== userId) { // Don't send to the participant who left
-        this.server.sockets.sockets.forEach((socket) => {
-          const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
-          if (authSocket.userId === participantUserId) {
-            socket.emit('evt', participantLeftEvent);
-          }
-        });
-      }
-    });
+    if (this.server && this.server.sockets && this.server.sockets.sockets) {
+      participantUserIds.forEach((participantUserId) => {
+        if (participantUserId !== userId) { // Don't send to the participant who left
+          this.server.sockets.sockets.forEach((socket) => {
+            const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
+            if (authSocket.userId === participantUserId) {
+              socket.emit('evt', participantLeftEvent);
+            }
+          });
+        }
+      });
+    }
     
     this.incrementMetric('messagesOut', 'SESSION_PARTICIPANT_LEFT');
   }
@@ -560,12 +572,14 @@ export class RtGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     };
 
     // Send to all sockets of the user
-    this.server.sockets.sockets.forEach((socket) => {
-      const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
-      if (authSocket.userId === userId) {
-        socket.emit('evt', notificationEvent);
-      }
-    });
+    if (this.server && this.server.sockets && this.server.sockets.sockets) {
+      this.server.sockets.sockets.forEach((socket) => {
+        const authSocket = socket as Socket & AuthenticatedRealtimeSocket;
+        if (authSocket.userId === userId) {
+          socket.emit('evt', notificationEvent);
+        }
+      });
+    }
     
     this.incrementMetric('messagesOut', 'NOTIFICATION');
   }
