@@ -49,8 +49,8 @@ const MenuPanel = memo(({
                     
                   </div>
                   <div>
-                    <h2 className="font-bold text-white">Lumea Studio</h2>
-                    <p className="text-xs text-[var(--glass-gray)]">Zack Designs</p>
+                    <h2 className="font-bold text-white">Lumea 3D </h2>
+                    <p className="text-xs text-[var(--glass-gray)]">Virtually Connected!</p>
                   </div>
                 </div>
                 <Button

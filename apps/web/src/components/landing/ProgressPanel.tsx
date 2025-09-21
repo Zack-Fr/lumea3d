@@ -48,7 +48,7 @@ const ProgressPanel = memo(({
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <Trophy className="w-5 h-5 text-[var(--glass-yellow)]" />
-                  <h3 className="font-bold text-white">{isAuthenticated ? 'Your Projects' : 'Achievements and Gallery'}</h3>
+                  <h3 className="font-bold text-center text-white">{isAuthenticated ? 'Your Projects' : 'Achievements and Gallery (coming soon!)'}</h3>
                 </div>
                 <Button
                   variant="ghost"
@@ -90,7 +90,7 @@ const ProgressPanel = memo(({
                     <div>
                       <h4 className="font-medium text-white mb-3 flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-[var(--glass-yellow)]" />
-                        Trending Styles
+                        Libraries
                       </h4>
                       <div className="space-y-3">
                         {designStyles.map((style, index) => (

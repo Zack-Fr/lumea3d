@@ -166,7 +166,8 @@ const HeroContent = memo(({ onNavigate }: HeroContentProps) => (
   <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
     
     <h1 className="text-6xl font-bold text-black mb-4 leading-tight">
-      Your Design
+      Your  
+      <span className={s.titleGradient}> 3Design </span>
       <span className={s.titleGradient + " block"}>
         In Realtime
       </span>
@@ -178,8 +179,7 @@ const HeroContent = memo(({ onNavigate }: HeroContentProps) => (
         className={s.ctaGlow + " px-8 py-6 text-lg hover:glow-yellow-strong transition-all duration-300 group"}
         onClick={() => onNavigate("dashboard")}
       >
-        Start Creating
-        <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+        Start Creating<ArrowRight className="w-10 h-5 group-hover:translate-x-1 transition-transform" />
       </Button>
       {/* <Button 
         variant="outline"
