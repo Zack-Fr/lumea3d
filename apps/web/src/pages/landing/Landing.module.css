@@ -177,11 +177,11 @@
 
 .scene3d {
   width: 800px;
-  height: 600px;
+  height: 800px;
   position: relative;
   overflow: hidden;
   border-radius: 1rem;
-  background-image: url("/brand/LebaneseJetInteroir-3.jpg");
+  background-image: url("/brand/GameCin_Shot_Switch.0002.jpg");
   background-size: cover;
   border: 1px solid rgba(245, 200, 66, 0.1);
 }
