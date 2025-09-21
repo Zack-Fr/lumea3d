@@ -5,6 +5,7 @@ import { useAssetProcessing } from '@/hooks/useAssetProcessing';
 import AssetProcessingStatusCard from '@/components/asset/AssetProcessingStatusCard';
 import { assetsApi } from '@/services/assetsApi';
 import { toast } from 'react-toastify';
+import CustomSelect from '../../components/ui/CustomSelect';
 
 interface AssetImportModalProps {
     isOpen: boolean;
@@ -28,12 +29,12 @@ interface UploadProgress {
 }
 
 const AVAILABLE_CATEGORIES = [
-  { key: 'furniture', label: 'Furniture', description: 'Chairs, tables, sofas, etc.' },
-  { key: 'decoration', label: 'Decoration', description: 'Art, plants, ornaments' },
-  { key: 'lighting', label: 'Lighting', description: 'Lamps, chandeliers, fixtures' },
-  { key: 'electronics', label: 'Electronics', description: 'TVs, computers, appliances' },
-  { key: 'architecture', label: 'Architecture', description: 'Doors, windows, structural elements' },
-  { key: 'misc', label: 'Miscellaneous', description: 'Other 3D objects' },
+  { value: 'furniture', label: 'Furniture', description: 'Chairs, tables, sofas, etc.' },
+  { value: 'decoration', label: 'Decoration', description: 'Art, plants, ornaments' },
+  { value: 'lighting', label: 'Lighting', description: 'Lamps, chandeliers, fixtures' },
+  { value: 'electronics', label: 'Electronics', description: 'TVs, computers, appliances' },
+  { value: 'architecture', label: 'Architecture', description: 'Doors, windows, structural elements' },
+  { value: 'misc', label: 'Miscellaneous', description: 'Other 3D objects' },
 ];
 
 const LICENSE_OPTIONS = [
@@ -465,20 +466,14 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
 
           {/* Category Selection */}
           <div>
-            <label className="block text-sm font-medium mb-2">Category</label>
-            <select
+            <label className="block text-sm font-medium mb-2 text-white">Category</label>
+            <CustomSelect
+              options={AVAILABLE_CATEGORIES}
               value={formData.category}
-              onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:ring-2 focus:ring-gold focus:border-transparent"
+              onChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+              placeholder="Select a category..."
               required
-            >
-              <option value="">Select a category...</option>
-              {AVAILABLE_CATEGORIES.map(cat => (
-                <option key={cat.key} value={cat.key}>
-                  {cat.label} - {cat.description}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           {/* License Selection */}

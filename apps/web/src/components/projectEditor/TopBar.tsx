@@ -27,6 +27,7 @@ import { useAuth } from '../../providers/AuthProvider';
 import { useSaveQueueStore } from '../../stores/saveQueueStore';
 import { useInvitations } from '../../hooks/useInvitations';
 import { captureAndUploadScreenshot } from '../../utils/canvasScreenshot';
+import CreateSceneModal from '../ui/CreateSceneModal';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 import { toast } from 'react-toastify';
 
@@ -69,6 +70,8 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
   const { saveState, createSnapshot, setSceneId, queue } = useSaveQueueStore();
   const { activeSessions, currentSession, receivedInvitations, sentInvitations } = useInvitations();
   const [showSceneSelector, setShowSceneSelector] = useState(false);
+  const [showCreateSceneModal, setShowCreateSceneModal] = useState(false);
+  const [isCreatingScene, setIsCreatingScene] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Debug logging for auth state
@@ -160,44 +163,49 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
     setShowSceneSelector(false);
   };
 
-  const handleCreateScene = async () => {
+  const handleCreateScene = () => {
     if (!projectId) {
-      // Removed console.error for no project ID
+      toast.error('No project selected. Please select a project first.');
+      return;
+    }
+    setShowCreateSceneModal(true);
+  };
+
+  const handleConfirmCreateScene = async (sceneName: string) => {
+    if (!projectId) {
       toast.error('No project selected. Please select a project first.');
       return;
     }
 
-    // Removed console.log for creating scene in project
+    setIsCreatingScene(true);
 
     try {
       // Import scenesApi dynamically to avoid circular dependencies
       const { scenesApi } = await import('../../services/scenesApi');
-      
-      const sceneName = prompt('Enter scene name:');
-      if (!sceneName || !sceneName.trim()) {
-        toast.info('Scene creation cancelled');
-        return;
-      }
-
-      // Removed console.log for calling scenesApi.createScene
 
       const newScene = await scenesApi.createScene({ 
         name: sceneName.trim(),
         projectId: projectId
       });
       
-      // Removed console.log for scene created successfully
       toast.success('Scene created successfully', { autoClose: 3000 });
+      
       // Navigate to the new scene URL
       if (newScene && newScene.id) {
         const newSceneUrl = `/app/projects/${projectId}/scenes/${newScene.id}/editor`;
-        // Removed console.log for navigating to new scene
         navigate(newSceneUrl);
       }
+      
+      setShowCreateSceneModal(false);
     } catch (error) {
-      // Removed console.error for failed to create scene
       toast.error('Failed to create scene. Please try again.');
+    } finally {
+      setIsCreatingScene(false);
     }
+  };
+
+  const handleCancelCreateScene = () => {
+    setShowCreateSceneModal(false);
   };
 
   const handleSave = async () => {
@@ -453,6 +461,14 @@ const TopBar: React.FC<TopBarProps> = React.memo(({
           </Button>
         </div>
       </div>
+      
+      {/* Create Scene Modal */}
+      <CreateSceneModal
+        isOpen={showCreateSceneModal}
+        onClose={handleCancelCreateScene}
+        onConfirm={handleConfirmCreateScene}
+        isLoading={isCreatingScene}
+      />
     </header>
   );
 });

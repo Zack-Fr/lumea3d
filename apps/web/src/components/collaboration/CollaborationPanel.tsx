@@ -153,7 +153,7 @@ const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 bg-gray-50">
+      <div className="flex-1">
         {activeTab === 'invites' && (
           <div className="p-4 max-h-96 overflow-y-auto">
             <InvitationManager
