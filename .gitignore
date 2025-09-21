@@ -72,3 +72,4 @@ apps/api/agentDocs
 
 #thumbnails
 apps/api/storage/thumbnails
+infra/docker-compose.env
