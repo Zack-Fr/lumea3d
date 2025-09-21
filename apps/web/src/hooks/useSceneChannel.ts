@@ -112,7 +112,9 @@ export function useSceneChannel(
     
     isConnectingRef.current = true;
     
-    const socket = io('/scenes', {
+    const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+    log('info', `🔌 Connecting WebSocket to: ${serverUrl}/scenes`, { sceneId, hasToken: !!token })
+    const socket = io(`${serverUrl}/scenes`, {
       query: { sceneId, token }, // Pass both sceneId and token in query for WsSceneGuard
       transports: ['websocket'],
       timeout: 10000, // Longer timeout to reduce rapid failures

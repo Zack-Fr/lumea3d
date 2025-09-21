@@ -138,6 +138,9 @@ const LightsContainer: React.FC<LightsContainerProps> = ({ onLightAdded }) => {
   const [lights, setLights] = useState<THREE.Light[]>([]);
   const lightsManager = useRef(LightsManager.getInstance());
   const { sceneId } = useSceneContext();
+  
+  // Debug lights count for development
+  console.log('💡 LightsContainer render - lights count:', lights.length);
 
   useEffect(() => {
     const unsubscribe = lightsManager.current.subscribe((updatedLights) => {

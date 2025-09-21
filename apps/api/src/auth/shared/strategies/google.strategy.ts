@@ -10,10 +10,27 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     private configService: ConfigService,
     private authService: AuthService,
   ) {
+    const clientID = configService.get<string>('GOOGLE_CLIENT_ID');
+    const clientSecret = configService.get<string>('GOOGLE_CLIENT_SECRET');
+    
+    // Skip initialization if OAuth is not configured (for development/staging)
+    if (!clientID || !clientSecret || clientID.startsWith('disabled-oauth')) {
+      console.log('⚠️ Google OAuth not configured - GoogleStrategy disabled');
+      // Use dummy values to prevent OAuth2Strategy error
+      super({
+        clientID: 'dummy-client-id',
+        clientSecret: 'dummy-client-secret',
+        callbackURL: 'http://localhost:3000/auth/google/callback',
+        scope: ['email', 'profile'],
+      });
+      return;
+    }
+    
+    console.log('🔧 Google OAuth configured - GoogleStrategy enabled');
     super({
-      clientID: configService.get<string>('GOOGLE_CLIENT_ID'),
-      clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET'),
-      callbackURL: configService.get<string>('GOOGLE_CALLBACK_URL', 'http://192.168.1.10:3000/auth/google/callback'),
+      clientID,
+      clientSecret,
+      callbackURL: configService.get<string>('GOOGLE_CALLBACK_URL', 'http://localhost:3000/auth/google/callback'),
       scope: ['email', 'profile'],
     });
   }
