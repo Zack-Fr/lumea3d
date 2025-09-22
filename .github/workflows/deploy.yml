@@ -5,6 +5,11 @@ on:
     branches: [ main, dev ]
   workflow_dispatch:
 
+permissions:
+  contents: write    # Required for creating releases and checking out code
+  packages: write    # Required for pushing to container registries
+  actions: read      # Required for workflow operations
+
 env:
   NODE_VERSION: '22'
   PNPM_VERSION: '10'
@@ -52,6 +57,9 @@ jobs:
     needs: deployment-info
     if: github.ref == 'refs/heads/dev' && needs.deployment-info.outputs.secrets-configured == 'true'
     # environment: staging  # Commented out - create this environment in GitHub repo settings if needed
+    permissions:
+      contents: read   # Required for checking out code
+      packages: write  # Required for pushing to registries
     
     steps:
       - name: Checkout code
@@ -153,6 +161,9 @@ jobs:
     needs: deployment-info
     if: github.ref == 'refs/heads/main' && needs.deployment-info.outputs.secrets-configured == 'true'
     # environment: production  # Commented out - create this environment in GitHub repo settings if needed
+    permissions:
+      contents: write  # Required for creating releases
+      packages: write  # Required for pushing to registries
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -286,16 +297,39 @@ jobs:
           echo "=================================="
 
       - name: Create GitHub release
+        id: create-release
         uses: softprops/action-gh-release@v1
+        continue-on-error: true  # Don't fail deployment if release creation fails
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ github.run_number }}
           name: Release v${{ github.run_number }}
           body: |
-            Automated release from commit ${{ github.sha }}
+            🚀 Production Deployment v${{ github.run_number }}
             
-            Changes:
+            **Commit:** ${{ github.sha }}
+            **Branch:** ${{ github.ref_name }}
+            **Triggered by:** @${{ github.actor }}
+            **Timestamp:** ${{ github.event.head_commit.timestamp }}
+            
+            **Changes:**
             ${{ github.event.head_commit.message }}
+            
+            **Container Images:**
+            - `${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:v${{ github.run_number }}`
+            - `${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:v${{ github.run_number }}`
           draft: false
           prerelease: false
+          
+      - name: Release creation status
+        if: always()
+        run: |
+          if [ "${{ steps.create-release.outcome }}" == "success" ]; then
+            echo "✅ GitHub release v${{ github.run_number }} created successfully"
+            echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}"
+          else
+            echo "⚠️  GitHub release creation failed - this is non-critical"
+            echo "💡 To enable releases, ensure the workflow has 'contents: write' permissions"
+            echo "   or create releases manually at: https://github.com/${{ github.repository }}/releases"
+          fi
