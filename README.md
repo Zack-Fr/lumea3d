@@ -1,4 +1,3 @@
-make help
 <img src="./readme/title1.svg"/>
 <br><br>
 <!-- project overview -->
@@ -48,9 +47,21 @@ Flow: User action → op broadcast → peers reconcile → scene graph updates. 
 <!-- Demo -->
 <img src="./readme/title5.svg"/>
 
-| Login | Live Collaboration |
-| ----- | ------------------ |
-| ![Login](./readme/login-page-flow.gif) | ![Dashboard](./readme/project-page-flow.gif) | ![Collab](./readme/demo/1440x1024.png) |
+| Login |
+| ----- |
+| ![Login](./readme/login-page-flow.gif) 
+
+| Live Collaboration |
+| ----- |
+| ![Dashboard](./readme/project-page-flow.gif) |
+
+| Landing Page |
+| ------------ |
+| ![Landing](./readme/landing-page-01.png) |
+
+**3D Asset Attribution:** [Library Hall Scene](https://www.turbosquid.com/3d-models/library-hall-blender-scene-2367730) (TurboSquid)
+
+
 
 User Flow: Create project → Add assets → Adjust and annotate → Generate variants → Share link.
 <br><br>
@@ -71,7 +82,7 @@ User Flow: Create project → Add assets → Adjust and annotate → Generate va
 | Lint/Format | ESLint + Prettier |
 
 Common scripts (Make):
-- Start stack (Docker): make up ENV=development (run from C:\\xampp\\htdocs\\lumea\\backend\\lumea)
+- Start stack (Docker): make up ENV=development (run from backend directory)
 - Wait until healthy: make wait
 - Run DB migrations: make migrate
 - Seed demo data: make seed
@@ -83,8 +94,8 @@ Common scripts (Make):
 
 Optional (pnpm, backend root):
 - Run all packages in dev: pnpm dev
-- API dev only: pnpm --filter @lumea/api start:dev
-- API build/prod: pnpm --filter @lumea/api build && pnpm --filter @lumea/api start:prod
+- API dev only: pnpm --filter api start:dev
+- API build/prod: pnpm --filter api build && pnpm --filter api start:prod
 
 Performance levers: GPU instancing, frustum culling, delta ops (patch-based updates), lazy texture decode/streaming, thumbnail precompute, KTX2/Draco/Meshopt asset variants.
 <br><br>
@@ -94,29 +105,11 @@ Performance levers: GPU instancing, frustum culling, delta ops (patch-based upda
 ### Ops & Roadmap (Condensed)
 Deploy progression: dev → staging → prod. Assets via CDN. Feature flags govern gradual rollout. RBAC + signed asset URLs.
 
-Environment (example):
-- DATABASE_URL=postgresql://<user>:<pass>@<host>:5432/lumea_db
-- JWT_SECRET={{JWT_SECRET}}
-- JWT_REFRESH_SECRET={{JWT_REFRESH_SECRET}}
-- API_BASE_URL=http://localhost:3000
-- PORT=3000
-- HOST=0.0.0.0
-- STORAGE_PROVIDER=minio
-- STORAGE_ENDPOINT=http://localhost:9000
-- STORAGE_EXTERNAL_ENDPOINT=http://localhost:9000
-- STORAGE_REGION=us-east-1
-- STORAGE_BUCKET_NAME=lumea-assets
-- STORAGE_ACCESS_KEY={{MINIO_ACCESS_KEY}}
-- STORAGE_SECRET_KEY={{MINIO_SECRET_KEY}}
-- REDIS_HOST=localhost
-- REDIS_PORT=6379
-- REDIS_PASSWORD=
-
 Build & run (example):
-- Docker (full stack): make up ENV=development (run from C:\\xampp\\htdocs\\lumea\\backend\\lumea)
+- Docker (full stack): make up ENV=development (run from backend directory)
 - Health/migrate/seed: make wait && make migrate && make seed
 - Logs/teardown: make logs | make down | make clean
-- Backend (direct): pnpm --filter @lumea/api build && pnpm --filter @lumea/api start:prod
+- Backend (direct): pnpm --filter api build && pnpm --filter api start:prod
 
 **Roadmap (short):**
 - [ ] Time-travel scene timeline
