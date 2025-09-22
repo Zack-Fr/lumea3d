@@ -87,13 +87,13 @@ jobs:
           # Build and push API
           docker buildx build --platform linux/amd64 \
             -f ./apps/api/Dockerfile \
-            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:staging \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:staging \
             --push .
           
           # Build and push Web
           docker buildx build --platform linux/amd64 \
             -f ./apps/web/Dockerfile \
-            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:staging \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:staging \
             --push .
           
 
@@ -101,8 +101,8 @@ jobs:
         run: |
           echo "🚀 Deploying to staging environment..."
           echo "Container Registry: ${{ secrets.CONTAINER_REGISTRY }}"
-          echo "API Image: ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:staging"
-          echo "Web Image: ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:staging"
+          echo "API Image: ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:staging"
+          echo "Web Image: ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:staging"
           echo "Deployment timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
           echo "Commit SHA: ${{ github.sha }}"
           echo "Branch: ${{ github.ref_name }}"
@@ -189,17 +189,17 @@ jobs:
           # Build and push API with multiple tags for rollback capability
           docker buildx build --platform linux/amd64 \
             -f ./apps/api/Dockerfile \
-            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:latest \
-            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:v${{ github.run_number }} \
-            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:${{ github.sha }} \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:latest \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:v${{ github.run_number }} \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:${{ github.sha }} \
             --push .
           
           # Build and push Web with multiple tags for rollback capability
           docker buildx build --platform linux/amd64 \
             -f ./apps/web/Dockerfile \
-            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:latest \
-            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:v${{ github.run_number }} \
-            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:${{ github.sha }} \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:latest \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:v${{ github.run_number }} \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:${{ github.sha }} \
             --push .
           
           echo "📦 Images pushed with tags:"
@@ -211,10 +211,10 @@ jobs:
         run: |
           echo "🎆 Deploying to PRODUCTION environment..."
           echo "Container Registry: ${{ secrets.CONTAINER_REGISTRY }}"
-          echo "API Image: ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:latest"
-          echo "API Image (SHA): ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:${{ github.sha }}"
-          echo "Web Image: ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:latest"
-          echo "Web Image (SHA): ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:${{ github.sha }}"
+          echo "API Image: ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:latest"
+          echo "API Image (SHA): ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:${{ github.sha }}"
+          echo "Web Image: ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:latest"
+          echo "Web Image (SHA): ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:${{ github.sha }}"
           echo "Deployment timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
           echo "Release version: v${{ github.run_number }}"
           echo "Commit SHA: ${{ github.sha }}"
@@ -275,14 +275,14 @@ jobs:
           echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
           echo ""
           echo "Images deployed:"
-          echo "  🚀 API: ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:v${{ github.run_number }}"
-          echo "  🌍 Web: ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:v${{ github.run_number }}"
+          echo "  🚀 API: ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:v${{ github.run_number }}"
+          echo "  🌍 Web: ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:v${{ github.run_number }}"
           echo ""
           echo "Release: https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}"
           echo ""
           echo "For rollback, use the following commands:"
-          echo "  docker pull ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:<previous-version>"
-          echo "  docker pull ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:<previous-version>"
+          echo "  docker pull ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:<previous-version>"
+          echo "  docker pull ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:<previous-version>"
           echo "=================================="
 
       - name: Create GitHub release
