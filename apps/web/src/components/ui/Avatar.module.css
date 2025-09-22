@@ -20,7 +20,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--glass-yellow);
+  /* background-color: var(--glass-yellow); */
   color: var(--glass-black);
   font-weight: bold;
   width: 100%;

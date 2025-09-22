@@ -10,7 +10,7 @@ import {
   Eye,
   EyeOff 
 } from 'lucide-react';
-import { AssetImportButton } from './AssetImportButton';
+import { AssetImportButton } from '../../../src/features/scenes/AssetImportButton';
 
 export interface ViewerControls {
   showGrid: boolean;

@@ -108,6 +108,16 @@
   box-shadow: 0 0 30px var(--glass-yellow);
 }
 
+.logoIcon {
+  width: 6rem;
+  height: 6rem;
+  background-image: url('/brand/lumeaLogo_noText.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  filter: brightness(-.1) invert(0);
+}
+
 .logoText {
   font-size: 1.5rem;
   font-weight: bold;

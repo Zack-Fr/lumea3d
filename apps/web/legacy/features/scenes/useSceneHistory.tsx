@@ -1,5 +1,5 @@
 import { useReducer, useCallback, useRef } from 'react';
-import { log } from '../../utils/logger';
+import { log } from '../../../src/utils/logger';
 import type { SceneManifestV2, DeltaOp } from '@/api/sdk';
 
 interface HistoryEntry {
