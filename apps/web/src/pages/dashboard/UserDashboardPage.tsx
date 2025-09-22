@@ -13,7 +13,6 @@ import {
   Clock,
   TrendingUp,
   Star,
-  Home,
   Trophy,
   Zap,
   Users,
@@ -355,8 +354,8 @@ const UserProfileCard = memo(({ userStats }: UserProfileCardProps) => {
       <div className={styles.userProfileHeader}>
         <div className={styles.userAvatar}>
           <Avatar className="w-12 h-12 ring-2 ring-[var(--glass-yellow)]">
-            <AvatarImage src="/brand/lumeaLogo_noText.svg" />
-            <AvatarFallback className="bg-[var(--glass-yellow)] text-[var(--glass-black)]">
+            <AvatarImage src="https://avatar.iran.liara.run/public/27" />
+            <AvatarFallback>
               {displayName.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
@@ -476,8 +475,8 @@ interface TopNavigationProps {
 }
 
 const TopNavigation = memo(({ onNavigate, onLogout }: TopNavigationProps) => {
-  const { userProfile } = useUserProfile();
-  const displayName = userProfile?.displayName || userProfile?.email?.split('@')[0] || 'User';
+  // const { userProfile } = useUserProfile();
+  // const displayName = userProfile?.displayName || userProfile?.email?.split('@')[0] || 'User';
 
   return (
     <header className="relative z-50 px-6 py-4 border-b border-[var(--glass-border-dim)]">
@@ -488,17 +487,17 @@ const TopNavigation = memo(({ onNavigate, onLogout }: TopNavigationProps) => {
           aria-label="Navigate to landing page"
         >
           <div className="w-10 h-10 bg-gradient-to-br from-[var(--glass-yellow)] to-[var(--glass-yellow-dark)] rounded-xl flex items-center justify-center glow-yellow group-hover:glow-yellow-strong transition-all duration-300">
-            <Home className="w-5 h-5 text-[var(--glass-black)]" />
+            <div className={styles.logoIcon} />
           </div>
-          <span className="text-2xl font-bold text-white group-hover:text-[var(--glass-yellow)] transition-colors">Lumea</span>
+          <span className="text-2x1 font-bold text-white group-hover:text-[var(--glass-yellow)] transition-colors">Lumea 3D</span>
         </button>
 
         <div className="flex items-center space-x-4">
           <Avatar className="cursor-pointer ring-2 ring-[var(--glass-border-light)]">
-            <AvatarImage src="/brand/lumeaLogo_noText.svg" />
-            <AvatarFallback className="bg-[var(--glass-yellow)] text-[var(--glass-black)]">
+            <AvatarImage src="https://avatar.iran.liara.run/public/27" />
+            {/* <AvatarFallback className="bg-[var(--glass-yellow)] text-[var(--glass-black)]">
               {displayName.charAt(0).toUpperCase()}
-            </AvatarFallback>
+            </AvatarFallback> */}
           </Avatar>
           <Button
             variant="ghost"
