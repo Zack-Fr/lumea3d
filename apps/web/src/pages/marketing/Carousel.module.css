@@ -1,0 +1,131 @@
+:root {
+  --brand-gold: #F8CC3E;
+  --brand-plum: #311317;
+  --brand-stone: #A09F92;
+  --brand-black: #030201;
+
+  --card-bg: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  --card-border: rgba(255,255,255,0.08);
+  --card-shadow: 0 10px 30px rgba(3,2,1,0.15);
+}
+
+/* Outer layout */
+.wrap {
+  position: relative;
+}
+
+/* Scroller */
+.carouselRoot {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.5rem;
+}
+
+/* Smooth-ish momentum */
+.momentum {
+  transition-timing-function: cubic-bezier(.22,.9,.27,1);
+}
+
+/* Hide scrollbar (WebKit) */
+.carouselRoot::-webkit-scrollbar {
+  height: 8px;
+}
+.carouselRoot::-webkit-scrollbar-track {
+  background: transparent;
+}
+.carouselRoot::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.08);
+  border-radius: 8px;
+}
+
+/* Track */
+.track {
+  display: flex;
+  gap: 1rem;
+  padding: 0 0.25rem;
+}
+
+/* Card */
+.card {
+  flex: 0 0 300px;
+  scroll-snap-align: start;
+  border-radius: 16px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  padding: 1rem;
+  transition: transform 280ms ease, box-shadow 280ms ease, border-color 280ms ease;
+}
+.card:focus-within,
+.card:focus,
+.card:hover {
+  outline: none;
+  transform: translateY(-6px);
+  box-shadow: var(--card-shadow);
+  border-color: rgba(255,255,255,0.18);
+}
+
+/* Content */
+.tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--brand-gold);
+  letter-spacing: 0.02em;
+}
+
+.title {
+  margin-top: 0.25rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.text {
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--brand-stone);
+}
+
+/* Controls */
+.controls {
+  position: absolute;
+  top: -3rem;
+  right: 0;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.controlBtn {
+  width: 44px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--brand-gold);
+  color: var(--brand-gold);
+  background: transparent;
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+.controlBtn:hover {
+  background: rgba(248,204,62,0.08);
+}
+.controlBtn:focus-visible {
+  outline: 3px solid rgba(248,204,62,0.18);
+  transform: translateY(-2px);
+}
+
+/* Optional directional hooks */
+.prev {}
+.next {}
+
+/* Responsive sizing */
+@media (min-width: 768px) {
+  .card { flex-basis: 45%; }
+}

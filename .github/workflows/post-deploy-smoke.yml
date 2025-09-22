@@ -1,0 +1,127 @@
+name: Reusable post-deploy smoke checks
+
+on:
+  workflow_call:
+    inputs:
+      sceneId:
+        required: false
+        type: string
+      projectId:
+        required: false
+        type: string
+      apiUrl:
+        required: true
+        type: string
+    secrets:
+      apiToken:
+        required: false
+  workflow_dispatch:
+    inputs:
+      sceneId:
+        description: 'Scene ID to check'
+        required: false
+      projectId:
+        description: 'Project ID to check'
+        required: false
+      apiUrl:
+        description: 'API base URL (e.g. https://staging.example.com)'
+        required: true
+      apiToken:
+        description: 'Optional API token for auth (passed as secret)'
+        required: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure jq is installed
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Determine IDs (create throwaway project if needed)
+        id: ids
+        env:
+          API_URL: ${{ inputs.apiUrl || github.event.inputs.apiUrl }}
+          API_TOKEN: ${{ secrets.apiToken || inputs.apiToken || github.event.inputs.apiToken }}
+          SCENE_ID_IN: ${{ inputs.sceneId || github.event.inputs.sceneId }}
+          PROJECT_ID_IN: ${{ inputs.projectId || github.event.inputs.projectId }}
+        run: |
+          set -euo pipefail
+          API_URL="${API_URL}"
+          AUTH_HEADER=""
+          if [ -n "${API_TOKEN:-}" ]; then
+            AUTH_HEADER="-H \"Authorization: Bearer ${API_TOKEN}\""
+          fi
+
+          if [ -n "${PROJECT_ID_IN}" ] && [ -n "${SCENE_ID_IN}" ]; then
+            echo "projectId=${PROJECT_ID_IN}" >> $GITHUB_OUTPUT
+            echo "sceneId=${SCENE_ID_IN}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "No projectId/sceneId provided — creating a throwaway project via POST /projects"
+          # Create a minimal project payload (adjust fields as required by API)
+          PAYLOAD='{ "name": "smoke-temp-$(date +%s)", "description": "smoke test" }'
+
+          if [ -n "${AUTH_HEADER}" ]; then
+            RESP=$(eval curl -s -X POST -H "Content-Type: application/json" ${AUTH_HEADER} -d "$PAYLOAD" "$API_URL/projects")
+          else
+            RESP=$(curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$API_URL/projects")
+          fi
+
+          echo "Create response: $RESP"
+          PROJECT_ID=$(echo "$RESP" | jq -r '.projectId // empty')
+          SCENE_ID=$(echo "$RESP" | jq -r '.sceneId // empty')
+
+          if [ -z "$PROJECT_ID" ] || [ -z "$SCENE_ID" ]; then
+            echo "Failed to create project or missing sceneId/projectId in response" >&2
+            echo "resp=$RESP" >&2
+            exit 2
+          fi
+
+          echo "projectId=$PROJECT_ID" >> $GITHUB_OUTPUT
+          echo "sceneId=$SCENE_ID" >> $GITHUB_OUTPUT
+
+      - name: Run parity checks
+        env:
+          API_URL: ${{ inputs.apiUrl || github.event.inputs.apiUrl }}
+          API_TOKEN: ${{ secrets.apiToken || inputs.apiToken || github.event.inputs.apiToken }}
+          PROJECT_ID: ${{ steps.ids.outputs.projectId }}
+          SCENE_ID: ${{ steps.ids.outputs.sceneId }}
+        run: |
+          set -euo pipefail
+          API_URL="${API_URL}"
+          AUTH_HEADER=""
+          if [ -n "${API_TOKEN:-}" ]; then
+            AUTH_HEADER="-H \"Authorization: Bearer ${API_TOKEN}\""
+          fi
+
+          echo "Fetching project categories..."
+          if [ -n "${AUTH_HEADER}" ]; then
+            PROJ_JSON=$(eval curl -s ${AUTH_HEADER} "$API_URL/projects/${PROJECT_ID}/categories")
+          else
+            PROJ_JSON=$(curl -s "$API_URL/projects/${PROJECT_ID}/categories")
+          fi
+
+          echo "Fetching scene alias categories..."
+          if [ -n "${AUTH_HEADER}" ]; then
+            SCENE_JSON=$(eval curl -s ${AUTH_HEADER} "$API_URL/scenes/${SCENE_ID}/categories")
+          else
+            SCENE_JSON=$(curl -s "$API_URL/scenes/${SCENE_ID}/categories")
+          fi
+
+          # Compare JSON payloads (order-sensitive). If desired, sort arrays or compare keys.
+          if [ "$PROJ_JSON" = "$SCENE_JSON" ]; then
+            echo "OK: Category payloads match"
+            exit 0
+          else
+            echo "FAIL: Category payloads differ" >&2
+            echo "--- project ---" >&2
+            echo "$PROJ_JSON" | jq -C . >&2 || true
+            echo "--- scene ---" >&2
+            echo "$SCENE_JSON" | jq -C . >&2 || true
+            exit 3
+          fi
+

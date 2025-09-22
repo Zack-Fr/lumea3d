@@ -1,0 +1,322 @@
+/*Landing.module.css */
+
+.root {
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+  background: var(--glass-black);
+}
+
+.backgroundEffects {
+  position: absolute;
+  inset: 0;
+}
+
+.backgroundCircle1 {
+  position: absolute;
+  top: 25%;
+  right: 25%;
+  width: 24rem;
+  height: 24rem;
+  border-radius: 50%;
+  background: var(--glass-yellow);
+  opacity: 0.1;
+  filter: blur(3xl);
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.backgroundCircle2 {
+  position: absolute;
+  bottom: 25%;
+  left: 25%;
+  width: 20rem;
+  height: 20rem;
+  border-radius: 50%;
+  background: #9333ea;
+  opacity: 0.08;
+  filter: blur(3xl);
+  animation: pulse 3s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+.backgroundGradient {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 800px;
+  height: 600px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--glass-yellow) 0%, #9333ea 50%, #3b82f6 100%);
+  opacity: 0.03;
+  filter: blur(3xl);
+  transform: translate(-50%, -50%);
+}
+
+.floatingParticle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--glass-yellow);
+  opacity: 0.6;
+  animation: float 4s ease-in-out infinite;
+}
+
+.floatingParticle:nth-child(1) { left: 20%; top: 30%; animation-delay: 0s; }
+.floatingParticle:nth-child(2) { left: 30%; top: 20%; animation-delay: 0.5s; }
+.floatingParticle:nth-child(3) { left: 40%; top: 35%; animation-delay: 1s; }
+.floatingParticle:nth-child(4) { left: 50%; top: 25%; animation-delay: 1.5s; }
+.floatingParticle:nth-child(5) { left: 60%; top: 40%; animation-delay: 2s; }
+.floatingParticle:nth-child(6) { left: 70%; top: 30%; animation-delay: 2.5s; }
+.floatingParticle:nth-child(7) { left: 80%; top: 35%; animation-delay: 3s; }
+.floatingParticle:nth-child(8) { left: 90%; top: 25%; animation-delay: 3.5s; }
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-30px) scale(1.5);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.leftPanel {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  bottom: 1rem;
+  width: 20rem;
+  z-index: 50;
+}
+
+.rightPanel {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  bottom: 1rem;
+  width: 20rem;
+  z-index: 50;
+}
+
+.glassCard {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(245, 200, 66, 0.2);
+}
+
+.glassStrong {
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(245, 200, 66, 0.2);
+}
+
+.borderGlow {
+  border: 1px solid rgba(245, 200, 66, 0.4);
+  box-shadow: 0 0 10px rgba(245, 200, 66, 0.2);
+}
+
+.glowYellow {
+  box-shadow: 0 0 20px rgba(245, 200, 66, 0.3);
+}
+
+.glowYellowStrong {
+  box-shadow: 0 0 40px rgba(245, 200, 66, 0.5), 0 0 80px rgba(245, 200, 66, 0.2);
+}
+
+.logoGlow {
+  background-image: url('/brand/lumeaLogo_noText.svg');
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+}
+
+.xpBar {
+  background: linear-gradient(90deg, var(--glass-yellow) 0%, var(--glass-yellow-dark) 100%);
+}
+
+.menuItemGlow {
+  background: rgba(245, 200, 66, 0.2);
+  color: var(--glass-yellow);
+}
+
+.menuItemSelected {
+  border-color: var(--glass-yellow);
+  box-shadow: 0 0 20px rgba(245, 200, 66, 0.3);
+}
+
+.centralViewport {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.glassViewport {
+  backdrop-filter: blur(60px);
+  -webkit-backdrop-filter: blur(60px);
+  background: rgba(0, 0, 0, 0.2);
+  border: 2px solid rgba(245, 200, 66, 0.1);
+  box-shadow: 0 0 40px rgba(245, 200, 66, 0.5), 0 0 80px rgba(245, 200, 66, 0.2);
+  border-radius: 3rem;
+  padding: 3rem;
+}
+
+.scene3d {
+  width: 800px;
+  height: 800px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  background-image: url("/brand/GameCin_Shot_Switch.0002.jpg");
+  background-size: cover;
+  border: 1px solid rgba(245, 200, 66, 0.1);
+}
+
+.scene3d::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--glass-black) 0%, rgba(245, 200, 66, 0.1) 100%, rgba(147, 51, 234, 0.05) 100%) center;
+}
+
+.gameIcon {
+  width: 5rem;
+  height: 5rem;
+  background: linear-gradient(135deg, var(--glass-yellow) 0%, var(--glass-yellow-dark) 100%);
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 40px rgba(245, 200, 66, 0.5), 0 0 80px rgba(245, 200, 66, 0.2);
+  animation: iconPulse 6s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.1) rotate(5deg);
+  }
+}
+
+.titleGradient {
+  background: linear-gradient(135deg, var(--glass-yellow) 0%, var(--glass-yellow-dark) 50%, #ffffff 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  box-shadow: 0 0 40px rgba(245, 200, 66, 0.5), 0 0 80px rgba(245, 200, 66, 0.2);
+}
+
+.ctaGlow {
+  background: var(--glass-yellow);
+  box-shadow: 0 0 20px rgba(245, 200, 66, 0.3);
+  transition: all 0.3s ease;
+}
+
+.ctaGlow:hover {
+  background: var(--glass-yellow-dark);
+  box-shadow: 0 0 40px rgba(245, 200, 66, 0.6), 0 0 80px rgba(245, 200, 66, 0.2);
+}
+
+.floatingUi {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(245, 200, 66, 0.2);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.achievementGlow {
+  background: rgba(245, 200, 66, 0.1);
+  border: 1px solid rgba(245, 200, 66, 0.3);
+  box-shadow: 0 0 20px rgba(245, 200, 66, 0.3);
+}
+
+.trendingStyle {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(245, 200, 66, 0.1);
+  transition: all 0.3s ease;
+}
+
+.trendingStyle:hover {
+  border-color: var(--glass-yellow);
+  box-shadow: 0 0 20px rgba(245, 200, 66, 0.3);
+}
+
+.styleImageOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.7) 0%, transparent 50%);
+}
+
+.floatingControls {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.featurePills {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  gap: 1rem;
+}
+
+.featurePill {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(245, 200, 66, 0.2);
+  border-radius: 9999px;
+  padding: 0.75rem 1.5rem;
+  transition: transform 0.2s ease;
+}
+
+.featurePill:hover {
+  transform: scale(1.05);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .backgroundCircle1,
+  .backgroundCircle2,
+  .backgroundGradient,
+  .floatingParticle,
+  .gameIcon,
+  .featurePill {
+    animation: none;
+  }
+
+  .floatingUi,
+  .achievementGlow {
+    animation: none;
+  }
+}

@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optional: token variables for non-TW surfaces */
+:root{
+  --brand-gold:#F8CC3E; --brand-plum:#311317;
+  --brand-stone:#A09F92; --brand-black:#030201;
+}
+
+/* Focus ring: gold, visible */
+:where(button,a,input,select,textarea):focus-visible {
+  outline: 2px solid var(--brand-gold);
+  outline-offset: 2px;
+}

@@ -1,0 +1,58 @@
+{
+  "summary": {
+    "total": 7,
+    "passed": 1,
+    "failed": 6,
+    "successRate": 14
+  },
+  "results": [
+    {
+      "name": "Valid Authentication",
+      "status": "FAIL",
+      "duration": 49,
+      "error": "Failed to get JWT: "
+    },
+    {
+      "name": "Invalid Credentials Rejection",
+      "status": "FAIL",
+      "duration": 3,
+      "error": ""
+    },
+    {
+      "name": "Protected Endpoint Authentication",
+      "status": "FAIL",
+      "duration": 2,
+      "error": ""
+    },
+    {
+      "name": "Valid Token Access",
+      "status": "FAIL",
+      "duration": 3,
+      "error": "Failed to get JWT: "
+    },
+    {
+      "name": "Rate Limiting Protection",
+      "status": "PASS",
+      "duration": 11,
+      "result": {
+        "requests_made": 10,
+        "rate_limiting_detected": false,
+        "duration_ms": 12,
+        "note": "No rate limiting detected"
+      }
+    },
+    {
+      "name": "CORS Headers",
+      "status": "FAIL",
+      "duration": 2,
+      "error": ""
+    },
+    {
+      "name": "Security Headers",
+      "status": "FAIL",
+      "duration": 2,
+      "error": ""
+    }
+  ],
+  "timestamp": "2025-09-01T10:43:49.602Z"
+}

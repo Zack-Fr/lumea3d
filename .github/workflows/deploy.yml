@@ -1,0 +1,136 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main, dev ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '10'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # Job 1: Deploy to Staging (on dev branch)
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev'
+    # environment: staging  # Commented out - create this environment in GitHub repo settings if needed
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.CONTAINER_REGISTRY }}" ]; then
+            echo "Error: CONTAINER_REGISTRY secret is required"
+            exit 1
+          fi
+          if [ -z "${{ secrets.REGISTRY_USERNAME }}" ]; then
+            echo "Error: REGISTRY_USERNAME secret is required"
+            exit 1
+          fi
+          if [ -z "${{ secrets.REGISTRY_PASSWORD }}" ]; then
+            echo "Error: REGISTRY_PASSWORD secret is required"
+            exit 1
+          fi
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.CONTAINER_REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and push images
+        run: |
+          # Build and push API
+          docker buildx build --platform linux/amd64 \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:staging \
+            --push ./apps/api
+          
+          # Build and push Web
+          docker buildx build --platform linux/amd64 \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:staging \
+            --push ./apps/web
+          
+
+      - name: Deploy to staging
+        run: |
+          echo "Deploy to staging environment"
+          # Add your staging deployment commands here
+
+  # Job 2: Deploy to Production (on main branch)
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    # environment: production  # Commented out - create this environment in GitHub repo settings if needed
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.CONTAINER_REGISTRY }}" ]; then
+            echo "Error: CONTAINER_REGISTRY secret is required"
+            exit 1
+          fi
+          if [ -z "${{ secrets.REGISTRY_USERNAME }}" ]; then
+            echo "Error: REGISTRY_USERNAME secret is required"
+            exit 1
+          fi
+          if [ -z "${{ secrets.REGISTRY_PASSWORD }}" ]; then
+            echo "Error: REGISTRY_PASSWORD secret is required"
+            exit 1
+          fi
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.CONTAINER_REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and push images
+        run: |
+          # Build and push API
+          docker buildx build --platform linux/amd64 \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:latest \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:${{ github.sha }} \
+            --push ./apps/api
+          
+          # Build and push Web
+          docker buildx build --platform linux/amd64 \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:latest \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:${{ github.sha }} \
+            --push ./apps/web
+          
+
+      - name: Deploy to production
+        run: |
+          echo "Deploy to production environment"
+          # Add your production deployment commands here
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
+          body: |
+            Automated release from commit ${{ github.sha }}
+            
+            Changes:
+            ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: false

@@ -1,0 +1,198 @@
+.overlay {
+  position: absolute;
+  z-index: 1000;
+  pointer-events: none; /* container is non-interactive by default; header controls will enable pointer-events */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.overlay.top-left {
+  top: 20px;
+  left: 20px;
+}
+
+.overlay.top-right {
+  top: 20px;
+  right: 20px;
+}
+
+.overlay.bottom-left {
+  bottom: 20px;
+  left: 20px;
+}
+
+.overlay.bottom-right {
+  bottom: 20px;
+  right: 20px;
+}
+
+.container {
+  background: rgba(0, 0, 0, 0.11);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 200px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.collapsed .container {
+  padding: 6px 8px;
+  min-width: 120px;
+}
+
+.containerCollapsed {
+  padding: 6px 8px;
+}
+
+.headerLeft {
+  display: inline-flex;
+  align-items: center;
+}
+
+.headerControls {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  pointer-events: auto; /* enable controls to be interactive */
+}
+
+.collapseButton {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* Ensure the header area can accept pointer events for controls */
+.header {
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  pointer-events: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header {
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.title {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.statGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.statLabel {
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statValue {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+}
+
+.statBadge {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  max-width: fit-content;
+}
+
+.statDetails {
+  color: #6b7280;
+  font-size: 9px;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  margin-top: 1px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .overlay {
+    top: 10px;
+    right: 10px;
+    left: auto;
+    bottom: auto;
+  }
+  
+  .container {
+    min-width: 160px;
+    padding: 8px;
+  }
+  
+  .statValue {
+    font-size: 12px;
+  }
+  
+  .statLabel {
+    font-size: 9px;
+  }
+  
+  .statDetails {
+    font-size: 8px;
+  }
+}
+
+/* Animation for updates */
+.statValue {
+  transition: color 0.2s ease;
+}
+
+.container {
+  transition: background-color 0.3s ease;
+}
+
+/* Warning state */
+.container.warning {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.container.critical {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    border-color: rgba(239, 68, 68, 0.5);
+  }
+  50% {
+    border-color: rgba(239, 68, 68, 0.8);
+  }
+  100% {
+    border-color: rgba(239, 68, 68, 0.5);
+  }
+}
