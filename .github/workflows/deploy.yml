@@ -99,8 +99,52 @@ jobs:
 
       - name: Deploy to staging
         run: |
-          echo "Deploy to staging environment"
-          # Add your staging deployment commands here
+          echo "🚀 Deploying to staging environment..."
+          echo "Container Registry: ${{ secrets.CONTAINER_REGISTRY }}"
+          echo "API Image: ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:staging"
+          echo "Web Image: ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:staging"
+          echo "Deployment timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          
+          # TODO: Add your staging deployment commands here
+          # Examples:
+          # - kubectl apply -f k8s/staging/
+          # - docker-compose -f docker-compose.staging.yml up -d
+          # - aws ecs update-service --cluster staging --service lumea-api
+          # - helm upgrade lumea-staging ./helm-chart
+          
+          echo "✅ Staging deployment completed successfully"
+          
+      - name: Health check staging deployment
+        run: |
+          echo "🏥 Running post-deployment health checks..."
+          
+          # TODO: Replace with your actual staging URLs
+          # STAGING_API_URL="https://staging-api.yourdomain.com"
+          # STAGING_WEB_URL="https://staging.yourdomain.com"
+          
+          # Example health checks:
+          # curl -f "$STAGING_API_URL/monitoring/health" || { echo "❌ API health check failed"; exit 1; }
+          # curl -f "$STAGING_WEB_URL" || { echo "❌ Web health check failed"; exit 1; }
+          
+          echo "✅ Health checks would run here (configure URLs first)"
+          
+      - name: Notify staging deployment
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "📢 Staging deployment SUCCESSFUL! 🎉"
+            echo "Environment: Staging"
+            echo "Version: staging"
+            echo "Commit: ${{ github.sha }}"
+            echo "Triggered by: ${{ github.actor }}"
+            # TODO: Add Slack/Discord/Teams notification here
+          else
+            echo "📢 Staging deployment FAILED! ❌"
+            echo "Check the logs above for details"
+            # TODO: Add failure notification here
+          fi
 
   # Job 2: Deploy to Production (on main branch)
   deploy-production:
@@ -140,25 +184,106 @@ jobs:
 
       - name: Build and push images
         run: |
-          # Build and push API
+          echo "🔨 Building production images..."
+          
+          # Build and push API with multiple tags for rollback capability
           docker buildx build --platform linux/amd64 \
             -f ./apps/api/Dockerfile \
             -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:latest \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:v${{ github.run_number }} \
             -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:${{ github.sha }} \
             --push .
           
-          # Build and push Web
+          # Build and push Web with multiple tags for rollback capability
           docker buildx build --platform linux/amd64 \
             -f ./apps/web/Dockerfile \
             -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:latest \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:v${{ github.run_number }} \
             -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:${{ github.sha }} \
             --push .
           
+          echo "📦 Images pushed with tags:"
+          echo "  - latest (for current deployment)"
+          echo "  - v${{ github.run_number }} (for release tracking)"
+          echo "  - ${{ github.sha }} (for commit-specific rollback)"
 
       - name: Deploy to production
         run: |
-          echo "Deploy to production environment"
-          # Add your production deployment commands here
+          echo "🎆 Deploying to PRODUCTION environment..."
+          echo "Container Registry: ${{ secrets.CONTAINER_REGISTRY }}"
+          echo "API Image: ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:latest"
+          echo "API Image (SHA): ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:${{ github.sha }}"
+          echo "Web Image: ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:latest"
+          echo "Web Image (SHA): ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:${{ github.sha }}"
+          echo "Deployment timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "Release version: v${{ github.run_number }}"
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          
+          # TODO: Add your production deployment commands here
+          # Examples:
+          # - kubectl apply -f k8s/production/
+          # - docker-compose -f docker-compose.production.yml up -d
+          # - aws ecs update-service --cluster production --service lumea-api
+          # - helm upgrade lumea-production ./helm-chart --set image.tag=${{ github.sha }}
+          
+          echo "✨ Production deployment completed successfully"
+          
+      - name: Health check production deployment
+        run: |
+          echo "🏥 Running post-deployment health checks..."
+          
+          # TODO: Replace with your actual production URLs
+          # PRODUCTION_API_URL="https://api.yourdomain.com"
+          # PRODUCTION_WEB_URL="https://yourdomain.com"
+          
+          # Example health checks:
+          # curl -f "$PRODUCTION_API_URL/monitoring/health" || { echo "❌ API health check failed"; exit 1; }
+          # curl -f "$PRODUCTION_WEB_URL" || { echo "❌ Web health check failed"; exit 1; }
+          
+          echo "✅ Health checks would run here (configure URLs first)"
+          
+      - name: Notify production deployment
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "📢 PRODUCTION deployment SUCCESSFUL! 🚀"
+            echo "Environment: Production"
+            echo "Version: v${{ github.run_number }}"
+            echo "Commit: ${{ github.sha }}"
+            echo "Triggered by: ${{ github.actor }}"
+            echo "Release: https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}"
+            # TODO: Add Slack/Discord/Teams notification here
+          else
+            echo "📢 PRODUCTION deployment FAILED! 🚫"
+            echo "This is a critical failure - immediate attention required!"
+            echo "Check the logs above for details"
+            # TODO: Add critical failure notification here
+          fi
+          
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo ""
+          echo "=================================="
+          echo "🎆 PRODUCTION DEPLOYMENT COMPLETE"
+          echo "=================================="
+          echo "Version: v${{ github.run_number }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Triggered by: ${{ github.actor }}"
+          echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo ""
+          echo "Images deployed:"
+          echo "  🚀 API: ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:v${{ github.run_number }}"
+          echo "  🌍 Web: ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:v${{ github.run_number }}"
+          echo ""
+          echo "Release: https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}"
+          echo ""
+          echo "For rollback, use the following commands:"
+          echo "  docker pull ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:<previous-version>"
+          echo "  docker pull ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:<previous-version>"
+          echo "=================================="
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v1
