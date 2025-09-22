@@ -49,6 +49,17 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lumea_test
 
+      - name: Validate database connection
+        run: |
+          echo "Testing database connection..."
+          timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U postgres; do 
+            echo "Waiting for PostgreSQL..."; 
+            sleep 2; 
+          done'
+          echo "Database connection established!"
+        env:
+          PGPASSWORD: postgres
+
       - name: Run database migrations
         working-directory: apps/api
         run: pnpm prisma:deploy

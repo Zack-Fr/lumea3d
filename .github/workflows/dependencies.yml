@@ -38,6 +38,18 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Update Python dependencies (Solver)
+        working-directory: apps/solver
+        run: |
+          # Check if requirements files exist before updating
+          if [ -f "requirements.txt" ]; then
+            echo "Found requirements.txt, checking for updates..."
+            pip install --upgrade pip
+            pip list --outdated || true
+          else
+            echo "No requirements.txt found, skipping Python dependency updates"
+          fi
+        continue-on-error: true
 
       - name: Run tests
         run: |

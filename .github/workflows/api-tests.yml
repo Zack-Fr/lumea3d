@@ -59,17 +59,25 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Validate database connection
+        run: |
+          echo "Testing database connection..."
+          timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U postgres; do 
+            echo "Waiting for PostgreSQL..."; 
+            sleep 2; 
+          done'
+          echo "Database connection established!"
+        env:
+          PGPASSWORD: postgres
+
       - name: Generate Prisma client
         run: pnpm --filter @lumea/api run prisma:generate
-        working-directory: ./apps/api
 
       - name: Run migrations (deploy)
         run: pnpm --filter @lumea/api run prisma:deploy
-        working-directory: ./apps/api
 
       - name: Run API tests
         run: pnpm --filter @lumea/api test
-        working-directory: ./apps/api
 
       - name: Generate OpenAPI JSON
         run: node scripts/generate-openapi.mjs
