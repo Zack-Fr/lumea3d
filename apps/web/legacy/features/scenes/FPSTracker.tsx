@@ -1,5 +1,5 @@
 import React from 'react';
-import { useFPS } from './useViewerControls';
+import { useFPS } from '../../../src/features/scenes/useViewerControls';
 import type { ViewerControls } from './ViewerSidebar';
 
 interface FPSTrackerProps {

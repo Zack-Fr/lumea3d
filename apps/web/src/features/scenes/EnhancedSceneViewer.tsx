@@ -4,17 +4,17 @@ import { Suspense, useState, useCallback } from 'react';
 import type { SceneManifestV2 } from '../../services/scenesApi';
 import { CategoryRenderer } from './CategoryRenderer';
 import { GLBPreloader } from './GLBPreloader';
-import { ViewerSidebar, type ViewerControls } from './ViewerSidebar';
-import { SceneHelpers } from './SceneHelpers';
-import { FPSTracker } from './FPSTracker';
+import { ViewerSidebar, type ViewerControls } from '../../../legacy/features/scenes/ViewerSidebar';
+import { SceneHelpers } from '../../../legacy/features/scenes/SceneHelpers';
+import { FPSTracker } from '../../../legacy/features/scenes/FPSTracker';
 import { useViewerControls } from './useViewerControls';
-import { FPSControls } from './FPSControls';
+import { FPSControls } from '../../../legacy/features/scenes/FPSControls';
 import { SelectionProvider } from './SelectionContext';
 import { ClickSelection } from './ClickSelection';
 import { TransformGizmos } from './TransformGizmos';
 import { SelectionHighlightSystem } from './SelectionHighlight';
 import { SmoothCameraControls, CameraTransitionStatus } from './SmoothCameraControls';
-import { KeyboardShortcuts } from './KeyboardShortcuts';
+import { KeyboardShortcuts } from '../../../legacy/features/scenes/KeyboardShortcuts';
 import { EditorPersistence } from './EditorPersistence';
 
 interface SceneGraphProps {

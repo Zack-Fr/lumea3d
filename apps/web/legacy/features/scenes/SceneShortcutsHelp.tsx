@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Keyboard, Search } from 'lucide-react';
-import { formatShortcut, type KeyboardShortcut } from './useSceneKeyboardShortcuts';
+import { formatShortcut, type KeyboardShortcut } from '../../../src/features/scenes/useSceneKeyboardShortcuts';
 
 interface SceneShortcutsHelpProps {
     shortcuts: KeyboardShortcut[];

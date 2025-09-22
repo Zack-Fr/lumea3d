@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { useSelection } from './SelectionContext';
-import { useSmoothCameraTransitions } from './SmoothCameraControls';
+import { useSelection } from '../../../src/features/scenes/SelectionContext';
+import { useSmoothCameraTransitions } from '../../../src/features/scenes/SmoothCameraControls';
 
 interface KeyboardShortcutsProps {
   enabled?: boolean;
