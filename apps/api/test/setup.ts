@@ -1,3 +1,6 @@
+// Set NODE_ENV=test before any imports to ensure correct module loading
+process.env.NODE_ENV = 'test';
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
@@ -56,17 +59,3 @@ export const teardownTestApp = async () => {
 };
 
 export { app, prisma };
-
-// Global test setup
-beforeAll(async () => {
-  await setupTestApp();
-});
-
-beforeEach(async () => {
-  await cleanupTestData();
-});
-
-afterAll(async () => {
-  await cleanupTestData();
-  await teardownTestApp();
-});
