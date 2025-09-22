@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { InstancedObject } from './InstancedRenderer';
+import { InstancedObject } from '../../../legacy/features/scenes/InstancedRenderer';
 
 interface SafeInstancedObjectProps {
   glbUrl: string;
