@@ -30,14 +30,16 @@ import { CollaborationModule } from './collaboration/collaboration.module';
       limit: 60, // 60 requests per minute per IP
     }]),
     
-    // Job queue for background processing
-    BullModule.forRoot({
-      redis: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT) || 6379,
-        password: process.env.REDIS_PASSWORD,
-      },
-    }),
+    // Job queue for background processing (skip in test environment)
+    ...(process.env.NODE_ENV !== 'test' ? [
+      BullModule.forRoot({
+        redis: {
+          host: process.env.REDIS_HOST || 'localhost',
+          port: parseInt(process.env.REDIS_PORT) || 6379,
+          password: process.env.REDIS_PASSWORD,
+        },
+      })
+    ] : []),
     
     // Database module
     PrismaModule,
