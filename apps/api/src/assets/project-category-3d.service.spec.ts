@@ -199,7 +199,12 @@ describe('ProjectCategory3DService', () => {
         where: {
           id: categoryId,
           projectId,
-          project: { userId },
+          project: {
+            OR: [
+              { userId },
+              { members: { some: { userId } } }
+            ]
+          },
         },
         include: { 
           asset: {
