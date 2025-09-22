@@ -15,32 +15,42 @@ jobs:
   deployment-info:
     name: Deployment Configuration Info
     runs-on: ubuntu-latest
-    if: (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main') && (secrets.CONTAINER_REGISTRY == '' || secrets.REGISTRY_USERNAME == '' || secrets.REGISTRY_PASSWORD == '')
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
+    outputs:
+      secrets-configured: ${{ steps.check-secrets.outputs.configured }}
     
     steps:
-      - name: Deployment Configuration Information
+      - name: Check deployment secrets
+        id: check-secrets
         run: |
-          echo "ℹ️  Deployment is not configured for this repository"
-          echo ""
-          echo "To enable deployment, please configure the following secrets in your GitHub repository:"
-          echo "Settings > Secrets and variables > Actions > Repository secrets"
-          echo ""
-          echo "Required secrets:"
-          echo "• CONTAINER_REGISTRY - Container registry URL (e.g., 'ghcr.io' or 'docker.io')"
-          echo "• REGISTRY_USERNAME - Your container registry username"
-          echo "• REGISTRY_PASSWORD - Your container registry password/token"
-          echo ""
-          echo "Once configured, deployments will run automatically on:"
-          echo "• dev branch pushes → Staging deployment"
-          echo "• main branch pushes → Production deployment"
-          echo ""
-          echo "Current branch: ${{ github.ref_name }}"
+          if [[ -n "${{ secrets.CONTAINER_REGISTRY }}" && -n "${{ secrets.REGISTRY_USERNAME }}" && -n "${{ secrets.REGISTRY_PASSWORD }}" ]]; then
+            echo "configured=true" >> $GITHUB_OUTPUT
+            echo "✅ Deployment secrets are configured"
+          else
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Deployment is not configured for this repository"
+            echo ""
+            echo "To enable deployment, please configure the following secrets in your GitHub repository:"
+            echo "Settings > Secrets and variables > Actions > Repository secrets"
+            echo ""
+            echo "Required secrets:"
+            echo "• CONTAINER_REGISTRY - Container registry URL (e.g., 'ghcr.io' or 'docker.io')"
+            echo "• REGISTRY_USERNAME - Your container registry username"
+            echo "• REGISTRY_PASSWORD - Your container registry password/token"
+            echo ""
+            echo "Once configured, deployments will run automatically on:"
+            echo "• dev branch pushes → Staging deployment"
+            echo "• main branch pushes → Production deployment"
+            echo ""
+            echo "Current branch: ${{ github.ref_name }}"
+          fi
 
   # Job 1: Deploy to Staging (on dev branch)
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/dev' && secrets.CONTAINER_REGISTRY != '' && secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD != ''
+    needs: deployment-info
+    if: github.ref == 'refs/heads/dev' && needs.deployment-info.outputs.secrets-configured == 'true'
     # environment: staging  # Commented out - create this environment in GitHub repo settings if needed
     
     steps:
@@ -94,7 +104,8 @@ jobs:
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && secrets.CONTAINER_REGISTRY != '' && secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD != ''
+    needs: deployment-info
+    if: github.ref == 'refs/heads/main' && needs.deployment-info.outputs.secrets-configured == 'true'
     # environment: production  # Commented out - create this environment in GitHub repo settings if needed
     steps:
       - name: Checkout code
