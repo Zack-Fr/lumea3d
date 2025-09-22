@@ -86,13 +86,15 @@ jobs:
         run: |
           # Build and push API
           docker buildx build --platform linux/amd64 \
+            -f ./apps/api/Dockerfile \
             -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:staging \
-            --push ./apps/api
+            --push .
           
           # Build and push Web
           docker buildx build --platform linux/amd64 \
+            -f ./apps/web/Dockerfile \
             -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:staging \
-            --push ./apps/web
+            --push .
           
 
       - name: Deploy to staging
@@ -140,15 +142,17 @@ jobs:
         run: |
           # Build and push API
           docker buildx build --platform linux/amd64 \
+            -f ./apps/api/Dockerfile \
             -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:latest \
             -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-api:${{ github.sha }} \
-            --push ./apps/api
+            --push .
           
           # Build and push Web
           docker buildx build --platform linux/amd64 \
+            -f ./apps/web/Dockerfile \
             -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:latest \
             -t ${{ secrets.CONTAINER_REGISTRY }}/lumea-web:${{ github.sha }} \
-            --push ./apps/web
+            --push .
           
 
       - name: Deploy to production
