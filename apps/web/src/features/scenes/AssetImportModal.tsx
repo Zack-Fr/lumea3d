@@ -116,10 +116,10 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
       return;
     }
 
-    // Validate file size (100MB max)
-    const maxSize = 300 * 1024 * 1024; // 100MB
+    // Validate file size (300MB max)
+    const maxSize = 300 * 1024 * 1024; // 300MB
     if (file.size > maxSize) {
-      toast.error('File size must be less than 100MB');
+      toast.error('File size must be less than 300MB');
       return;
     }
 
@@ -274,7 +274,7 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
         } else if (apiError.message?.includes('401') || apiError.message?.includes('Unauthorized')) {
           throw new Error('Authentication required. Please log in and try again.');
         } else if (apiError.message?.includes('413') || apiError.message?.includes('too large')) {
-          throw new Error('File is too large. Please select a file smaller than 100MB.');
+          throw new Error('File is too large. Please select a file smaller than 300MB.');
         } else if (apiError.message?.includes('415') || apiError.message?.includes('Unsupported')) {
           throw new Error('Unsupported file format. Please select a valid GLB file.');
         } else if (apiError.message?.includes('503') || apiError.message?.includes('Service Unavailable')) {
@@ -443,7 +443,7 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
                   <Upload className="mx-auto text-gray-400" size={48} />
                   <div className="font-medium">Drop GLB file here or click to browse</div>
                   <div className="text-sm text-gray-400">
-                    Maximum file size: 100MB
+                    Maximum file size: 300MB
                   </div>
                   <button
                     type="button"
