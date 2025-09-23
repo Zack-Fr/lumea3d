@@ -15,7 +15,7 @@ export class AssetUploadUrlDto {
 
   @IsInt()
   @Min(1)
-  @IsValidAssetSize(100) // 100MB max
+  @IsValidAssetSize(300) // 300MB max
   fileSize: number;
 
   @IsString()
