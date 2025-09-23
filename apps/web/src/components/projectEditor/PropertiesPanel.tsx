@@ -102,6 +102,8 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   
   // Selected item state
   const [selectedItem, setSelectedItem] = useState<SelectedItemState | null>(null);
+  // Track focus to avoid overwriting inputs while editing (read not needed)
+  const [, setIsTransformEditing] = useState(false);
   const [isUpdatingItem, setIsUpdatingItem] = useState(false);
   const [isUpdatingShell, setIsUpdatingShell] = useState(false);
   const [isUpdatingEnvironment, setIsUpdatingEnvironment] = useState(false);
@@ -562,7 +564,16 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     }
   }, [activeSceneId, manifest?.scene?.version, refreshScene]);
 
-  // Update selected item transform properties
+  // Number coercion that tolerates commas and spaces
+  const coerceNumber = useCallback((value: any, fallback = 0) => {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value !== 'string') return fallback;
+    const normalized = value.replace(/\s+/g, '').replace(',', '.');
+    const n = Number(normalized);
+    return Number.isFinite(n) ? n : fallback;
+  }, []);
+
+  // Update selected item transform properties (commit)
   const updateItemTransform = useCallback(async (transform: { position?: any; rotation?: any; scale?: any }) => {
     if (!selectedItemId || !activeSceneId || !selectedItem) {
       console.warn('Cannot update item - missing selectedItemId, activeSceneId, or selectedItem');
@@ -575,21 +586,22 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       const updateRequest: SceneItemUpdateRequest = {} as any;
       
       if (transform.position) {
-        (updateRequest as any).positionX = parseFloat(transform.position.x);
-        (updateRequest as any).positionY = parseFloat(transform.position.y);
-        (updateRequest as any).positionZ = parseFloat(transform.position.z);
+        (updateRequest as any).positionX = coerceNumber(transform.position.x, selectedItem!.position.x);
+        (updateRequest as any).positionY = coerceNumber(transform.position.y, selectedItem!.position.y);
+        (updateRequest as any).positionZ = coerceNumber(transform.position.z, selectedItem!.position.z);
       }
       
       if (transform.rotation) {
-        (updateRequest as any).rotationX = parseFloat(transform.rotation.x);
-        (updateRequest as any).rotationY = parseFloat(transform.rotation.y);
-        (updateRequest as any).rotationZ = parseFloat(transform.rotation.z);
+        // Rotation inputs are in degrees
+        (updateRequest as any).rotationX = coerceNumber(transform.rotation.x, selectedItem!.rotation.x);
+        (updateRequest as any).rotationY = coerceNumber(transform.rotation.y, selectedItem!.rotation.y);
+        (updateRequest as any).rotationZ = coerceNumber(transform.rotation.z, selectedItem!.rotation.z);
       }
       
       if (transform.scale) {
-        (updateRequest as any).scaleX = parseFloat(transform.scale.x);
-        (updateRequest as any).scaleY = parseFloat(transform.scale.y);
-        (updateRequest as any).scaleZ = parseFloat(transform.scale.z);
+        (updateRequest as any).scaleX = coerceNumber(transform.scale.x, selectedItem!.scale.x);
+        (updateRequest as any).scaleY = coerceNumber(transform.scale.y, selectedItem!.scale.y);
+        (updateRequest as any).scaleZ = coerceNumber(transform.scale.z, selectedItem!.scale.z);
       }
       
       // Call the backend API to update item
@@ -1364,6 +1376,27 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
 
   if (!show) return null;
 
+  // Input commit helpers
+  const commitPosition = useCallback(() => {
+    if (!selectedItem) return;
+    updateItemTransform({ position: selectedItem.position });
+    setIsTransformEditing(false);
+  }, [selectedItem, updateItemTransform]);
+  const commitRotation = useCallback(() => {
+    if (!selectedItem) return;
+    updateItemTransform({ rotation: selectedItem.rotation });
+    setIsTransformEditing(false);
+  }, [selectedItem, updateItemTransform]);
+  const commitScale = useCallback(() => {
+    if (!selectedItem) return;
+    updateItemTransform({ scale: selectedItem.scale });
+    setIsTransformEditing(false);
+  }, [selectedItem, updateItemTransform]);
+
+  const onEnterCommit = (cb: () => void) => (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') cb();
+  };
+
   return (
     <aside className={styles.rightSidebar}>
       <div className={styles.propertiesHeader}>
@@ -1399,7 +1432,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="X" 
                         className={styles.propertyInput} 
                         value={selectedItem.position.x}
-                        onChange={(e) => updateItemTransform({ position: { ...selectedItem.position, x: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, position: { ...prev.position, x: coerceNumber(e.target.value, prev.position.x) } }) : prev)}
+                        onBlur={commitPosition}
+                        onKeyDown={onEnterCommit(commitPosition)}
                         disabled={isUpdatingItem}
                         step="0.1"
                       />
@@ -1408,7 +1444,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="Y" 
                         className={styles.propertyInput} 
                         value={selectedItem.position.y}
-                        onChange={(e) => updateItemTransform({ position: { ...selectedItem.position, y: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, position: { ...prev.position, y: coerceNumber(e.target.value, prev.position.y) } }) : prev)}
+                        onBlur={commitPosition}
+                        onKeyDown={onEnterCommit(commitPosition)}
                         disabled={isUpdatingItem}
                         step="0.1"
                       />
@@ -1417,7 +1456,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="Z" 
                         className={styles.propertyInput} 
                         value={selectedItem.position.z}
-                        onChange={(e) => updateItemTransform({ position: { ...selectedItem.position, z: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, position: { ...prev.position, z: coerceNumber(e.target.value, prev.position.z) } }) : prev)}
+                        onBlur={commitPosition}
+                        onKeyDown={onEnterCommit(commitPosition)}
                         disabled={isUpdatingItem}
                         step="0.1"
                       />
@@ -1431,7 +1473,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="X" 
                         className={styles.propertyInput} 
                         value={selectedItem.rotation.x}
-                        onChange={(e) => updateItemTransform({ rotation: { ...selectedItem.rotation, x: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, rotation: { ...prev.rotation, x: coerceNumber(e.target.value, prev.rotation.x) } }) : prev)}
+                        onBlur={commitRotation}
+                        onKeyDown={onEnterCommit(commitRotation)}
                         disabled={isUpdatingItem}
                         step="1"
                       />
@@ -1440,7 +1485,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="Y" 
                         className={styles.propertyInput} 
                         value={selectedItem.rotation.y}
-                        onChange={(e) => updateItemTransform({ rotation: { ...selectedItem.rotation, y: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, rotation: { ...prev.rotation, y: coerceNumber(e.target.value, prev.rotation.y) } }) : prev)}
+                        onBlur={commitRotation}
+                        onKeyDown={onEnterCommit(commitRotation)}
                         disabled={isUpdatingItem}
                         step="1"
                       />
@@ -1449,7 +1497,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="Z" 
                         className={styles.propertyInput} 
                         value={selectedItem.rotation.z}
-                        onChange={(e) => updateItemTransform({ rotation: { ...selectedItem.rotation, z: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, rotation: { ...prev.rotation, z: coerceNumber(e.target.value, prev.rotation.z) } }) : prev)}
+                        onBlur={commitRotation}
+                        onKeyDown={onEnterCommit(commitRotation)}
                         disabled={isUpdatingItem}
                         step="1"
                       />
@@ -1463,7 +1514,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="X" 
                         className={styles.propertyInput} 
                         value={selectedItem.scale.x}
-                        onChange={(e) => updateItemTransform({ scale: { ...selectedItem.scale, x: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, scale: { ...prev.scale, x: coerceNumber(e.target.value, prev.scale.x) } }) : prev)}
+                        onBlur={commitScale}
+                        onKeyDown={onEnterCommit(commitScale)}
                         disabled={isUpdatingItem}
                         step="0.1"
                         min="0.01"
@@ -1473,7 +1527,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="Y" 
                         className={styles.propertyInput} 
                         value={selectedItem.scale.y}
-                        onChange={(e) => updateItemTransform({ scale: { ...selectedItem.scale, y: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, scale: { ...prev.scale, y: coerceNumber(e.target.value, prev.scale.y) } }) : prev)}
+                        onBlur={commitScale}
+                        onKeyDown={onEnterCommit(commitScale)}
                         disabled={isUpdatingItem}
                         step="0.1"
                         min="0.01"
@@ -1483,7 +1540,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="Z" 
                         className={styles.propertyInput} 
                         value={selectedItem.scale.z}
-                        onChange={(e) => updateItemTransform({ scale: { ...selectedItem.scale, z: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, scale: { ...prev.scale, z: coerceNumber(e.target.value, prev.scale.z) } }) : prev)}
+                        onBlur={commitScale}
+                        onKeyDown={onEnterCommit(commitScale)}
                         disabled={isUpdatingItem}
                         step="0.1"
                         min="0.01"
