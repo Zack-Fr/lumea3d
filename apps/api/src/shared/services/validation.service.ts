@@ -250,7 +250,7 @@ export class ValidationService {
         errors.push('GLB file appears to be too small to be valid');
       }
       
-      if (fileSize > 100 * 1024 * 1024) { // 100MB
+      if (fileSize > 300 * 1024 * 1024) { // 300MB
         warnings.push('Large GLB files may take longer to process and load');
       }
     }

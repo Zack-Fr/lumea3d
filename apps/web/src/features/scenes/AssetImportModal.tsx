@@ -117,7 +117,7 @@ export function AssetImportModal({ isOpen, onClose, onImportComplete }: AssetImp
     }
 
     // Validate file size (100MB max)
-    const maxSize = 100 * 1024 * 1024; // 100MB
+    const maxSize = 300 * 1024 * 1024; // 100MB
     if (file.size > maxSize) {
       toast.error('File size must be less than 100MB');
       return;
