@@ -97,7 +97,7 @@ describe('Custom Validation Decorators', () => {
       const errors = await validate(dto);
       
       expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints?.isValidAssetSize).toContain('File size must not exceed 100MB');
+      expect(errors[0].constraints?.isValidAssetSize).toContain('File size must not exceed 300MB');
     });
   });
 });

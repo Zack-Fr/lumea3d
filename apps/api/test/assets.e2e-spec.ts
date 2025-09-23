@@ -193,7 +193,7 @@ describe('Asset Upload Pipeline E2E', () => {
         })
         .expect(400)
         .expect((res) => {
-          expect(res.body.message).toContain('File size must not exceed 100MB');
+          expect(res.body.message).toContain('File size must not exceed 300MB');
         });
 
       // Test invalid category key
