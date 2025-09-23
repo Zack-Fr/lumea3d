@@ -132,12 +132,14 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
         }
       } catch {}
 
+      // Convert rotation to degrees for legacy compatibility
+      const toDeg = (r: number) => (r * 180) / Math.PI;
       const deltaOp = {
         op: 'update_item' as const,
         id: itemId,
         transform: {
           position: [selectedObject.position.x, selectedObject.position.y, selectedObject.position.z] as [number, number, number],
-          rotation_euler: [selectedObject.rotation.x, selectedObject.rotation.y, selectedObject.rotation.z] as [number, number, number],
+          rotation_euler: [toDeg(selectedObject.rotation.x), toDeg(selectedObject.rotation.y), toDeg(selectedObject.rotation.z)] as [number, number, number],
           scale: [selectedObject.scale.x, selectedObject.scale.y, selectedObject.scale.z] as [number, number, number],
         }
       };

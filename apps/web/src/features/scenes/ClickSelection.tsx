@@ -218,6 +218,17 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
       // Find the closest selectable object
       let selectedObj: Object3D | null = null;
       
+      // Helper: ascend to the top-most container group for this itemId
+      const getContainerFor = (obj: Object3D): Object3D => {
+        const itemId = (obj.userData && obj.userData.itemId) || undefined;
+        if (!itemId) return obj;
+        let cur: Object3D = obj;
+        while (cur.parent && (cur.parent as any).userData && (cur.parent as any).userData.itemId === itemId) {
+          cur = cur.parent as Object3D;
+        }
+        return cur;
+      };
+      
       for (const intersect of intersects) {
         let obj = intersect.object;
         
@@ -227,13 +238,14 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
         }
         
         if (obj && obj.userData?.selectable && obj.userData?.itemId) {
-          selectedObj = obj;
+          // Promote to container group to avoid editing internal GLB nodes
+          selectedObj = getContainerFor(obj);
           break;
         }
       }
 
       if (selectedObj) {
-        console.log('🎯 Click selection hit:', selectedObj.userData.itemId);
+        console.log('🎯 Click selection hit (container):', selectedObj.userData.itemId, selectedObj.name);
         
         // Check if this is an instanced mesh and handle proxy selection
         const userData = selectedObj.userData;
