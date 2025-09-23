@@ -196,8 +196,25 @@ const ProjectEditorContent: React.FC = () => {
 
   // Camera mode change callback
   const handleCameraModeChange = useCallback((mode: string) => {
-    setCameraMode(mode);
-    triggerAchievement(`Camera switched to ${mode} mode!`);
+    try {
+      console.log('🎮 Switching camera mode to:', mode);
+      setCameraMode(mode);
+      
+      // Safely trigger achievement without crashing
+      try {
+        triggerAchievement(`Camera switched to ${mode} mode!`);
+      } catch (achievementError) {
+        console.warn('Achievement system error (non-critical):', achievementError);
+      }
+    } catch (error) {
+      console.error('Critical error in camera mode change:', error);
+      // Ensure camera mode still gets set even if achievement fails
+      try {
+        setCameraMode(mode);
+      } catch (fallbackError) {
+        console.error('Failed to set camera mode even in fallback:', fallbackError);
+      }
+    }
   }, [setCameraMode, triggerAchievement]);
 
   // Sound toggle callback
