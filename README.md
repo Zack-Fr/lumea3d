@@ -15,23 +15,26 @@ Client (WebGL/Three.js) ↔ Realtime (WebSockets via Socket.IO for presence + op
 
 Flow: User action → op broadcast → peers reconcile → scene graph updates. Extensible via AI provider and plugin hooks.
 
-┌──────────────────────┐    ┌──────────────────────┐    ┌──────────────────────┐
-│    Web Frontend      │    │     API Backend      │    │  AI Generative Svcs   │
-│ (React/Vite/Three.js)│◄──►│  (NestJS + Swagger)  │◄──►│   (Adapter/External)   │
-└──────────┬───────────┘    └──────────┬───────────┘    └──────────┬───────────┘
-           │                            │                           │
-           │                   ┌────────▼────────┐                  │
-           │                   │   PostgreSQL     │                 │
-           │                   │ + Prisma (ORM)   │                 │
-           │                   └────────┬─────────┘                 │
-           │                            │                           │
-   ┌───────▼───────┐            ┌───────▼───────┐          ┌────────▼────────┐
-   │   Socket.IO    │            │     Redis     │          │    S3 / MinIO    │
-   │ + SSE (Realtime)│           │ (Queue/Cache) │          │ (Assets & Thumbs)│
-   └────────────────┘            └───────────────┘          └──────────────────┘
+```
+┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐
+│   Web Frontend      │    │    API Backend      │    │ AI Generative Svcs  │
+│(React/Vite/Three.js)│◄──►│ (NestJS + Swagger)  │◄──►│  (Adapter/External) │
+└──────────┬──────────┘    └──────────┬──────────┘    └──────────┬──────────┘
+           │                          │                          │
+           │                ┌─────────▼─────────┐                │
+           │                │    PostgreSQL     │                │
+           │                │  + Prisma (ORM)   │                │
+           │                └─────────┬─────────┘                │
+           │                          │                          │
+   ┌───────▼────────┐        ┌────────▼────────┐       ┌────────▼────────┐
+   │   Socket.IO     │        │      Redis      │       │   S3 / MinIO    │
+   │+ SSE (Realtime) │        │ (Queue/Cache)   │       │(Assets & Thumbs)│
+   └─────────────────┘        └─────────────────┘       └─────────────────┘
+```
 
 **Entities:** Users; Projects → Scenes → Placements; Assets (Meshes, Materials, HDRIs); Collaboration (Sessions, Invites); Feedback/Comments.
-
+| ERD DIAGRAM |
+| ----------- |
 ![Entity Relationship Diagram](./readme/erd-diagram.svg)
 <br><br>
 <!-- Project Highlights -->
@@ -111,10 +114,22 @@ Build & run (example):
 - Logs/teardown: make logs | make down | make clean
 - Backend (direct): pnpm --filter api build && pnpm --filter api start:prod
 
-**Roadmap (short):**
-- [ ] Time-travel scene timeline
-- [ ] Public embed viewer
-- [ ] Mobile AR quick preview
+**Roadmap (prioritized):**
+
+MVP / Near-Term
+- [ ] Time-travel scene timeline — record transforms, material swaps & comments; scrub playback < 200ms step.
+- [ ] Public embed viewer — lightweight read-only embed (<500KB gzipped JS) with orbit camera + annotation popovers.
+
+Growth / Expansion
+- [ ] Mobile AR quick preview — one-click generate GLB/USDZ + QR code; load under 5s for <10MB scene.
+- [ ] Blender exporter (initial DCC integration) — preserve hierarchy + PBR material mapping.
+- [ ] Virtual asset library browsing — searchable tagged catalog + similarity-based suggestions.
+
+Strategic / Longer-Term
+- [ ] Additional DCC integrations (Houdini; evaluate Unreal / Datasmith flow).
+- [ ] Partner / marketplace library ingestion (licensing + attribution hooks).
+- [ ] Plugin API (scene context hook + operation interception).
+- [ ] Shareable scene diff links (deep link to specific timeline state).
 
 **Tech Snapshot:** Three.js • React • NestJS • Prisma • PostgreSQL • Redis • Socket.IO • Bull • S3/MinIO • WebSockets/SSE • AI adapter
 
