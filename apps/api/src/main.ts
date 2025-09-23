@@ -16,10 +16,10 @@ async function bootstrap() {
     rawBody: true,
   });
   
-  // Configure Express to handle larger payloads (10MB limit)
-  app.use(require('express').json({ limit: '10mb' }));
-  app.use(require('express').urlencoded({ limit: '10mb', extended: true }));
-  app.use(require('express').raw({ limit: '10mb' }));
+  // Configure Express to handle larger payloads (300MB limit for GLB files)
+  app.use(require('express').json({ limit: '300mb' }));
+  app.use(require('express').urlencoded({ limit: '300mb', extended: true }));
+  app.use(require('express').raw({ limit: '300mb' }));
   
   // Serve static files for thumbnails
   const thumbnailsPath = process.env.THUMBNAILS_STORAGE_PATH || join(process.cwd(), 'storage', 'thumbnails');
