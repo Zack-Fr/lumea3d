@@ -1,5 +1,4 @@
 import React, { useState, useCallback } from 'react';
-import { ScrollArea } from "../ui/ScrollArea";
 import { 
   Settings,
   Camera,
@@ -92,6 +91,7 @@ const TabbedRightPanel: React.FC<TabbedRightPanelProps> = ({
         onClose={onClose}
         sceneId={sceneId}
         selectedItemId={selectedItemId ?? undefined}
+        embedded={true}
       />
     );
   };
@@ -160,9 +160,9 @@ const TabbedRightPanel: React.FC<TabbedRightPanelProps> = ({
       </div>
 
       {/* Tab Content */}
-      <ScrollArea className={styles.rightPanelContent}>
+      <div className="flex-1" style={{ minHeight: 0, overflowY: 'auto' }}>
         {renderTabContent()}
-      </ScrollArea>
+      </div>
     </aside>
   );
 };
