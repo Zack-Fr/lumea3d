@@ -673,10 +673,9 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     } finally {
       setIsUpdatingItem(false);
       // Clear recursive prevention flag after a delay
-      setTimeout(() => {
         isUpdatingRef.current = false;
-      }, 1000);
     }
+      
   }, [selected?.itemId, sceneId, selectedItem, manifest?.scene?.version, refreshScene]);
   
   // Scale system handlers

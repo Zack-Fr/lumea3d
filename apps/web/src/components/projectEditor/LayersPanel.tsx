@@ -41,10 +41,9 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
   
   // Subscribe to LayerHierarchyBridge data
   useEffect(() => {
-    const unsubscribe = subscribeToLayerData((layerData) => {
-      setLayers(layerData);
-    });
-    return unsubscribe;
+    return subscribeToLayerData((layerData) => {
+          setLayers(layerData);
+        });
   }, []);
   
   // Layer node expansion/collapse
@@ -74,7 +73,7 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
       useSelectionStore.getState().clear();
     }
     
-    const userData = node.object.userData;
+    const {userData} = node.object;
     setSelected({
       assetId: userData?.meta?.assetId || userData?.itemId || node.itemId,
       itemId: node.itemId,
@@ -88,10 +87,9 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
   
   // Subscribe to LayerHierarchyBridge data
   useEffect(() => {
-    const unsubscribe = subscribeToLayerData((layerData) => {
-      setLayers(layerData);
-    });
-    return unsubscribe;
+    return subscribeToLayerData((layerData) => {
+          setLayers(layerData);
+        });
   }, []);
   
   // Light selection handler

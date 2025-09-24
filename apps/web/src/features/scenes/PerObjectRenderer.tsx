@@ -140,7 +140,11 @@ function SingleObjectRenderer({ item }: SingleObjectRendererProps) {
 
     // Also mirror minimal userData on the GLB subtree so clicks promote correctly
     meshRoot.traverse((n) => {
-      (n as any).userData = { ...userData };
+      const existingUserData = (n as any).userData || {};
+      (n as any).userData = {
+        ...existingUserData,
+        ...userData,
+      };
     });
 
     // Apply container transforms

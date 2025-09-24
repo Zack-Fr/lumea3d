@@ -17,10 +17,9 @@ export function ActiveLayersPanel({ isOpen, onClose }: ActiveLayersPanelProps) {
 
   // Subscribe to LayerHierarchyBridge data
   useEffect(() => {
-    const unsubscribe = subscribeToLayerData((layerData) => {
-      setLayers(layerData);
-    });
-    return unsubscribe;
+    return subscribeToLayerData((layerData) => {
+          setLayers(layerData);
+        });
   }, []);
 
 
