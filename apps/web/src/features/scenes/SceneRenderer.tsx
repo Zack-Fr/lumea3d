@@ -4,6 +4,7 @@ import { CategoryRenderer } from './CategoryRenderer';
 import { SafeSceneItem } from './SafeSceneItem';
 import { log } from '../../utils/logger';
 import { LightsFromManifest } from './LightsFromManifest';
+import { MigrateWorldToLocal } from './MigrateWorldToLocal';
 
 interface SceneRendererProps {
   sceneId: string;
@@ -48,50 +49,12 @@ export function SceneRenderer({ sceneId }: SceneRendererProps) {
 
   log('info', `🎨 SceneRenderer: Rendering scene with ${Object.keys(categories).length} categories and ${items.length} items`);
   
-  console.log('🔍 DEBUG: features/scenes/SceneRenderer - MANIFEST ITEMS:');
-  items.forEach((item, index) => {
-    console.log(`🔍 Item ${index}:`, {
-      id: item.id,
-      name: item.name,
-      category: item.category,
-      selectable: item.selectable,
-      hasTransform: !!item.transform,
-      meta: item.meta
-    });
-  });
   
-  // Debug logging for imported mesh detection
-  console.log('🔍 SceneRenderer Debug Data:');
-  console.log('Categories:', Object.keys(categories));
-  console.log('Items:', items.map(item => ({
-    id: item.id,
-    name: item.name,
-    category: typeof item.category === 'string' ? item.category : (item.category as any)?.categoryKey,
-    model: item.model,
-    selectable: item.selectable,
-    hasTransform: !!item.transform,
-    position: item.transform?.position
-  })));
-  
-  // Log each category's details
-  Object.entries(categories).forEach(([categoryKey, category]) => {
-    const categoryItems = items.filter(item => {
-      const itemCategory = typeof item.category === 'string' ? item.category : (item.category as any)?.categoryKey || '';
-      return itemCategory === categoryKey;
-    });
-    
-    console.log(`📂 Category "${categoryKey}":`, {
-      categoryInfo: category,
-      itemCount: categoryItems.length,
-      items: categoryItems.map(item => ({ id: item.id, name: item.name, model: item.model }))
-    });
-  });
 
   // Load local assets from localStorage
   let localAssets: any[] = [];
   try {
     localAssets = JSON.parse(localStorage.getItem('lumea-local-assets') || '[]');
-    console.log('🔍 SceneRenderer: Found local assets:', localAssets.length);
   } catch (error) {
     console.warn('Failed to load local assets:', error);
   }
@@ -100,6 +63,9 @@ export function SceneRenderer({ sceneId }: SceneRendererProps) {
     <group name="scene-root">
       {/* Reconstruct lights from manifest first to ensure helpers and selection work */}
       <LightsFromManifest items={items} />
+
+      {/* One-time world→local transform migration based on mounted containers */}
+      <MigrateWorldToLocal sceneId={sceneId} items={items} />
 
       {/* Render manifest items via CategoryRenderer (lights are filtered out) */}
       {Object.entries(categories).map(([categoryKey, category]) => (
@@ -115,12 +81,6 @@ export function SceneRenderer({ sceneId }: SceneRendererProps) {
       
       {/* Render local assets directly */}
       {localAssets.map((asset) => {
-        console.log('🔍 SceneRenderer: Rendering local asset:', {
-          id: asset.id,
-          name: asset.name,
-          url: asset.url,
-          category: asset.category
-        });
         
         // Convert local asset to scene item format
         const localItem = {

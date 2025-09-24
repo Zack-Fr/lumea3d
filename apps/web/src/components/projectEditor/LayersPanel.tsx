@@ -13,7 +13,8 @@ import {
 import { useSceneContext } from '../../contexts/SceneContext';
 import { useSelection } from '../../features/scenes/SelectionContext';
 import { LightsManager } from './LightsContainer';
-import { StandaloneLayerHierarchy } from '../../features/scenes/StandaloneLayerHierarchy';
+import { subscribeToLayerData, type LayerNode } from '../../features/scenes/LayerHierarchyBridge';
+import { useSelectionStore } from '../../stores/selectionStore';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 
 interface LayersPanelProps {
@@ -24,6 +25,12 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
   const { manifest } = useSceneContext();
   const { selection, selectObject } = useSelection();
   const [lights, setLights] = useState<THREE.Light[]>([]);
+  
+  // Layer hierarchy data from new system
+  const [layers, setLayers] = useState<LayerNode[]>([]);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const selected = useSelectionStore((s) => s.selected);
+  const setSelected = useSelectionStore((s) => s.set);
 
   // Subscribe to lights changes
   useEffect(() => {
@@ -32,9 +39,61 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
     return unsubscribe;
   }, []);
   
+  // Subscribe to LayerHierarchyBridge data
+  useEffect(() => {
+    return subscribeToLayerData((layerData) => {
+          setLayers(layerData);
+        });
+  }, []);
+  
+  // Layer node expansion/collapse
+  const toggleExpanded = (nodeId: string) => {
+    setExpandedNodes(prev => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
+      return next;
+    });
+  };
+  
+  // Layer selection handler
+  const handleLayerSelect = (node: LayerNode) => {
+    // Validate that the object is still valid and in the scene graph
+    if (!node.object || !node.object.parent) {
+      return;
+    }
+    
+    // Check if there's already a selection with the same itemId but different object reference
+    const currentSelected = useSelectionStore.getState().selected;
+    if (currentSelected && currentSelected.itemId === node.itemId && currentSelected.object !== node.object) {
+      // Clear the old stale selection first
+      useSelectionStore.getState().clear();
+    }
+    
+    const {userData} = node.object;
+    setSelected({
+      assetId: userData?.meta?.assetId || userData?.itemId || node.itemId,
+      itemId: node.itemId,
+      object: node.object,
+      category: userData?.category,
+      originalPosition: node.object.position.clone(),
+      originalRotation: node.object.rotation.clone(),
+      originalScale: node.object.scale.clone(),
+    });
+  };
+  
+  // Subscribe to LayerHierarchyBridge data
+  useEffect(() => {
+    return subscribeToLayerData((layerData) => {
+          setLayers(layerData);
+        });
+  }, []);
+  
   // Light selection handler
   const handleSelectLight = useCallback((light: THREE.Light) => {
-    console.log('LayersPanel: Selecting light:', light.name);
     // Try to select the light helper first (it's usually more selectable)
     if (light.userData.helper) {
       selectObject(light.userData.helper);
@@ -47,7 +106,6 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
   const handleToggleLightVisibility = useCallback((light: THREE.Light, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent selection when clicking eye
     light.visible = !light.visible;
-    console.log(`LayersPanel: Light ${light.name} visibility:`, light.visible);
     
     // Also toggle helper visibility if it exists
     if (light.userData.helper) {
@@ -78,8 +136,7 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
   }, [manifest?.items, selection.selectedObject]);
 
   // Objects visibility handler
-  const handleToggleAllVisibility = useCallback((show: boolean) => {
-    console.log('Toggle all objects visibility:', show);
+  const handleToggleAllVisibility = useCallback((_show: boolean) => {
     // TODO: Implement global object visibility toggle
   }, []);
 
@@ -207,7 +264,26 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
             </div>
             
             {/* Layer Hierarchy */}
-            <StandaloneLayerHierarchy className="p-1" />
+            <div className="space-y-1">
+              {layers.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  <div className="text-sm">No objects loaded</div>
+                  <div className="text-xs">Objects will appear here when scene loads</div>
+                </div>
+              ) : (
+                layers.map(parentNode => (
+                  <LayerNodeComponent
+                    key={parentNode.id}
+                    node={parentNode}
+                    level={0}
+                    expanded={expandedNodes.has(parentNode.id)}
+                    onToggleExpanded={toggleExpanded}
+                    onSelect={handleLayerSelect}
+                    selectedItemId={selected?.itemId}
+                  />
+                ))
+              )}
+            </div>
           </div>
 
           {/* Lights Section */}
@@ -294,5 +370,93 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
     </div>
   );
 };
+
+// Layer Node Component for inline hierarchy
+interface LayerNodeComponentProps {
+  node: LayerNode;
+  level: number;
+  expanded: boolean;
+  onToggleExpanded: (nodeId: string) => void;
+  onSelect: (node: LayerNode) => void;
+  selectedItemId?: string;
+}
+
+function LayerNodeComponent({
+  node,
+  level,
+  expanded,
+  onToggleExpanded,
+  onSelect,
+  selectedItemId
+}: LayerNodeComponentProps) {
+  const isSelected = node.itemId === selectedItemId;
+  const hasChildren = node.children && node.children.length > 0;
+
+  return (
+    <>
+      {/* Parent/Submesh Node */}
+      <div
+        className={`flex items-center gap-1 px-2 py-1 rounded cursor-pointer transition-colors ${
+          isSelected 
+            ? 'bg-[var(--glass-yellow)]/20 border border-[var(--glass-yellow)]/50' 
+            : 'hover:bg-gray-100'
+        }`}
+        style={{ paddingLeft: `${8 + level * 16}px` }}
+        onClick={() => {
+          onSelect(node);
+        }}
+      >
+        {/* Expand/Collapse Button */}
+        {hasChildren ? (
+          <button
+            className="w-4 h-4 flex items-center justify-center text-gray-400 hover:text-gray-600"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleExpanded(node.id);
+            }}
+          >
+            {expanded ? '▼' : '▶'}
+          </button>
+        ) : (
+          <div className="w-4" /> // Spacer
+        )}
+
+        {/* Type Icon */}
+        <div className="text-xs">
+          {node.type === 'parent' ? '🎭' : '🔲'}
+        </div>
+
+        {/* Name */}
+        <span className={`flex-1 text-sm truncate ${
+          isSelected ? 'text-[var(--glass-black)] font-medium' : 'text-gray-700'
+        }`}>
+          {node.name}
+        </span>
+
+        {/* Visibility indicator */}
+        <div className="text-xs text-gray-400">
+          {node.visible ? '👁' : '😵'}
+        </div>
+      </div>
+
+      {/* Children (Submeshes) */}
+      {expanded && hasChildren && (
+        <>
+          {node.children!.map(childNode => (
+            <LayerNodeComponent
+              key={childNode.id}
+              node={childNode}
+              level={level + 1}
+              expanded={false} // Submeshes don't expand further
+              onToggleExpanded={onToggleExpanded}
+              onSelect={onSelect}
+              selectedItemId={selectedItemId}
+            />
+          ))}
+        </>
+      )}
+    </>
+  );
+}
 
 export default LayersPanel;
