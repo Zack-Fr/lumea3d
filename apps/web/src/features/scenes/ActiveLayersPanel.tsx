@@ -1,18 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useThree } from '@react-three/fiber';
-import * as THREE from 'three';
-import { useSelection } from './SelectionContext';
-
-interface LayerNode {
-  id: string;
-  name: string;
-  type: 'parent' | 'submesh';
-  parentId?: string;
-  itemId: string;
-  object: THREE.Object3D;
-  children?: LayerNode[];
-  visible: boolean;
-}
+import React, { useState, useEffect } from 'react';
+import { useSelectionStore } from '../../stores/selectionStore';
+import { subscribeToLayerData, type LayerNode } from './LayerHierarchyBridge';
 
 interface ActiveLayersPanelProps {
   isOpen: boolean;
@@ -20,73 +8,21 @@ interface ActiveLayersPanelProps {
 }
 
 export function ActiveLayersPanel({ isOpen, onClose }: ActiveLayersPanelProps) {
-  const { scene } = useThree();
-  const { selectObject, selection, deleteObject } = useSelection();
+  // Only debug when panel state changes, not on every render
+  
+  const selected = useSelectionStore((s) => s.selected);
+  const setSelected = useSelectionStore((s) => s.set);
   const [layers, setLayers] = useState<LayerNode[]>([]);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
-  // Scan scene for objects and build hierarchy
-  const scanSceneObjects = () => {
-    const layerNodes: LayerNode[] = [];
-    const processedItems = new Set<string>();
-
-    scene.traverse((object) => {
-      // Skip lights and their helpers from the Objects list
-      const isLight = object.type.includes('Light') || object.userData?.meta?.isLight === true || object.userData?.isHelper === true;
-      if (isLight) {
-        return;
-      }
-
-      // Look for parent objects with itemId
-      if (object.userData?.itemId && !processedItems.has(object.userData.itemId)) {
-        const itemId = object.userData.itemId;
-        const parentName = object.name || `Object ${itemId.slice(-8)}`;
-        
-        processedItems.add(itemId);
-
-        // Create parent node
-        const parentNode: LayerNode = {
-          id: `parent-${itemId}`,
-          name: parentName,
-          type: 'parent',
-          itemId: itemId,
-          object: object,
-          visible: object.visible,
-          children: []
-        };
-
-        // Find all mesh children (submeshes)
-        const submeshes: LayerNode[] = [];
-        object.traverse((child) => {
-          if (child !== object && child instanceof THREE.Mesh) {
-            const submeshName = child.name || `Submesh ${submeshes.length + 1}`;
-            const submeshNode: LayerNode = {
-              id: `submesh-${itemId}-${submeshes.length}`,
-              name: submeshName,
-              type: 'submesh',
-              parentId: parentNode.id,
-              itemId: itemId,
-              object: child,
-              visible: child.visible
-            };
-            submeshes.push(submeshNode);
-          }
-        });
-
-        parentNode.children = submeshes;
-        layerNodes.push(parentNode);
-      }
-    });
-
-    setLayers(layerNodes);
-  };
-
-  // Refresh layers when scene changes
+  // Subscribe to LayerHierarchyBridge data
   useEffect(() => {
-    scanSceneObjects();
-    const interval = setInterval(scanSceneObjects, 2000); // Refresh every 2 seconds
-    return () => clearInterval(interval);
-  }, [scene]);
+    const unsubscribe = subscribeToLayerData((layerData) => {
+      setLayers(layerData);
+    });
+    return unsubscribe;
+  }, []);
+
 
   // Handle node expansion/collapse
   const toggleExpanded = (nodeId: string) => {
@@ -103,26 +39,38 @@ export function ActiveLayersPanel({ isOpen, onClose }: ActiveLayersPanelProps) {
 
   // Handle selection
   const handleSelect = (node: LayerNode) => {
-    selectObject(node.object);
+    // Validate that the object is still valid and in the scene graph
+    if (!node.object || !node.object.parent) {
+      return;
+    }
+    
+    const userData = node.object.userData;
+    setSelected({
+      assetId: userData?.meta?.assetId || userData?.itemId || node.itemId,
+      itemId: node.itemId, // Use the LayerNode itemId (which includes our mesh-specific suffix for cube)
+      object: node.object,
+      category: userData?.category,
+      originalPosition: node.object.position.clone(),
+      originalRotation: node.object.rotation.clone(),
+      originalScale: node.object.scale.clone(),
+    });
   };
 
   // Handle delete
   const handleDelete = async (node: LayerNode) => {
     if (node.type === 'parent') {
-      // Delete entire parent object
-      selectObject(node.object);
-      await deleteObject();
+      // TODO: Implement delete via unified API client
+      node.object.visible = false;
     } else if (node.type === 'submesh') {
       // Hide submesh (can't delete individual submeshes from GLB)
       node.object.visible = false;
-      scanSceneObjects(); // Refresh to show visibility change
     }
   };
 
   // Handle visibility toggle
   const handleVisibilityToggle = (node: LayerNode) => {
     node.object.visible = !node.object.visible;
-    scanSceneObjects(); // Refresh to show visibility change
+    // LayerHierarchyBridge will pick up the change automatically
   };
 
   if (!isOpen) return null;
@@ -158,7 +106,7 @@ export function ActiveLayersPanel({ isOpen, onClose }: ActiveLayersPanelProps) {
                 onSelect={handleSelect}
                 onDelete={handleDelete}
                 onToggleVisibility={handleVisibilityToggle}
-                selectedItemId={selection.selectedObject?.itemId}
+                selectedItemId={selected?.itemId}
               />
             ))}
           </div>
@@ -196,6 +144,8 @@ function LayerNodeComponent({
 }: LayerNodeComponentProps) {
   const isSelected = node.itemId === selectedItemId;
   const hasChildren = node.children && node.children.length > 0;
+  
+
 
   return (
     <>
@@ -205,7 +155,9 @@ function LayerNodeComponent({
           isSelected ? 'bg-blue-600' : ''
         }`}
         style={{ paddingLeft: `${8 + level * 16}px` }}
-        onClick={() => onSelect(node)}
+        onClick={() => {
+          onSelect(node);
+        }}
       >
         {/* Expand/Collapse Button */}
         {hasChildren ? (
