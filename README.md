@@ -54,8 +54,6 @@ Flow: User action → op broadcast → peers reconcile → scene graph updates. 
 
 The platform experience centers on a unified live scene: presence cursors and camera following remove guesswork; one‑click visual variants keep exploration fluid; reversible snapshots de‑risk bold changes; context signals drive intelligent asset suggestions; and secure interactive review links eliminate static render churn. For an interactive showcase of these ideas, see the desktop feature grid component below.
 
-**Interactive Component:**
-
 ![Project Highlights](./readme/project-highlights-preview.png)
 
 **Key Features Highlighted:**
@@ -64,7 +62,7 @@ The platform experience centers on a unified live scene: presence cursors and ca
 - Shareable interactive review links
 - Snapshots with quick revert
 - Context-aware asset AI suggestions and generation
-
+  
 <br><br><!-- Demo -->
 <img src="./readme/title5.svg"/>
 
@@ -157,16 +155,16 @@ Deploy progression: dev → staging → prod. Assets via CDN. Feature flags gove
 **Roadmap (prioritized):**
 
 MVP / Near-Term
-- [ ] Time-travel scene timeline — record transforms, material swaps & comments; scrub playback < 200ms step.
-- [ ] Public embed viewer — lightweight read-only embed (<500KB gzipped JS) with orbit camera + annotation popovers.
+- [ ] Time-travel scene timeline: record transforms, material swaps & comments; scrub playback < 200ms step.
+- [ ] Public embed viewer: lightweight read-only embed (<500KB gzipped JS) with orbit camera + annotation popovers.
 
 Growth / Expansion
-- [ ] Mobile AR quick preview — one-click generate GLB/USDZ + QR code; load under 5s for <10MB scene.
-- [ ] Blender exporter (initial DCC integration) — preserve hierarchy + PBR material mapping.
-- [ ] Virtual asset library browsing — searchable tagged catalog + similarity-based suggestions.
+- [ ] Mobile AR quick preview: one-click generate GLB/USDZ + QR code; load under 5s for <10MB scene.
+- [ ] Blender exporter (initial DCC integration) : preserve hierarchy + PBR material mapping.
+- [ ] Virtual asset library browsing: searchable tagged catalog + similarity-based suggestions.
 
 Strategic / Longer-Term
-- [ ] Additional DCC integrations (Blender, Houdini; evaluate Unreal / Datasmith flow).
+- [ ] Additional DCC integrations: (Houdini; evaluate Unreal / Datasmith flow).
 - [ ] Partner / marketplace library ingestion (licensing + attribution hooks).
 - [ ] Plugin API (scene context hook + operation interception).
 - [ ] Shareable scene diff links (deep link to specific timeline state).
