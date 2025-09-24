@@ -6,6 +6,7 @@ import * as THREE from 'three';
 interface PerObjectRendererProps {
   items: Array<{
     id: string;
+    name?: string;
     assetId: string;
     glbUrl: string;
     position: [number, number, number];
@@ -33,6 +34,7 @@ export function PerObjectRenderer({ items }: PerObjectRendererProps) {
 interface SingleObjectRendererProps {
   item: {
     id: string;
+    name?: string;
     assetId: string;
     glbUrl: string;
     position: [number, number, number];
@@ -76,72 +78,81 @@ function SingleObjectRenderer({ item }: SingleObjectRendererProps) {
     }
   }, [gltfScene, hasError, item.glbUrl]);
   
-  // If there's an error, don't render anything
-  if (hasError) {
-    return null;
-  }
-  
+  if (hasError) return null;
+
   // Clone the scene to avoid shared references
-  const clonedScene = useMemo(() => {
+  const meshRoot = useMemo(() => {
     const cloned = gltfScene.clone(true);
-    
-    // Set userData for selection
-    cloned.userData = {
-      itemId: item.id,
-      category: item.assetId.split(':')[0], // Extract category from assetId
-      selectable: true,
-      locked: false,
-      isSharedAsset: true, // Mark as shared GLB asset - DON'T dispose geometry/materials
-      meta: {
-        isInstancedMesh: false, // This is NOT an instanced mesh
-        assetId: item.assetId
-      }
-    };
-    
-    // Apply userData to all children for robust selection and mark geometries/materials as shared
+    // Identity transform for the GLB subtree; container will carry TRS
+    cloned.position.set(0, 0, 0);
+    cloned.quaternion.set(0, 0, 0, 1);
+    cloned.scale.set(1, 1, 1);
+    cloned.updateMatrix();
+
+    // Improve names and mark shared resources
     let submeshCounter = 0;
     cloned.traverse((child) => {
       if (child instanceof THREE.Mesh) {
-        child.userData = { ...cloned.userData };
-        
-        // Improve submesh naming
-        if (child.parent !== null && child.parent !== cloned) { // If this is a submesh (not the root)
-          if (!child.name || child.name === '') {
-            submeshCounter++;
-            child.name = `Submesh_${submeshCounter}`;
-          }
-          // Add material info to name if available
-          if (child.material && (child.material as any).name) {
-            child.name = `${child.name} (${(child.material as any).name})`;
-          }
+        if (!child.name || child.name === '') {
+          submeshCounter++;
+          child.name = `Submesh_${submeshCounter}`;
         }
-        
-        // Mark geometry and materials as shared to prevent disposal during cleanup
-        if (child.geometry) {
-          child.geometry.userData = { ...child.geometry.userData, isShared: true };
+        if (child.material && (child.material as any).name) {
+          child.name = `${child.name} (${(child.material as any).name})`;
         }
+        if (child.geometry) child.geometry.userData = { ...child.geometry.userData, isShared: true };
         if (child.material) {
           if (Array.isArray(child.material)) {
-            child.material.forEach(mat => {
-              mat.userData = { ...mat.userData, isShared: true };
-            });
+            child.material.forEach((mat) => (mat.userData = { ...mat.userData, isShared: true }));
           } else {
-            child.material.userData = { ...child.material.userData, isShared: true };
+            (child.material as any).userData = { ...(child.material as any).userData, isShared: true };
           }
         }
       }
     });
-    
+
     return cloned;
-  }, [gltfScene, item.id, item.assetId]);
-  
-  // Apply transform
-  useEffect(() => {
-    clonedScene.position.set(...item.position);
-    clonedScene.rotation.set(0, THREE.MathUtils.degToRad(item.yaw_deg || 0), 0);
-    clonedScene.scale.set(...(item.scale || [1, 1, 1]));
-    clonedScene.updateMatrix();
-  }, [clonedScene, item.position, item.yaw_deg, item.scale]);
-  
-  return <primitive object={clonedScene} />;
+  }, [gltfScene]);
+
+  // Build a container group per item and apply transforms there
+  const container = useMemo(() => {
+    const group = new THREE.Group();
+    // Use item name first, then GLB name, then fallback
+    group.name = item.name || gltfScene.name || `Asset ${item.id.slice(-8)}`; // Prefer human-readable name
+
+    // Selection metadata belongs on the container
+    const userData = {
+      itemId: item.id,
+      name: item.name,
+      category: item.assetId.split(':')[0],
+      selectable: true,
+      locked: false,
+      meta: { 
+        isSharedAsset: true, 
+        assetId: item.assetId,
+        itemName: item.name,
+        displayName: item.name || `Asset ${item.id.slice(-8)}`
+      },
+    };
+    (group as any).userData = userData;
+
+    // Also mirror minimal userData on the GLB subtree so clicks promote correctly
+    meshRoot.traverse((n) => {
+      (n as any).userData = { ...userData };
+    });
+
+    // Apply container transforms
+    group.position.set(item.position[0], item.position[1], item.position[2]);
+    group.rotation.set(0, THREE.MathUtils.degToRad(item.yaw_deg || 0), 0);
+    const s = item.scale || [1, 1, 1];
+    group.scale.set(s[0], s[1], s[2]);
+
+    // Attach GLB subtree at identity
+    group.add(meshRoot);
+
+    return group;
+  }, [item.id, item.assetId, item.position, item.yaw_deg, item.scale, meshRoot, gltfScene.name]);
+
+  // Render the container as a primitive so outliner shows a single top-level node per item
+  return <primitive object={container} />;
 }

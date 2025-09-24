@@ -85,8 +85,9 @@ export function SceneItem({ item, categoryUrl, categoryKey }: SceneItemProps) {
     cloned.scale.set(1, 1, 1);
     cloned.updateMatrix();
     
-    // Set name and userData for identification
-    cloned.name = `item-${item.id}`;
+    // Set name and userData for identification - use item name if available
+    const displayName = item.name || `Asset ${item.id.slice(-8)}`;
+    cloned.name = displayName;
     const userData = {
       itemId: item.id,
       category: categoryKey,
@@ -158,16 +159,23 @@ export function SceneItem({ item, categoryUrl, categoryKey }: SceneItemProps) {
     return null;
   }
   
+  const containerDisplayName = item.name || `Asset ${item.id.slice(-8)}`;
+  
   return (
     <group 
       ref={groupRef} 
-      name={`item-group-${item.id}`}
+      name={containerDisplayName}
       userData={{
         itemId: item.id,
         category: categoryKey,
         selectable: item.selectable ?? true,
         locked: item.locked ?? false,
-        meta: item.meta
+        name: item.name,
+        meta: {
+          ...item.meta,
+          itemName: item.name,
+          displayName: containerDisplayName
+        }
       }}
     >
       <primitive object={clonedModel} />
