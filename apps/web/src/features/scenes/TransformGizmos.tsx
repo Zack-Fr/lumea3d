@@ -29,6 +29,8 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
   const transformRef = useRef<any>(null);
 
   const selectedObject = selected?.object;
+  
+
 
   // Update gizmo mode and attach event listeners
   useEffect(() => {
@@ -51,8 +53,13 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
       try {
         // Verify object is still part of scene graph before attaching
         const inGraph = isInSceneGraph(selectedObject, scene as any);
+        
         if (!inGraph) {
           log('warn', '⚠️ Cannot attach transform controls: object not in scene graph');
+          
+          // Clear the stale selection to prevent further errors
+          const clearSelection = useSelectionStore.getState().clear;
+          clearSelection();
           return;
         }
         
@@ -91,13 +98,11 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
 
   // Handle transform start/end events
   const handleDragStart = () => {
-    console.log('🔧 Transform drag started for object:', selectedObject?.name || selectedObject?.uuid);
     log('debug', '🔧 Transform drag started');
     setIsTransforming(true);
   };
 
   const handleDragEnd = () => {
-    console.log('🔧 Transform drag ended for object:', selectedObject?.name || selectedObject?.uuid);
     log('debug', '🔧 Transform drag ended');
     setIsTransforming(false);
 
@@ -145,7 +150,6 @@ export function TransformGizmos({ enabled }: TransformGizmosProps) {
       };
       
       stage(deltaOp);
-      console.log('💾 Staged transform update for item:', itemId);
       log('debug', '💾 Transform staged for delta save', { itemId, transform: deltaOp.transform });
     }
   };
