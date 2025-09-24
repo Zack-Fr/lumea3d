@@ -28,6 +28,7 @@ interface PropertiesPanelProps {
   onClose: () => void;
   sceneId?: string; // Add sceneId for API calls
   selectedItemId?: string; // Currently selected item for editing
+  embedded?: boolean; // When true, render only content without sidebar wrapper
 }
 
 interface ShellSettings {
@@ -65,7 +66,8 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   show,
   onClose,
   sceneId,
-  selectedItemId
+  selectedItemId,
+  embedded = false
 }) => {
   const { manifest, refreshScene, sceneId: contextSceneId } = useSceneContext();
   const selected = useSelectionStore((s) => s.selected);
@@ -1519,24 +1521,9 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     if (e.key === 'Enter') cb();
   };
 
-  return (
-    <aside className={styles.rightSidebar}>
-      <div className={styles.propertiesHeader}>
-        <div className={styles.propertiesTitleRow}>
-          <h2 className={styles.propertiesTitle}>Properties</h2>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={onClose}
-            className={styles.propertiesClose}
-          >
-            ×
-          </Button>
-        </div>
-      </div>
-
-      <ScrollArea className={styles.propertiesScrollArea}>
-        <div className={styles.propertiesContent}>
+  // Render content-only when embedded
+  const renderContent = () => (
+    <div className={styles.propertiesContent}>
           {/* Transform */}
           <div className={styles.propertySection}>
             <h3 className={styles.propertySectionTitle}>
@@ -2290,6 +2277,46 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
             </div>
           </div>
         </div>
+    );
+
+  if (embedded) {
+    return (
+      <div style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
+          {renderContent()}
+        </div>
+        
+        {/* Texture Manager Modal */}
+        <TextureManager
+          show={showTextureManager}
+          onClose={() => setShowTextureManager(false)}
+          onTextureSelected={handleTextureSelected}
+          currentTextureType={currentTextureType}
+          currentTextureUrl={getCurrentTextureUrl(currentTextureType)}
+          currentTextureName={getCurrentTextureName(currentTextureType)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <aside className={styles.rightSidebar}>
+      <div className={styles.propertiesHeader}>
+        <div className={styles.propertiesTitleRow}>
+          <h2 className={styles.propertiesTitle}>Properties</h2>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onClose}
+            className={styles.propertiesClose}
+          >
+            ×
+          </Button>
+        </div>
+      </div>
+
+      <ScrollArea className={styles.propertiesScrollArea}>
+        {renderContent()}
       </ScrollArea>
       
       {/* Texture Manager Modal */}
