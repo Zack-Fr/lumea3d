@@ -20,8 +20,6 @@ interface PerObjectRendererProps {
  * No instancing, but fully working selection/transform/delete
  */
 export function PerObjectRenderer({ items }: PerObjectRendererProps) {
-  console.log(`🔧 PerObjectRenderer: Rendering ${items.length} items as individual meshes (no instancing)`);
-  
   return (
     <group name="per-object-renderer">
       {items.map(item => (
@@ -118,20 +116,24 @@ function SingleObjectRenderer({ item }: SingleObjectRendererProps) {
   const container = useMemo(() => {
     const group = new THREE.Group();
     // Use item name first, then GLB name, then fallback
-    group.name = item.name || gltfScene.name || `Asset ${item.id.slice(-8)}`; // Prefer human-readable name
+    let displayName = item.name || gltfScene.name || `Asset ${item.id.slice(-8)}`;
+    // Remove file extensions
+    displayName = displayName.replace(/\.(glb|gltf|obj|fbx|blend)$/i, '');
+    group.name = displayName;
 
     // Selection metadata belongs on the container
+    const cleanName = (item.name || `Asset ${item.id.slice(-8)}`).replace(/\.(glb|gltf|obj|fbx|blend)$/i, '');
     const userData = {
       itemId: item.id,
-      name: item.name,
+      name: cleanName,
       category: item.assetId.split(':')[0],
       selectable: true,
       locked: false,
       meta: { 
         isSharedAsset: true, 
         assetId: item.assetId,
-        itemName: item.name,
-        displayName: item.name || `Asset ${item.id.slice(-8)}`
+        itemName: cleanName,
+        displayName: cleanName
       },
     };
     (group as any).userData = userData;

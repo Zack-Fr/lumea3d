@@ -84,7 +84,6 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
     
     // If dragged too far, don't treat as selection click
     if (dragDistance > dragThreshold) {
-      console.log('🎯 Click selection: Drag distance too far:', dragDistance);
       return;
     }
     
@@ -92,18 +91,15 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
     const now = Date.now();
     const clickDuration = now - clickStartTime.current;
     if (clickDuration > maxClickDuration) {
-      console.log('🎯 Click selection: Click duration too long:', clickDuration);
       return;
     }
     
     // Reduce cooldown for better responsiveness
     if (now - lastInteractionRef.current < 50) {
-      console.log('🎯 Click selection: Cooldown active');
       return;
     }
     lastInteractionRef.current = now;
     
-    console.log('🎯 Click selection: Processing click at', { x: event.clientX, y: event.clientY });
 
     // Calculate mouse position in normalized device coordinates
     const canvas = gl.domElement;
@@ -115,26 +111,10 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
     mouseRef.current.x = mouseX;
     mouseRef.current.y = mouseY;
     
-    console.log('🎯 Mouse coordinates:', {
-      clientX: event.clientX,
-      clientY: event.clientY,
-      rectLeft: rect.left,
-      rectTop: rect.top,
-      rectWidth: rect.width,
-      rectHeight: rect.height,
-      normalizedX: mouseX,
-      normalizedY: mouseY
-    });
 
     // Perform raycast
     raycasterRef.current.setFromCamera(mouseRef.current, camera);
     
-    console.log('🎯 Raycast setup:', {
-      cameraPosition: camera.position.toArray(),
-      cameraRotation: camera.rotation.toArray(),
-      rayOrigin: raycasterRef.current.ray.origin.toArray(),
-      rayDirection: raycasterRef.current.ray.direction.toArray()
-    });
     
     // Get all intersectable objects from the scene
     const intersectableObjects: Object3D[] = [];
@@ -191,28 +171,7 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
       }
     });
     
-    const allIntersects = raycasterRef.current.intersectObjects(allSceneObjects, true);
-    console.log('🎯 Raycast test against ALL meshes:', allIntersects.length, 'intersections');
-    if (allIntersects.length > 0) {
-      console.log('🎯 All intersections:', allIntersects.map(intersect => ({
-        objectName: intersect.object.name,
-        distance: intersect.distance,
-        hasUserData: !!intersect.object.userData,
-        userData: intersect.object.userData
-      })));
-    }
-    
-    console.log('🎯 Raycast results (selectable only):', intersects.length, 'intersections');
-    if (intersects.length > 0) {
-      intersects.forEach((intersect, i) => {
-        console.log(`🎯 Intersect ${i}:`, {
-          distance: intersect.distance,
-          objectName: intersect.object.name,
-          objectType: intersect.object.type,
-          userData: intersect.object.userData
-        });
-      });
-    }
+
 
     if (intersects.length > 0) {
       // Find the closest selectable object
@@ -245,17 +204,10 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
       }
 
       if (selectedObj) {
-        console.log('🎯 Click selection hit (container):', selectedObj.userData.itemId, selectedObj.name);
         
         // Check if this is an instanced mesh and handle proxy selection
         const userData = selectedObj.userData;
         if (userData?.meta?.isInstancedMesh && userData?.meta?.assetId) {
-          console.log('🎯 Detected instanced mesh selection:', {
-            itemId: userData.itemId,
-            assetId: userData.meta.assetId,
-            instanceId: userData.meta.instanceId,
-            userData
-          });
           
           // Import the instanced mesh selection handler
           import('./InstancedTransformProxy').then(({ handleInstancedMeshSelection }) => {
@@ -264,18 +216,9 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
               intersect.object === selectedObj || intersect.object.userData?.itemId === userData.itemId
             ) || intersects[0];
             
-            console.log('🎯 Using intersection for instanced mesh:', {
-              objectName: relevantIntersection.object.name,
-              instanceId: relevantIntersection.instanceId,
-              userData: relevantIntersection.object.userData
-            });
-            
             const proxySelection = handleInstancedMeshSelection(relevantIntersection, selectObject);
             
-            if (proxySelection) {
-              console.log('🎯 Created proxy selection for instanced mesh:', userData.itemId);
-            } else {
-              console.warn('⚠️ Proxy selection failed, using regular selection');
+            if (!proxySelection) {
               // Fallback to regular selection if proxy creation failed
               selectObject(selectedObj);
             }
@@ -286,15 +229,12 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
           });
         } else {
           // Regular non-instanced mesh selection
-          console.log('🎯 Using regular selection for non-instanced object:', userData?.itemId);
           selectObject(selectedObj);
         }
       } else {
-        console.log('🎯 Click selection miss - deselecting');
         deselectObject();
       }
     } else {
-      console.log('🎯 Click selection miss - deselecting');
       deselectObject();
     }
   }, [enabled, camera, gl.domElement, scene, selectObject, deselectObject, dragThreshold, maxClickDuration, interactionCooldown]);
@@ -305,19 +245,14 @@ export function ClickSelection({ enabled }: ClickSelectionProps) {
     
     const canvas = gl.domElement;
     
-    // Simple test event listener
-    const testClickHandler = (event: PointerEvent) => {
-      console.log('🎯 Canvas clicked at:', { x: event.clientX, y: event.clientY, button: event.button });
-    };
+
     
     canvas.addEventListener('pointerdown', handlePointerDown);
     canvas.addEventListener('pointerup', handlePointerUp);
-    canvas.addEventListener('click', testClickHandler); // Additional click event for debugging
     
     return () => {
       canvas.removeEventListener('pointerdown', handlePointerDown);
       canvas.removeEventListener('pointerup', handlePointerUp);
-      canvas.removeEventListener('click', testClickHandler);
     };
   }, [enabled, gl.domElement, handlePointerDown, handlePointerUp]);
 
