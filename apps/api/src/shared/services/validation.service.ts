@@ -22,7 +22,7 @@ export class ValidationService {
     maxItems: 1000,
     maxItemsPerCategory: 100,
     maxSceneSize: 10000, // 100x100x1 meter space
-    maxFileSize: 500 * 1024 * 1024, // 500MB
+    maxFileSize: 300 * 1024 * 1024, // 300MB
     allowedAssetTypes: [
       'model/gltf-binary',
       'model/gltf+json',
@@ -246,11 +246,11 @@ export class ValidationService {
 
     // Specific GLB validation
     if (mimeType === 'model/gltf-binary') {
-      if (fileSize < 100) {
+      if (fileSize < 300) {
         errors.push('GLB file appears to be too small to be valid');
       }
       
-      if (fileSize > 100 * 1024 * 1024) { // 100MB
+      if (fileSize > 300 * 1024 * 1024) { // 300MB
         warnings.push('Large GLB files may take longer to process and load');
       }
     }

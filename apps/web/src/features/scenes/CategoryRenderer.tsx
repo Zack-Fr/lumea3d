@@ -75,6 +75,7 @@ export function CategoryRenderer({ categoryKey, category, items, sceneId }: Cate
     
     return {
       id: item.id, // Real backend itemId (hopefully)
+      name: item.name, // Human-readable item name
       assetId: `${categoryKey}:${categoryUrl}`, // Generate consistent assetId
       glbUrl: categoryUrl,
       position: item.transform?.position || [0, 0, 0] as [number, number, number],

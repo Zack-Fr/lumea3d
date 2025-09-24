@@ -18,7 +18,7 @@ import LightCreation from './LightCreation';
 import styles from '../../pages/projectEditor/ProjectEditor.module.css';
 import { scenesApi, SceneItemUpdateRequest, SceneUpdateRequest } from '../../services/scenesApi';
 import { useSceneContext } from '../../contexts/SceneContext';
-import { useSelection } from '../../features/scenes/SelectionContext';
+import { useSelectionStore } from '../../stores/selectionStore';
 import { useLightingControls } from '../../hooks/useLightingControls';
 import { applyMaterialOverride, PBRMaterialOverride } from '../../utils/textureSystem';
 import { useSaveQueueStore } from '../../stores/saveQueueStore';
@@ -68,7 +68,8 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   selectedItemId
 }) => {
   const { manifest, refreshScene, sceneId: contextSceneId } = useSceneContext();
-  const { selection, deselectObject } = useSelection();
+  const selected = useSelectionStore((s) => s.selected);
+  const clearSelection = useSelectionStore((s) => s.clear);
   const { defaultLightEnabled, setDefaultLightEnabled } = useLightingControls();
   const { stage: stageOperation } = useSaveQueueStore();
   
@@ -102,7 +103,11 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   
   // Selected item state
   const [selectedItem, setSelectedItem] = useState<SelectedItemState | null>(null);
+  // Track focus to avoid overwriting inputs while editing (read not needed)
+  const [, setIsTransformEditing] = useState(false);
   const [isUpdatingItem, setIsUpdatingItem] = useState(false);
+  const updateTimeoutRef = useRef<number | null>(null);
+  const isUpdatingRef = useRef(false);
   const [isUpdatingShell, setIsUpdatingShell] = useState(false);
   const [isUpdatingEnvironment, setIsUpdatingEnvironment] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
@@ -147,11 +152,16 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     }
   }, [selectedItem?.id]);
   
+  // Get isTransforming from selectionStore
+  const isTransforming = useSelectionStore((s) => s.isTransforming);
+  
+
+  
   // Use a simple timer to periodically update light positions while transforming
   useEffect(() => {
     let intervalId: number;
     
-    if (selection.isTransforming) {
+    if (isTransforming) {
       // Update positions every 50ms while transforming for live feedback
       intervalId = window.setInterval(() => {
         setCreatedLights(prev => [...prev]); // This will cause a re-render with current positions
@@ -164,7 +174,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
         clearInterval(intervalId);
       }
     };
-  }, [selection.isTransforming]);
+  }, [isTransforming]);
   
   // Load current HDR URL from scene manifest (check both possible locations)
   useEffect(() => {
@@ -562,34 +572,56 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     }
   }, [activeSceneId, manifest?.scene?.version, refreshScene]);
 
-  // Update selected item transform properties
+  // Number coercion that tolerates commas and spaces
+  const coerceNumber = useCallback((value: any, fallback = 0) => {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value !== 'string') return fallback;
+    const normalized = value.replace(/\s+/g, '').replace(',', '.');
+    const n = Number(normalized);
+    return Number.isFinite(n) ? n : fallback;
+  }, []);
+
+  // Update selected item transform properties (commit)
   const updateItemTransform = useCallback(async (transform: { position?: any; rotation?: any; scale?: any }) => {
-    if (!selectedItemId || !activeSceneId || !selectedItem) {
-      console.warn('Cannot update item - missing selectedItemId, activeSceneId, or selectedItem');
+    // Prevent recursive calls
+    if (isUpdatingRef.current) {
       return;
     }
     
+    if (!selected?.itemId || !activeSceneId || !selectedItem) {
+      console.warn('Cannot update item - missing selected itemId, activeSceneId, or selectedItem');
+      return;
+    }
+    const selectedItemId = selected.itemId;
+    // Clear any pending timeout
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
+    
+    // Set flag to prevent recursive calls
+    isUpdatingRef.current = true;
     setIsUpdatingItem(true);
     try {
       // Build update request
       const updateRequest: SceneItemUpdateRequest = {} as any;
       
       if (transform.position) {
-        (updateRequest as any).positionX = parseFloat(transform.position.x);
-        (updateRequest as any).positionY = parseFloat(transform.position.y);
-        (updateRequest as any).positionZ = parseFloat(transform.position.z);
+        (updateRequest as any).positionX = coerceNumber(transform.position.x, selectedItem!.position.x);
+        (updateRequest as any).positionY = coerceNumber(transform.position.y, selectedItem!.position.y);
+        (updateRequest as any).positionZ = coerceNumber(transform.position.z, selectedItem!.position.z);
       }
       
       if (transform.rotation) {
-        (updateRequest as any).rotationX = parseFloat(transform.rotation.x);
-        (updateRequest as any).rotationY = parseFloat(transform.rotation.y);
-        (updateRequest as any).rotationZ = parseFloat(transform.rotation.z);
+        // Rotation inputs are in degrees
+        (updateRequest as any).rotationX = coerceNumber(transform.rotation.x, selectedItem!.rotation.x);
+        (updateRequest as any).rotationY = coerceNumber(transform.rotation.y, selectedItem!.rotation.y);
+        (updateRequest as any).rotationZ = coerceNumber(transform.rotation.z, selectedItem!.rotation.z);
       }
       
       if (transform.scale) {
-        (updateRequest as any).scaleX = parseFloat(transform.scale.x);
-        (updateRequest as any).scaleY = parseFloat(transform.scale.y);
-        (updateRequest as any).scaleZ = parseFloat(transform.scale.z);
+        (updateRequest as any).scaleX = coerceNumber(transform.scale.x, selectedItem!.scale.x);
+        (updateRequest as any).scaleY = coerceNumber(transform.scale.y, selectedItem!.scale.y);
+        (updateRequest as any).scaleZ = coerceNumber(transform.scale.z, selectedItem!.scale.z);
       }
       
       // Call the backend API to update item
@@ -599,8 +631,39 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       // Update local state
       setSelectedItem(prev => prev ? { ...prev, ...transform } : null);
       
-      // Refresh scene to reflect changes
-      refreshScene();
+      // Update the 3D object directly to reflect the changes immediately
+      if (selected?.object && transform) {
+        const obj = selected.object;
+        
+        if (transform.position) {
+          obj.position.set(
+            coerceNumber(transform.position.x, obj.position.x),
+            coerceNumber(transform.position.y, obj.position.y),
+            coerceNumber(transform.position.z, obj.position.z)
+          );
+        }
+        
+        if (transform.rotation) {
+          // Convert degrees to radians
+          obj.rotation.set(
+            (coerceNumber(transform.rotation.x, obj.rotation.x * 180 / Math.PI) * Math.PI / 180),
+            (coerceNumber(transform.rotation.y, obj.rotation.y * 180 / Math.PI) * Math.PI / 180),
+            (coerceNumber(transform.rotation.z, obj.rotation.z * 180 / Math.PI) * Math.PI / 180)
+          );
+        }
+        
+        if (transform.scale) {
+          obj.scale.set(
+            coerceNumber(transform.scale.x, obj.scale.x),
+            coerceNumber(transform.scale.y, obj.scale.y),
+            coerceNumber(transform.scale.z, obj.scale.z)
+          );
+        }
+      }
+      
+      // NOTE: Removed refreshScene() call to prevent object reference staleness
+      // The 3D object position is updated directly above, so no scene refresh needed
+      // This prevents the LayerHierarchyBridge from rescanning and invalidating object references
       
     } catch (error) {
       console.error('Failed to update item transform:', error);
@@ -609,8 +672,11 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       setTimeout(() => setLastError(null), 5000);
     } finally {
       setIsUpdatingItem(false);
+      // Clear recursive prevention flag after a delay
+        isUpdatingRef.current = false;
     }
-  }, [selectedItemId, sceneId, selectedItem, manifest?.scene?.version, refreshScene]);
+      
+  }, [selected?.itemId, sceneId, selectedItem, manifest?.scene?.version, refreshScene]);
   
   // Scale system handlers
   const handleUnitChange = useCallback((unit: ScaleUnit) => {
@@ -631,7 +697,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   
   // Light property update handler
   const handleUpdateLightProperty = useCallback((light: THREE.Light, property: string, value: any) => {
-    
     try {
       switch (property) {
         case 'intensity':
@@ -665,7 +730,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
               light.shadow.map = null;
             }
           }
-          // console.log(`💡 Light ${light.name} castShadow set to:`, value);
           break;
       }
       
@@ -695,17 +759,15 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     
     try {
       // STEP 1: Check if this light or its helper is currently selected and deselect it first
-      if (selection.selectedObject) {
+      if (selected?.object) {
         const isLightSelected = 
-          selection.selectedObject.object === light ||
-          selection.selectedObject.object === light.userData.helper ||
-          selection.selectedObject.itemId === light.name;
+          selected.object === light ||
+          selected.object === light.userData.helper ||
+          selected.itemId === light.name;
         
         if (isLightSelected) {
           // Deselect to detach transform controls
-          if (typeof deselectObject === 'function') {
-            deselectObject();
-          }
+          clearSelection();
         }
       }
       
@@ -746,7 +808,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     } catch (error) {
       console.error(`Failed to remove light ${light.name}:`, error);
     }
-  }, [selection, deselectObject]);
+  }, [selected, clearSelection]);
   
   
   
@@ -759,7 +821,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     // The sliders will use controlled components with their own local state
     
     // Apply immediate 3D object changes without React state updates
-    if (selection.selectedObject?.object) {
+    if (selected?.object) {
       // Build material overrides for immediate application
       const materialOverrides: PBRMaterialOverride = { pbr: {} };
       
@@ -779,7 +841,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       
       // Apply to 3D object immediately
       const ktx2Loader = (window as any).__lumea_ktx2_loader;
-      selection.selectedObject.object.traverse((child) => {
+      selected.object.traverse((child: THREE.Object3D) => {
         if (child instanceof THREE.Mesh && child.material) {
           const materials = Array.isArray(child.material) ? child.material : [child.material];
           materials.forEach((mat) => {
@@ -805,7 +867,8 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       materialUpdateTimeoutRef.current = null;
       
       // Stage material update as delta operation if we have a selected item
-      if (selection.selectedObject?.itemId && Object.keys(pendingUpdates).length > 0) {
+      const currentSelected = useSelectionStore.getState().selected;
+      if (currentSelected?.itemId && Object.keys(pendingUpdates).length > 0) {
         // Build API material overrides format
         const apiMaterialOverrides: any = {};
         if (pendingUpdates.roughness !== undefined) apiMaterialOverrides.roughness = pendingUpdates.roughness / 100;
@@ -815,12 +878,12 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
         
         stageOperation({
           op: 'update_material',
-          id: selection.selectedObject.itemId,
+          id: currentSelected.itemId,
           materialOverrides: apiMaterialOverrides
         });
       }
     }, 300); // 300ms debounce
-  }, [selection.selectedObject, stageOperation]);
+  }, [stageOperation]);
   
   // Handle material slot selection
   const handleMaterialSlotSelected = useCallback((materialIndex: number) => {
@@ -841,8 +904,9 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
         setLocalColor(`#${stdMat.color.getHexString()}`);
         
         // Update current textures for the selected material using the extraction helper
-        const extractedTextures = selection.selectedObject
-          ? extractCurrentTextures(selection.selectedObject.object)
+        const currentSelected = useSelectionStore.getState().selected;
+        const extractedTextures = currentSelected?.object
+          ? extractCurrentTextures(currentSelected.object)
           : {
               baseColor: undefined,
               normal: undefined,
@@ -863,11 +927,12 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
         setCurrentTextures(textures);
       }
     }
-  }, [availableMaterials, selection.selectedObject, extractCurrentTextures]);
+  }, [availableMaterials, extractCurrentTextures]);
   
   // Handle texture selection from texture manager
   const handleTextureSelected = useCallback(async (url: string, type: TextureMapType) => {
-    if (!selection.selectedObject?.object || availableMaterials.length === 0) {
+    const currentSelected = useSelectionStore.getState().selected;
+    if (!currentSelected?.object || availableMaterials.length === 0) {
       console.warn('No selected object or materials for texture application');
       return;
     }
@@ -934,7 +999,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
           }));
           
           // STEP: Stage texture removal as delta operation for backend saving
-          if (selection.selectedObject?.itemId) {
+          if (currentSelected?.itemId) {
             // Build texture removal material overrides for backend
             const materialOverrides: any = {};
             
@@ -962,7 +1027,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
             
             stageOperation({
               op: 'update_material',
-              id: selection.selectedObject.itemId,
+              id: currentSelected.itemId,
               materialOverrides
             });
           }
@@ -989,7 +1054,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       
       // Apply texture to all materials in selected object
       const promises: Promise<void>[] = [];
-      selection.selectedObject.object.traverse((child) => {
+      currentSelected.object.traverse((child: THREE.Object3D) => {
         if (child instanceof THREE.Mesh && child.material) {
           const materials = Array.isArray(child.material) ? child.material : [child.material];
           materials.forEach((material) => {
@@ -1010,7 +1075,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       let appliedTextureName: string | undefined;
       
       // Try to get texture name from the applied material
-      selection.selectedObject.object.traverse((child) => {
+      currentSelected.object.traverse((child: THREE.Object3D) => {
         if (child instanceof THREE.Mesh && child.material && !appliedTextureName) {
           const materials = Array.isArray(child.material) ? child.material : [child.material];
           for (const material of materials) {
@@ -1042,9 +1107,9 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       }));
       
       // STEP: Stage texture update as delta operation for backend saving
-      if (selection.selectedObject?.itemId) {
+      if (currentSelected?.itemId) {
         console.log('Staging texture update as delta operation:', {
-          itemId: selection.selectedObject.itemId,
+          itemId: currentSelected.itemId,
           textureType: type,
           textureUrl: url
         });
@@ -1076,7 +1141,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
         
         stageOperation({
           op: 'update_material',
-          id: selection.selectedObject.itemId,
+          id: currentSelected.itemId,
           materialOverrides
         });
       }
@@ -1085,10 +1150,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       setShowTextureManager(false);
       
     } catch (error) {
-      console.error('❌ Failed to apply texture:', error);
+      console.error('Failed to apply texture:', error);
       throw error;
     }
-  }, [selection.selectedObject, stageOperation]);
+  }, [stageOperation]);
   
   // Open texture manager for specific texture type
   const openTextureManager = useCallback((textureType: TextureMapType) => {
@@ -1133,7 +1198,8 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
   
   // Reset material to default values
   const handleResetMaterial = useCallback(async () => {
-    if (!selection.selectedObject?.object) {
+    const currentSelected = useSelectionStore.getState().selected;
+    if (!currentSelected?.object) {
       console.warn('No selected object for material reset');
       return;
     }
@@ -1152,7 +1218,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       setCurrentTextures({});
       
       // Apply default material properties to all materials in the selected object
-      selection.selectedObject.object.traverse((child) => {
+      currentSelected.object.traverse((child: THREE.Object3D) => {
         if (child instanceof THREE.Mesh && child.material) {
           const materials = Array.isArray(child.material) ? child.material : [child.material];
           materials.forEach((material) => {
@@ -1205,9 +1271,9 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
       });
       
       // STEP: Stage material reset as delta operation for backend saving
-      if (selection.selectedObject?.itemId) {
-        console.log('📤 Staging material reset as delta operation:', {
-          itemId: selection.selectedObject.itemId
+      if (currentSelected?.itemId) {
+        console.log('Staging material reset as delta operation:', {
+          itemId: currentSelected.itemId
         });
         
         // Build material reset overrides for backend (default values)
@@ -1227,7 +1293,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
         
         stageOperation({
           op: 'update_material',
-          id: selection.selectedObject.itemId,
+          id: currentSelected.itemId,
           materialOverrides
         });
       }
@@ -1241,7 +1307,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     } finally {
       setIsUpdatingItem(false);
     }
-  }, [selection.selectedObject, stageOperation]);
+  }, [stageOperation]);
   
   // Update environment lighting
   const updateEnvironmentLighting = useCallback(async (settings: Partial<EnvironmentSettings>) => {
@@ -1281,16 +1347,40 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     }
   }, [activeSceneId, manifest?.scene?.version, refreshScene]);
   
-  // Load selected item data when selectedItemId changes or selection changes
+  // Load selected item data when selection changes
   useEffect(() => {
-    // Priority 1: Check if we have a selected object from SelectionContext (includes debug objects)
-    if (selection.selectedObject) {
-      const obj = selection.selectedObject.object;
+    // Priority 1: Check if we have a selected object from new selectionStore
+    if (selected?.object) {
+      const obj = selected.object;
       const meta = obj.userData.meta || {};
       
+
+      
+      const updateSelectedItemTransforms = () => {
+        setSelectedItem(prev => prev ? {
+          ...prev,
+          position: {
+            x: parseFloat(obj.position.x.toFixed(3)),
+            y: parseFloat(obj.position.y.toFixed(3)),
+            z: parseFloat(obj.position.z.toFixed(3))
+          },
+          rotation: {
+            x: parseFloat((obj.rotation.x * 180 / Math.PI).toFixed(1)),
+            y: parseFloat((obj.rotation.y * 180 / Math.PI).toFixed(1)),
+            z: parseFloat((obj.rotation.z * 180 / Math.PI).toFixed(1))
+          },
+          scale: {
+            x: parseFloat(obj.scale.x.toFixed(3)),
+            y: parseFloat(obj.scale.y.toFixed(3)),
+            z: parseFloat(obj.scale.z.toFixed(3))
+          }
+        } : null);
+      };
+      
+      // Initial setup
       setSelectedItem({
-        id: selection.selectedObject.itemId,
-        name: meta.name || obj.name || selection.selectedObject.itemId,
+        id: selected.itemId,
+        name: meta.name || obj.name || selected.itemId,
         position: {
           x: parseFloat(obj.position.x.toFixed(3)),
           y: parseFloat(obj.position.y.toFixed(3)),
@@ -1322,7 +1412,25 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
         setCurrentTextures({});
       }
       
-      return;
+      // Set up real-time transform updates
+      let intervalId: number;
+      
+      // Update transforms every 100ms while transforming, and once when transform ends
+      const startRealTimeUpdates = () => {
+        intervalId = window.setInterval(() => {
+          if (isTransforming) {
+            updateSelectedItemTransforms();
+          }
+        }, 100); // Update every 100ms while transforming
+      };
+      
+      startRealTimeUpdates();
+      
+      return () => {
+        if (intervalId) {
+          clearInterval(intervalId);
+        }
+      };
     }
     
     // Priority 2: Check manifest for scene items (for imported objects)
@@ -1360,9 +1468,56 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
     
     // No selection found
     setSelectedItem(null);
-  }, [selectedItemId, manifest, selection.selectedObject, selection.selectedObject?.transformUpdateCount, extractMaterialProperties, extractCurrentTextures, extractAvailableMaterials]);
+  }, [selectedItemId, manifest, selected, extractMaterialProperties, extractCurrentTextures, extractAvailableMaterials]);
+  
+  // Update selected item transforms when transforming stops
+  useEffect(() => {
+    if (!isTransforming && selected?.object) {
+      
+      const obj = selected.object;
+      setSelectedItem(prev => prev ? {
+        ...prev,
+        position: {
+          x: parseFloat(obj.position.x.toFixed(3)),
+          y: parseFloat(obj.position.y.toFixed(3)),
+          z: parseFloat(obj.position.z.toFixed(3))
+        },
+        rotation: {
+          x: parseFloat((obj.rotation.x * 180 / Math.PI).toFixed(1)),
+          y: parseFloat((obj.rotation.y * 180 / Math.PI).toFixed(1)),
+          z: parseFloat((obj.rotation.z * 180 / Math.PI).toFixed(1))
+        },
+        scale: {
+          x: parseFloat(obj.scale.x.toFixed(3)),
+          y: parseFloat(obj.scale.y.toFixed(3)),
+          z: parseFloat(obj.scale.z.toFixed(3))
+        }
+      } : null);
+    }
+  }, [isTransforming, selected?.object]);
 
   if (!show) return null;
+
+  // Input commit helpers
+  const commitPosition = useCallback(() => {
+    if (!selectedItem) return;
+    updateItemTransform({ position: selectedItem.position });
+    setIsTransformEditing(false);
+  }, [selectedItem, updateItemTransform]);
+  const commitRotation = useCallback(() => {
+    if (!selectedItem) return;
+    updateItemTransform({ rotation: selectedItem.rotation });
+    setIsTransformEditing(false);
+  }, [selectedItem, updateItemTransform]);
+  const commitScale = useCallback(() => {
+    if (!selectedItem) return;
+    updateItemTransform({ scale: selectedItem.scale });
+    setIsTransformEditing(false);
+  }, [selectedItem, updateItemTransform]);
+
+  const onEnterCommit = (cb: () => void) => (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') cb();
+  };
 
   return (
     <aside className={styles.rightSidebar}>
@@ -1399,7 +1554,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="X" 
                         className={styles.propertyInput} 
                         value={selectedItem.position.x}
-                        onChange={(e) => updateItemTransform({ position: { ...selectedItem.position, x: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, position: { ...prev.position, x: coerceNumber(e.target.value, prev.position.x) } }) : prev)}
+                        onBlur={commitPosition}
+                        onKeyDown={onEnterCommit(commitPosition)}
                         disabled={isUpdatingItem}
                         step="0.1"
                       />
@@ -1408,7 +1566,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="Y" 
                         className={styles.propertyInput} 
                         value={selectedItem.position.y}
-                        onChange={(e) => updateItemTransform({ position: { ...selectedItem.position, y: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, position: { ...prev.position, y: coerceNumber(e.target.value, prev.position.y) } }) : prev)}
+                        onBlur={commitPosition}
+                        onKeyDown={onEnterCommit(commitPosition)}
                         disabled={isUpdatingItem}
                         step="0.1"
                       />
@@ -1417,7 +1578,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="Z" 
                         className={styles.propertyInput} 
                         value={selectedItem.position.z}
-                        onChange={(e) => updateItemTransform({ position: { ...selectedItem.position, z: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, position: { ...prev.position, z: coerceNumber(e.target.value, prev.position.z) } }) : prev)}
+                        onBlur={commitPosition}
+                        onKeyDown={onEnterCommit(commitPosition)}
                         disabled={isUpdatingItem}
                         step="0.1"
                       />
@@ -1431,7 +1595,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="X" 
                         className={styles.propertyInput} 
                         value={selectedItem.rotation.x}
-                        onChange={(e) => updateItemTransform({ rotation: { ...selectedItem.rotation, x: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, rotation: { ...prev.rotation, x: coerceNumber(e.target.value, prev.rotation.x) } }) : prev)}
+                        onBlur={commitRotation}
+                        onKeyDown={onEnterCommit(commitRotation)}
                         disabled={isUpdatingItem}
                         step="1"
                       />
@@ -1440,7 +1607,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="Y" 
                         className={styles.propertyInput} 
                         value={selectedItem.rotation.y}
-                        onChange={(e) => updateItemTransform({ rotation: { ...selectedItem.rotation, y: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, rotation: { ...prev.rotation, y: coerceNumber(e.target.value, prev.rotation.y) } }) : prev)}
+                        onBlur={commitRotation}
+                        onKeyDown={onEnterCommit(commitRotation)}
                         disabled={isUpdatingItem}
                         step="1"
                       />
@@ -1449,7 +1619,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="Z" 
                         className={styles.propertyInput} 
                         value={selectedItem.rotation.z}
-                        onChange={(e) => updateItemTransform({ rotation: { ...selectedItem.rotation, z: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, rotation: { ...prev.rotation, z: coerceNumber(e.target.value, prev.rotation.z) } }) : prev)}
+                        onBlur={commitRotation}
+                        onKeyDown={onEnterCommit(commitRotation)}
                         disabled={isUpdatingItem}
                         step="1"
                       />
@@ -1463,7 +1636,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="X" 
                         className={styles.propertyInput} 
                         value={selectedItem.scale.x}
-                        onChange={(e) => updateItemTransform({ scale: { ...selectedItem.scale, x: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, scale: { ...prev.scale, x: coerceNumber(e.target.value, prev.scale.x) } }) : prev)}
+                        onBlur={commitScale}
+                        onKeyDown={onEnterCommit(commitScale)}
                         disabled={isUpdatingItem}
                         step="0.1"
                         min="0.01"
@@ -1473,7 +1649,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="Y" 
                         className={styles.propertyInput} 
                         value={selectedItem.scale.y}
-                        onChange={(e) => updateItemTransform({ scale: { ...selectedItem.scale, y: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, scale: { ...prev.scale, y: coerceNumber(e.target.value, prev.scale.y) } }) : prev)}
+                        onBlur={commitScale}
+                        onKeyDown={onEnterCommit(commitScale)}
                         disabled={isUpdatingItem}
                         step="0.1"
                         min="0.01"
@@ -1483,7 +1662,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = React.memo(({
                         placeholder="Z" 
                         className={styles.propertyInput} 
                         value={selectedItem.scale.z}
-                        onChange={(e) => updateItemTransform({ scale: { ...selectedItem.scale, z: e.target.value } })}
+                        onFocus={() => setIsTransformEditing(true)}
+                        onChange={(e) => setSelectedItem(prev => prev ? ({ ...prev, scale: { ...prev.scale, z: coerceNumber(e.target.value, prev.scale.z) } }) : prev)}
+                        onBlur={commitScale}
+                        onKeyDown={onEnterCommit(commitScale)}
                         disabled={isUpdatingItem}
                         step="0.1"
                         min="0.01"

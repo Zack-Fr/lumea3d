@@ -115,7 +115,7 @@ export default function AuthPage({ initialMode }: AuthPageProps) {
         <header className={s.header}>
           <div className={s.logoContainer}>
             <div className={s.logoCircle} aria-hidden="true"></div>
-            <span className={s.title}>Lumea</span>
+            <span className={s.title}>Lumea 3D</span>
           </div>
           <p className={s.headerSubtitle}>
             {isSignUp ? "Create your account" : "Welcome back"}

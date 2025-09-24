@@ -2,6 +2,7 @@ import { useRef, useMemo, useEffect, useState } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { Group } from 'three';
 import { applyMaterialOverridesToObject } from '../../utils/textureSystem';
+import { applyCompatTransform } from '../../utils/transformCompat';
 import { toast } from 'react-toastify';
 import type { SceneItem } from '../../services/scenesApi';
 
@@ -78,27 +79,15 @@ export function SceneItem({ item, categoryUrl, categoryKey }: SceneItemProps) {
     // Clone the object to avoid modifying the original loaded scene
     const cloned = modelNode.clone(true);
     
-    // Apply transform from manifest with safe defaults
-    const transform = item.transform || {};
-    const position = transform.position || [0, 0, 0];
-    const rotation_euler = transform.rotation_euler || [0, 0, 0];
-    const scale = transform.scale || [1, 1, 1];
+// Ensure the cloned GLB subtree is identity; transforms are applied on the container group
+    cloned.position.set(0, 0, 0);
+    cloned.quaternion.set(0, 0, 0, 1);
+    cloned.scale.set(1, 1, 1);
+    cloned.updateMatrix();
     
-    // Apply position
-    cloned.position.set(position[0], position[1], position[2]);
-    
-    // Apply rotation (convert degrees to radians)
-    cloned.rotation.set(
-      (rotation_euler[0] * Math.PI) / 180,
-      (rotation_euler[1] * Math.PI) / 180,
-      (rotation_euler[2] * Math.PI) / 180
-    );
-    
-    // Apply scale
-    cloned.scale.set(scale[0], scale[1], scale[2]);
-    
-    // Set name and userData for identification
-    cloned.name = `item-${item.id}`;
+    // Set name and userData for identification - use item name if available
+    const displayName = item.name || `Asset ${item.id.slice(-8)}`;
+    cloned.name = displayName;
     const userData = {
       itemId: item.id,
       category: categoryKey,
@@ -133,6 +122,13 @@ export function SceneItem({ item, categoryUrl, categoryKey }: SceneItemProps) {
     return cloned;
   }, [modelNode, item, categoryKey]);
   
+// Apply transform (legacy-compatible) to the container group
+  useEffect(() => {
+    if (!groupRef.current) return;
+    applyCompatTransform(groupRef.current, item.transform as any);
+    groupRef.current.updateMatrixWorld(true);
+  }, [item.transform]);
+  
   // Apply material overrides after the model is cloned and ready
   useEffect(() => {
     if (!clonedModel) return;
@@ -163,16 +159,23 @@ export function SceneItem({ item, categoryUrl, categoryKey }: SceneItemProps) {
     return null;
   }
   
+  const containerDisplayName = item.name || `Asset ${item.id.slice(-8)}`;
+  
   return (
     <group 
       ref={groupRef} 
-      name={`item-group-${item.id}`}
+      name={containerDisplayName}
       userData={{
         itemId: item.id,
         category: categoryKey,
         selectable: item.selectable ?? true,
         locked: item.locked ?? false,
-        meta: item.meta
+        name: item.name,
+        meta: {
+          ...item.meta,
+          itemName: item.name,
+          displayName: containerDisplayName
+        }
       }}
     >
       <primitive object={clonedModel} />

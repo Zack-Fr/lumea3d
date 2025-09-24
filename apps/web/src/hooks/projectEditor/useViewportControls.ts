@@ -18,7 +18,24 @@ interface ViewportControls {
 }
 
 export const useViewportControls = (onAchievement?: (message: string) => void): ViewportControls => {
-  const [cameraMode, setCameraMode] = useState("orbit");
+  const [cameraMode, setCameraModeState] = useState("orbit");
+  
+  // Defensive setCameraMode wrapper
+  const setCameraMode = useCallback((mode: string) => {
+    try {
+      console.log('useViewportControls: Setting camera mode to:', mode);
+      setCameraModeState(mode);
+    } catch (error) {
+      console.error('useViewportControls: Failed to set camera mode:', error);
+      // Try to recover with a valid mode
+      try {
+        setCameraModeState('orbit');
+        console.log('useViewportControls: Recovered to orbit mode');
+      } catch (recoveryError) {
+        console.error('useViewportControls: Failed to recover camera mode:', recoveryError);
+      }
+    }
+  }, []);
   const [isWASDActive, setIsWASDActive] = useState(false);
   const [movement, setMovement] = useState<ViewportMovement>({
     forward: false,
