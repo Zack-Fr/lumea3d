@@ -4,6 +4,9 @@ import { api } from '../services/authApi'
 import { updateApiClientToken } from '../services/scenesApi'
 import { updateAssetApiToken } from '../services/assetsApi'
 import { updateDashboardApiToken } from '../services/dashboardApi'
+import { toast } from 'react-toastify'
+import { PATHS } from '../app/paths'
+import { registerAuthErrorHandler, unregisterAuthErrorHandler } from '../utils/apiErrorHandler'
 
 export enum RoleEnum {
   GUEST = 'GUEST',
@@ -34,6 +37,7 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string, name?: string) => Promise<void>
   logout: () => void
+  handleAuthExpiry: () => void
   clearError: () => void
   error: string | null
 }
@@ -83,11 +87,41 @@ const [state, setState] = useState<AuthState>(() => {
     localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user))
   }
 
+  const handleAuthExpiry = useCallback(() => {
+    console.log('AUTH: Authentication expired - redirecting to landing page')
+    
+    // Show user-friendly notification
+    toast.warn('Your session has expired. Please log in again.', {
+      position: 'top-center',
+      autoClose: 5000,
+      toastId: 'auth-expired'
+    })
+    
+    // Clear authentication data
+    clearAuthData()
+    
+    // Redirect to landing page
+    setTimeout(() => {
+      window.location.href = PATHS.landing
+    }, 1000) // Small delay to show the toast
+  }, [])
+
+  // Register global auth error handler on mount
+  useEffect(() => {
+    registerAuthErrorHandler({
+      onAuthenticationError: handleAuthExpiry
+    });
+    
+    return () => {
+      unregisterAuthErrorHandler();
+    };
+  }, [handleAuthExpiry]);
+
   // Update API client token whenever auth token changes
   useEffect(() => {
 
     // Additional debugging for authentication issues
-    console.log('🔐 Auth token updated:', {
+    console.log('Auth token updated:', {
       hasToken: !!state.token,
       tokenPreview: state.token ? state.token.substring(0, 20) + '...' : 'NULL',
       userId: state.user?.id,
@@ -133,7 +167,7 @@ const [state, setState] = useState<AuthState>(() => {
   log('debug', 'AUTH: localStorage token preview', localStorage.getItem(AUTH_TOKEN_KEY)?.substring(0, 20) + '...');
   log('debug', 'AUTH: localStorage user', localStorage.getItem(AUTH_USER_KEY));
     } catch (err) {
-  log('error', '🔐 LOGIN: Login failed:', err as any);
+  log('error', 'LOGIN: Login failed:', err as any);
       const message = err instanceof Error ? err.message : 'Login failed'
       setError(message)
       setState(prev => ({ ...prev, isLoading: false }))
@@ -170,9 +204,10 @@ const [state, setState] = useState<AuthState>(() => {
     login,
     register,
     logout,
+    handleAuthExpiry,
     clearError,
     error,
-  }), [state, login, register, logout, clearError, error])
+  }), [state, login, register, logout, handleAuthExpiry, clearError, error])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

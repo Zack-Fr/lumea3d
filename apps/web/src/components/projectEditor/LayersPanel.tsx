@@ -259,7 +259,7 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ className }) => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-purple-500" />
-                <span className={styles.sidebarTitle}>Active Layers</span>
+                <span className={styles.sidebarTitle}>Outliner</span>
               </div>
             </div>
             

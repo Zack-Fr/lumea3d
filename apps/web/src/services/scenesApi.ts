@@ -1,4 +1,6 @@
 import { once as logOnce, log } from '../utils/logger';
+import { handleApiError } from '../utils/apiErrorHandler';
+import { createAuthAwareApi } from '../utils/authApiWrapper';
 
 // Override the generated types with our actual data structure
 export interface SceneManifestV2 {
@@ -214,7 +216,7 @@ export function getCurrentToken(): string | null {
   return currentAuthToken;
 }
 
-export const scenesApi = {
+const scenesApi = {
   /**
    * Get scene manifest using flat route with optional filters
    */
@@ -243,7 +245,9 @@ export const scenesApi = {
     );
     
     if (!response.ok) {
-      throw new SceneApiError(response.status, `Failed to get manifest: ${response.statusText}`);
+      const error = new SceneApiError(response.status, `Failed to get manifest: ${response.statusText}`);
+      handleApiError(error, 'getManifest');
+      throw error;
     }
     
     return response.json() as Promise<SceneManifestV2>;
@@ -285,7 +289,9 @@ export const scenesApi = {
     });
     
     if (!response.ok) {
-      throw new SceneApiError(response.status, `Failed to update scene: ${response.statusText}`);
+      const error = new SceneApiError(response.status, `Failed to update scene: ${response.statusText}`);
+      handleApiError(error, 'patchProps');
+      throw error;
     }
     
     return response.json();
@@ -926,6 +932,15 @@ export const scenesApi = {
     return response.json();
   },
 };
+
+// Create auth-aware version of the API
+export const authAwareScenesApi = createAuthAwareApi(scenesApi, 'scenesApi');
+
+// Export both versions - use authAwareScenesApi for new code
+export { scenesApi };
+
+// Default export is the auth-aware version
+export default authAwareScenesApi;
 
 // Export the custom SceneManifestV2 interface for use by other modules
 export interface ProjectCategory {
