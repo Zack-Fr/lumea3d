@@ -1,0 +1,20 @@
+# dockerignore - put at repo root (build context)
+node_modules
+**/node_modules
+.pnpm
+.pnpm-store
+.pnpm-debug.log
+.pnpmfile.cjs
+.pnpm-state.json
+.pnpm-lock.yaml
+.pnpm-lock.yml
+.pnpmrc
+dist
+build
+.dockerignore
+.env
+.env.*
+.git
+.vscode
+.idea
+*.log

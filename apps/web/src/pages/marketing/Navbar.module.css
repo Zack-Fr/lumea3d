@@ -1,0 +1,148 @@
+:root {
+  --header-height: 72px;
+  --header-bg: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
+  /* Brand tokens */
+  --brand-gold: #F8CC3E;
+  --brand-gold-dark: #d7b12f;
+  --brand-black: #030201;
+  /* --brand-text: #ffffff; */
+  --brand-gray: #A09F92;
+}
+
+.header {
+  font-size: small;
+  border-radius: 10px;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  margin: 0rem 2rem 0rem 2rem;
+  z-index: 50;
+  height: var(--header-height);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 1rem;
+  background: var(--header-bg);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 2px solid rgba(255,255,255,0.04);
+  color: var(--brand-text);
+}
+.mainOffset {
+  padding-top: var(--header-height);
+}
+
+/* Brand */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.brandLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+}
+.wordmark {
+  
+  font-weight: 700;
+  font-size: 1.25rem;
+  color:linear-gradient(135deg, #f7d060, #ff7ab6);
+  /* transition: color 180ms ease; */
+}
+.brandLink:hover .wordmark { color: var(--brand-gold) }
+
+.logo {
+  background-image: url('/brand/lumeaLogo_noText.svg');
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+}
+
+/* Middle nav */
+.nav {
+  display: none;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+}
+.link {
+  color: var(--brand-gray);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.4rem 0.6rem;
+  border-radius: 10px;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+.link:hover {
+  color: var(--brand-text);
+  background: rgba(255,255,255,0.06);
+}
+
+/* Right-side actions */
+.actionGroup {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+.button {
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  color: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none; /* for <a> */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+.button:focus-visible {
+  outline: 3px solid rgba(248,204,62,0.18);
+  transform: translateY(-2px);
+}
+
+/* Variants for buttons (CSS-module only) */
+.ghost {
+  color: var(--brand-gray);
+}
+.ghost:hover {
+  color: var(--brand-text);
+  background: rgba(255,255,255,0.08);
+}
+
+.primary {
+  background: var(--brand-gold);
+  color: var(--brand-black);
+  border-color: transparent;
+}
+.primary:hover {
+  background: var(--brand-gold-dark);
+}
+
+/* Mobile menu */
+.menuButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.01);
+  border: 1px solid rgba(255,255,255,0.06);
+  margin-left: 0.25rem;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+  .nav { display: flex; }
+  .menuButton { display: none; }
+  .header {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}

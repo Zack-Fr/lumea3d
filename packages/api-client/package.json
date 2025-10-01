@@ -1,0 +1,28 @@
+{
+  "name": "@lumea/api-client",
+  "version": "0.1.0",
+  "description": "Generated TypeScript client SDK for Lumea API",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.mts"
+    }
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "rimraf dist && tsup src/index.ts --format esm --dts",
+    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "axios": "^1.11.0"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "tsup": "^8.0.0",
+    "typescript": "^5.1.6"
+  }
+}

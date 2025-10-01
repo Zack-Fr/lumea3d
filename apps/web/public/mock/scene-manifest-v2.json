@@ -1,0 +1,152 @@
+{
+  "version": 2,
+  "scale": 1.0,
+  "exposure": 1.0,
+  "env": {
+    "hdri_url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_03_1k.hdr",
+    "intensity": 1.0
+  },
+  "spawn": {
+    "position": [0, 1.6, 5],
+    "yaw_deg": 0
+  },
+  "navmesh_url": "/mock/navmesh.glb",
+  "categories": {
+    "furniture": {
+      "glb_url": "https://threejs.org/examples/models/gltf/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
+      "encodings": {
+        "meshopt_url": "https://threejs.org/examples/models/gltf/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
+        "draco_url": "https://threejs.org/examples/models/gltf/DamagedHelmet/glTF-Binary/DamagedHelmet.glb"
+      },
+      "instancing": true,
+      "meshopt": true,
+      "draco": true,
+      "ktx2": true,
+      "license": "cc0"
+    },
+    "lighting": {
+      "glb_url": "https://threejs.org/examples/models/gltf/Flamingo.glb",
+      "encodings": {
+        "meshopt_url": "https://threejs.org/examples/models/gltf/Flamingo.glb"
+      },
+      "instancing": false,
+      "meshopt": true,
+      "license": "royalty-free"
+    }
+  },
+  "items": [
+    {
+      "id": "chair-1",
+      "category": "furniture",
+      "model": "Chair_Modern",
+      "transform": {
+        "position": [2, 0, 0],
+        "rotation_euler": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "material": {
+        "variant": "default"
+      },
+      "selectable": true,
+      "locked": false,
+      "meta": {
+        "name": "Modern Chair",
+        "description": "A sleek modern chair"
+      }
+    },
+    {
+      "id": "chair-2",
+      "category": "furniture",
+      "model": "Chair_Modern",
+      "transform": {
+        "position": [4, 0, 0],
+        "rotation_euler": [0, 45, 0],
+        "scale": [1, 1, 1]
+      },
+      "selectable": true,
+      "locked": false,
+      "meta": {
+        "name": "Modern Chair 2",
+        "description": "Another modern chair"
+      }
+    },
+    {
+      "id": "chair-3",
+      "category": "furniture",
+      "model": "Chair_Modern",
+      "transform": {
+        "position": [6, 0, 0],
+        "rotation_euler": [0, 90, 0],
+        "scale": [1.2, 1.2, 1.2]
+      },
+      "selectable": true,
+      "locked": false,
+      "meta": {
+        "name": "Large Modern Chair",
+        "description": "A larger version"
+      }
+    },
+    {
+      "id": "lamp-1",
+      "category": "lighting",
+      "model": "FloorLamp_01",
+      "transform": {
+        "position": [-2, 0, 0],
+        "rotation_euler": [0, 45, 0],
+        "scale": [1, 1, 1]
+      },
+      "selectable": true,
+      "locked": false,
+      "meta": {
+        "name": "Floor Lamp",
+        "description": "Modern floor lamp"
+      }
+    },
+    {
+      "id": "lamp-2",
+      "category": "lighting",
+      "model": "FloorLamp_01",
+      "transform": {
+        "position": [-4, 0, 2],
+        "rotation_euler": [0, -30, 0],
+        "scale": [0.8, 0.8, 0.8]
+      },
+      "selectable": true,
+      "locked": false,
+      "meta": {
+        "name": "Small Floor Lamp",
+        "description": "Compact floor lamp"
+      }
+    },
+    {
+      "id": "furniture-1",
+      "category": "furniture",
+      "transform": {
+        "position": [0, 0, -3],
+        "rotation_euler": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "selectable": true,
+      "locked": false,
+      "meta": {
+        "name": "Fallback Furniture",
+        "description": "Uses entire furniture GLB as fallback"
+      }
+    },
+    {
+      "id": "lighting-1",
+      "category": "lighting",
+      "transform": {
+        "position": [0, 2, -3],
+        "rotation_euler": [0, 180, 0],
+        "scale": [0.5, 0.5, 0.5]
+      },
+      "selectable": true,
+      "locked": false,
+      "meta": {
+        "name": "Fallback Lighting",
+        "description": "Uses entire lighting GLB as fallback"
+      }
+    }
+  ]
+}

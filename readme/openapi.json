@@ -1,0 +1,5089 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/debug/env": {
+      "get": {
+        "operationId": "DebugController_getEnvironmentInfo",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/debug/user": {
+      "get": {
+        "operationId": "DebugController_getCurrentUser",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/monitoring/health": {
+      "get": {
+        "operationId": "MonitoringController_getHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/monitoring/health/simple": {
+      "get": {
+        "operationId": "MonitoringController_getSimpleHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/monitoring/metrics": {
+      "get": {
+        "operationId": "MonitoringController_getMetrics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/monitoring/status": {
+      "get": {
+        "operationId": "MonitoringController_getStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/monitoring/ready": {
+      "get": {
+        "operationId": "MonitoringController_getReadiness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/monitoring/live": {
+      "get": {
+        "operationId": "MonitoringController_getLiveness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/monitoring/healthz": {
+      "get": {
+        "operationId": "MonitoringController_getHealthz",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/monitoring/readyz": {
+      "get": {
+        "operationId": "MonitoringController_getReadyz",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "operationId": "AuthController_register",
+        "summary": "Register a new user",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "GUEST",
+                      "CLIENT",
+                      "DESIGNER",
+                      "ADMIN"
+                    ]
+                  }
+                },
+                "required": [
+                  "email",
+                  "password",
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User successfully registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "User with this email already exists"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "summary": "Login with email and password",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User successfully logged in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "summary": "Refresh access token",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "refreshToken"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token successfully refreshed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid refresh token"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/profile": {
+      "get": {
+        "operationId": "AuthController_getProfile",
+        "summary": "Get current user profile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "User profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "summary": "Logout user",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "User successfully logged out"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/users": {
+      "post": {
+        "operationId": "UsersController_createUser",
+        "summary": "Create a new user (Admin only)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "GUEST",
+                      "CLIENT",
+                      "DESIGNER",
+                      "ADMIN"
+                    ]
+                  }
+                },
+                "required": [
+                  "email",
+                  "password",
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied - Admin role required"
+          },
+          "409": {
+            "description": "User with this email already exists"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "UsersController_getUsers",
+        "summary": "Get all users with pagination and filtering (Admin only)",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (default: 1)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (default: 10)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search by name or email",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "isActive",
+            "required": false,
+            "in": "query",
+            "description": "Filter by active status",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "description": "Filter by role",
+            "schema": {
+              "enum": [
+                "GUEST",
+                "CLIENT",
+                "DESIGNER",
+                "ADMIN"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied - Admin role required"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/users/me": {
+      "get": {
+        "operationId": "UsersController_getCurrentUser",
+        "summary": "Get current user profile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "User profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "UsersController_updateCurrentUser",
+        "summary": "Update current user profile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "409": {
+            "description": "Email already taken"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/users/me/password": {
+      "put": {
+        "operationId": "UsersController_changePassword",
+        "summary": "Change current user password",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "currentPassword": {
+                    "type": "string"
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "minLength": 8
+                  }
+                },
+                "required": [
+                  "currentPassword",
+                  "newPassword"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed successfully"
+          },
+          "400": {
+            "description": "Current password is incorrect"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/users/stats": {
+      "get": {
+        "operationId": "UsersController_getUserStats",
+        "summary": "Get user statistics (Admin only)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "User statistics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied - Admin role required"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "operationId": "UsersController_getUserById",
+        "summary": "Get user by ID (Admin only or own profile)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "UsersController_updateUser",
+        "summary": "Update user by ID (Admin only)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "GUEST",
+                      "CLIENT",
+                      "DESIGNER",
+                      "ADMIN"
+                    ]
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied - Admin role required"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "409": {
+            "description": "Email already taken"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_deleteUser",
+        "summary": "Delete user by ID (Admin only)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deleted successfully"
+          },
+          "400": {
+            "description": "Cannot delete own account"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied - Admin role required"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/storage/assets/{assetId}": {
+      "get": {
+        "operationId": "StorageController_getAssetDownloadUrl",
+        "summary": "Get presigned download URL for an asset",
+        "parameters": [
+          {
+            "name": "assetId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "variant",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Presigned URL generated successfully"
+          },
+          "404": {
+            "description": "Asset not found"
+          }
+        },
+        "tags": [
+          "Storage"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/storage/assets/{assetId}/download": {
+      "get": {
+        "operationId": "StorageController_downloadAsset",
+        "summary": "Download asset file directly",
+        "parameters": [
+          {
+            "name": "assetId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "variant",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Asset file stream"
+          },
+          "404": {
+            "description": "Asset not found"
+          }
+        },
+        "tags": [
+          "Storage"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/public/storage/serve/{bucketName}/{objectKey}": {
+      "get": {
+        "operationId": "PublicStorageController_serveAsset",
+        "summary": "Serve asset file directly (public endpoint for 3D viewer)",
+        "parameters": [
+          {
+            "name": "bucketName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "objectKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Asset file content"
+          },
+          "404": {
+            "description": "Asset not found"
+          }
+        }
+      }
+    },
+    "/assets/upload-url": {
+      "post": {
+        "operationId": "AssetsController_generateUploadUrl",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetUploadUrlDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Assets"
+        ]
+      }
+    },
+    "/assets/{id}/upload-complete": {
+      "post": {
+        "operationId": "AssetsController_handleUploadComplete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Assets"
+        ]
+      }
+    },
+    "/assets": {
+      "post": {
+        "operationId": "AssetsController_createAsset",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAssetDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Assets"
+        ]
+      },
+      "get": {
+        "operationId": "AssetsController_getUserAssets",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Assets"
+        ]
+      }
+    },
+    "/assets/{id}": {
+      "get": {
+        "operationId": "AssetsController_getAsset",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Assets"
+        ]
+      },
+      "put": {
+        "operationId": "AssetsController_updateAsset",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAssetDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Assets"
+        ]
+      },
+      "delete": {
+        "operationId": "AssetsController_deleteAsset",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Assets"
+        ]
+      }
+    },
+    "/assets/{id}/download-url": {
+      "post": {
+        "operationId": "AssetsController_generateDownloadUrl",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "variant",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateDownloadUrlDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Assets"
+        ]
+      }
+    },
+    "/assets/{id}/status": {
+      "get": {
+        "operationId": "AssetsController_getAssetStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Assets"
+        ]
+      }
+    },
+    "/assets/{id}/variants": {
+      "get": {
+        "operationId": "AssetsController_getAssetVariants",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Assets"
+        ]
+      }
+    },
+    "/assets/{id}/processing-status": {
+      "get": {
+        "operationId": "AssetsController_getProcessingStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Assets"
+        ]
+      }
+    },
+    "/assets/{id}/retry-processing": {
+      "post": {
+        "operationId": "AssetsController_retryProcessing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Assets"
+        ]
+      }
+    },
+    "/projects/{projectId}/categories": {
+      "post": {
+        "operationId": "ProjectCategory3DController_create",
+        "summary": "Add an asset category to a project",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectCategory3DDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Category added to project successfully"
+          },
+          "400": {
+            "description": "Invalid category data or asset not ready"
+          },
+          "404": {
+            "description": "Project or asset not found"
+          },
+          "409": {
+            "description": "Category already exists in project"
+          }
+        },
+        "tags": [
+          "Project Categories 3D"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "ProjectCategory3DController_findAll",
+        "summary": "Get all asset categories in a project",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryKey",
+            "required": false,
+            "in": "query",
+            "description": "Filter by category key",
+            "schema": {
+              "example": "office_chairs",
+              "type": "string"
+            }
+          },
+          {
+            "name": "instancing",
+            "required": false,
+            "in": "query",
+            "description": "Filter by instancing enabled",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Categories retrieved successfully"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "tags": [
+          "Project Categories 3D"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/categories/{categoryKey}": {
+      "get": {
+        "operationId": "ProjectCategory3DController_findOne",
+        "summary": "Get a specific category in a project",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryKey",
+            "required": true,
+            "in": "path",
+            "description": "Category key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category retrieved successfully"
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        },
+        "tags": [
+          "Project Categories 3D"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "ProjectCategory3DController_update",
+        "summary": "Update category configuration",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryKey",
+            "required": true,
+            "in": "path",
+            "description": "Category key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectCategory3DDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Category updated successfully"
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        },
+        "tags": [
+          "Project Categories 3D"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "ProjectCategory3DController_remove",
+        "summary": "Remove a category from a project",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryKey",
+            "required": true,
+            "in": "path",
+            "description": "Category key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Category removed successfully"
+          },
+          "404": {
+            "description": "Category not found"
+          },
+          "409": {
+            "description": "Category is in use by scene items"
+          }
+        },
+        "tags": [
+          "Project Categories 3D"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/categories/{categoryKey}/stats": {
+      "get": {
+        "operationId": "ProjectCategory3DController_getStats",
+        "summary": "Get usage statistics for a category",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryKey",
+            "required": true,
+            "in": "path",
+            "description": "Category key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Statistics retrieved successfully"
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        },
+        "tags": [
+          "Project Categories 3D"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/categories/bulk": {
+      "post": {
+        "operationId": "ProjectCategory3DController_bulkCreate",
+        "summary": "Add multiple categories to a project",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Categories added successfully"
+          },
+          "400": {
+            "description": "Invalid category data"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "tags": [
+          "Project Categories 3D"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/categories/available-assets": {
+      "get": {
+        "operationId": "ProjectCategory3DController_getAvailableAssets",
+        "summary": "Get assets available for adding to project",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Available assets retrieved successfully"
+          }
+        },
+        "tags": [
+          "Project Categories 3D"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/scenes": {
+      "post": {
+        "operationId": "ScenesController_create",
+        "summary": "Create a new 3D scene",
+        "deprecated": true,
+        "description": "DEPRECATED: Use flat route POST /scenes instead. Will be removed on 2025-11-05.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Sunset",
+            "in": "header",
+            "description": "Date when this endpoint will be removed",
+            "schema": {
+              "type": "string",
+              "example": "Wed, 05 Nov 2025 00:00:00 GMT"
+            }
+          },
+          {
+            "name": "Deprecation",
+            "in": "header",
+            "description": "Indicates this endpoint is deprecated",
+            "schema": {
+              "type": "string",
+              "example": "true"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSceneDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Scene created successfully"
+          },
+          "400": {
+            "description": "Invalid scene data"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "tags": [
+          "Scenes (Legacy - Deprecated)"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "ScenesController_findAll",
+        "summary": "Get all scenes in a project",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scenes retrieved successfully"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "tags": [
+          "Scenes (Legacy - Deprecated)"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/scenes/{sceneId}": {
+      "get": {
+        "operationId": "ScenesController_findOne",
+        "summary": "Get a specific scene with items",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scene retrieved successfully"
+          },
+          "404": {
+            "description": "Scene not found"
+          }
+        },
+        "tags": [
+          "Scenes (Legacy - Deprecated)"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "ScenesController_update",
+        "summary": "Update scene properties",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "required": false,
+            "in": "query",
+            "description": "Expected scene version for optimistic locking",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSceneDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Scene updated successfully"
+          },
+          "404": {
+            "description": "Scene not found"
+          },
+          "409": {
+            "description": "Version conflict"
+          }
+        },
+        "tags": [
+          "Scenes (Legacy - Deprecated)"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "ScenesController_remove",
+        "summary": "Delete a scene and all its items",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Scene deleted successfully"
+          },
+          "404": {
+            "description": "Scene not found"
+          }
+        },
+        "tags": [
+          "Scenes (Legacy - Deprecated)"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/scenes/{sceneId}/items": {
+      "post": {
+        "operationId": "ScenesController_addItem",
+        "summary": "Add an item to a scene",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSceneItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Scene item created successfully"
+          },
+          "400": {
+            "description": "Invalid item data"
+          },
+          "404": {
+            "description": "Scene or category not found"
+          }
+        },
+        "tags": [
+          "Scenes (Legacy - Deprecated)"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/scenes/{sceneId}/items/{itemId}": {
+      "patch": {
+        "operationId": "ScenesController_updateItem",
+        "summary": "Update a scene item",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "description": "Scene item ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSceneItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Scene item updated successfully"
+          },
+          "403": {
+            "description": "Scene item is locked"
+          },
+          "404": {
+            "description": "Scene item not found"
+          }
+        },
+        "tags": [
+          "Scenes (Legacy - Deprecated)"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "ScenesController_removeItem",
+        "summary": "Remove an item from a scene",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "description": "Scene item ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Scene item removed successfully"
+          },
+          "403": {
+            "description": "Scene item is locked"
+          },
+          "404": {
+            "description": "Scene item not found"
+          }
+        },
+        "tags": [
+          "Scenes (Legacy - Deprecated)"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/scenes/{sceneId}/manifest": {
+      "get": {
+        "operationId": "ScenesController_generateManifest",
+        "summary": "Generate scene manifest for client consumption",
+        "deprecated": true,
+        "description": "DEPRECATED: Use flat route GET /scenes/{sceneId}/manifest instead. Will be removed on 2025-11-05. Returns a complete scene manifest with all items, transforms, and asset references",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Link",
+            "in": "header",
+            "description": "Link to successor endpoint",
+            "schema": {
+              "type": "string",
+              "example": "</scenes/{sceneId}/manifest>; rel=\"successor-version\""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scene manifest generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SceneManifestV2"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Scene not found"
+          }
+        },
+        "tags": [
+          "Scenes (Legacy - Deprecated)"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/scenes/{sceneId}/delta": {
+      "get": {
+        "operationId": "ScenesController_generateDelta",
+        "summary": "Generate delta between scene versions",
+        "description": "Returns operations needed to transform scene from one version to another",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fromVersion",
+            "required": true,
+            "in": "query",
+            "description": "Source version",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "toVersion",
+            "required": true,
+            "in": "query",
+            "description": "Target version",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scene delta generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SceneDelta"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Scene not found"
+          }
+        },
+        "tags": [
+          "Scenes (Legacy - Deprecated)"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/scenes/{sceneId}/version": {
+      "get": {
+        "operationId": "ScenesController_getVersion",
+        "summary": "Get current scene version",
+        "description": "Returns the current version number for optimistic locking",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scene version retrieved successfully"
+          },
+          "404": {
+            "description": "Scene not found"
+          }
+        },
+        "tags": [
+          "Scenes (Legacy - Deprecated)"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/scenes": {
+      "post": {
+        "operationId": "FlatScenesController_create",
+        "summary": "Create a new 3D scene",
+        "description": "Creates a scene within a project. The projectId must be provided in the request body.",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Scene created successfully"
+          },
+          "400": {
+            "description": "Invalid scene data or missing projectId"
+          },
+          "403": {
+            "description": "Insufficient permissions"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "tags": [
+          "Flat Scenes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/scenes/{sceneId}": {
+      "get": {
+        "operationId": "FlatScenesController_findOne",
+        "summary": "Get a specific scene with items",
+        "description": "Flat route - no project ID required in path",
+        "parameters": [
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scene retrieved successfully"
+          },
+          "403": {
+            "description": "Insufficient permissions"
+          },
+          "404": {
+            "description": "Scene not found"
+          }
+        },
+        "tags": [
+          "Flat Scenes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "FlatScenesController_update",
+        "summary": "Update scene properties",
+        "description": "Flat route - no project ID required in path. Requires If-Match header for optimistic locking.",
+        "parameters": [
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "if-match",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Expected scene version for optimistic locking",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSceneDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Scene updated successfully"
+          },
+          "400": {
+            "description": "If-Match header missing or invalid"
+          },
+          "403": {
+            "description": "Insufficient permissions"
+          },
+          "404": {
+            "description": "Scene not found"
+          },
+          "412": {
+            "description": "Precondition Failed - version conflict"
+          }
+        },
+        "tags": [
+          "Flat Scenes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "FlatScenesController_remove",
+        "summary": "Delete a scene and all its items",
+        "description": "Flat route - no project ID required in path",
+        "parameters": [
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Scene deleted successfully"
+          },
+          "403": {
+            "description": "Insufficient permissions"
+          },
+          "404": {
+            "description": "Scene not found"
+          }
+        },
+        "tags": [
+          "Flat Scenes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/scenes/{sceneId}/items": {
+      "patch": {
+        "operationId": "FlatScenesController_applyDeltaOperations",
+        "summary": "Apply batch delta operations to scene items",
+        "description": "Flat route - applies multiple delta operations atomically. Requires If-Match header for optimistic locking.",
+        "parameters": [
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "if-match",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique key for idempotent operations",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Expected scene version for optimistic locking",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchDeltaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Delta operations applied successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchDeltaResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "If-Match header missing or invalid operations"
+          },
+          "403": {
+            "description": "Insufficient permissions"
+          },
+          "404": {
+            "description": "Scene not found"
+          },
+          "412": {
+            "description": "Precondition Failed - version conflict"
+          }
+        },
+        "tags": [
+          "Flat Scenes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "FlatScenesController_addItem",
+        "summary": "Add an item to a scene",
+        "description": "Flat route - no project ID required in path. Requires If-Match header for optimistic locking.",
+        "parameters": [
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "if-match",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Expected scene version for optimistic locking",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSceneItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Scene item created successfully"
+          },
+          "400": {
+            "description": "Invalid item data or If-Match header missing"
+          },
+          "403": {
+            "description": "Insufficient permissions"
+          },
+          "404": {
+            "description": "Scene or category not found"
+          },
+          "412": {
+            "description": "Precondition Failed - version conflict"
+          }
+        },
+        "tags": [
+          "Flat Scenes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/scenes/{sceneId}/items/{itemId}": {
+      "patch": {
+        "operationId": "FlatScenesController_updateItem",
+        "summary": "Update a scene item",
+        "description": "Flat route - no project ID required in path. Requires If-Match header for optimistic locking.",
+        "parameters": [
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "description": "Scene item ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "if-match",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Expected scene version for optimistic locking",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSceneItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Scene item updated successfully"
+          },
+          "400": {
+            "description": "If-Match header missing or invalid"
+          },
+          "403": {
+            "description": "Scene item is locked or insufficient permissions"
+          },
+          "404": {
+            "description": "Scene item not found"
+          },
+          "412": {
+            "description": "Precondition Failed - version conflict"
+          }
+        },
+        "tags": [
+          "Flat Scenes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "FlatScenesController_removeItem",
+        "summary": "Remove an item from a scene",
+        "description": "Flat route - no project ID required in path. Requires If-Match header for optimistic locking.",
+        "parameters": [
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "description": "Scene item ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "if-match",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Expected scene version for optimistic locking",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Scene item removed successfully"
+          },
+          "400": {
+            "description": "If-Match header missing or invalid"
+          },
+          "403": {
+            "description": "Scene item is locked or insufficient permissions"
+          },
+          "404": {
+            "description": "Scene item not found"
+          },
+          "412": {
+            "description": "Precondition Failed - version conflict"
+          }
+        },
+        "tags": [
+          "Flat Scenes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/scenes/{sceneId}/manifest": {
+      "get": {
+        "operationId": "FlatScenesController_generateManifest",
+        "summary": "Generate scene manifest for client consumption",
+        "description": "Flat route - returns a complete scene manifest with all items, transforms, and asset references. Supports category filtering.",
+        "parameters": [
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categories",
+            "required": false,
+            "in": "query",
+            "description": "Comma-separated list of category keys to include in manifest. If not provided, all categories are included.",
+            "schema": {
+              "example": "furniture,lighting,decorations",
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeMetadata",
+            "required": false,
+            "in": "query",
+            "description": "Include additional category metadata like descriptions, tags, and configuration",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scene manifest generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SceneManifestFrontend"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions"
+          },
+          "404": {
+            "description": "Scene not found"
+          }
+        },
+        "tags": [
+          "Flat Scenes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/scenes/{sceneId}/categories": {
+      "get": {
+        "operationId": "FlatScenesController_getSceneCategories",
+        "summary": "Get available categories in scene",
+        "description": "Flat route - returns all unique categories used by items in the scene with their metadata",
+        "parameters": [
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by project ID",
+            "schema": {
+              "example": "clabcd123...",
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryKey",
+            "required": false,
+            "in": "query",
+            "description": "Filter by category key",
+            "schema": {
+              "example": "office_chairs",
+              "type": "string"
+            }
+          },
+          {
+            "name": "instancing",
+            "required": false,
+            "in": "query",
+            "description": "Filter by instancing enabled",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scene categories retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "categoryKey": {
+                            "type": "string"
+                          },
+                          "assetId": {
+                            "type": "string"
+                          },
+                          "itemCount": {
+                            "type": "number"
+                          },
+                          "capabilities": {
+                            "type": "object",
+                            "properties": {
+                              "instancing": {
+                                "type": "boolean"
+                              },
+                              "draco": {
+                                "type": "boolean"
+                              },
+                              "meshopt": {
+                                "type": "boolean"
+                              },
+                              "ktx2": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions"
+          },
+          "404": {
+            "description": "Scene not found"
+          }
+        },
+        "tags": [
+          "Flat Scenes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/scenes/{sceneId}/delta": {
+      "get": {
+        "operationId": "FlatScenesController_generateDelta",
+        "summary": "Generate delta between scene versions",
+        "description": "Flat route - returns operations needed to transform scene from one version to another",
+        "parameters": [
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fromVersion",
+            "required": true,
+            "in": "query",
+            "description": "Source version",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "toVersion",
+            "required": true,
+            "in": "query",
+            "description": "Target version",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scene delta generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SceneDelta"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions"
+          },
+          "404": {
+            "description": "Scene not found"
+          }
+        },
+        "tags": [
+          "Flat Scenes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/scenes/{sceneId}/version": {
+      "get": {
+        "operationId": "FlatScenesController_getVersion",
+        "summary": "Get current scene version",
+        "description": "Flat route - returns the current version number for optimistic locking",
+        "parameters": [
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scene version retrieved successfully"
+          },
+          "403": {
+            "description": "Insufficient permissions"
+          },
+          "404": {
+            "description": "Scene not found"
+          }
+        },
+        "tags": [
+          "Flat Scenes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/scenes/{sceneId}/snapshots": {
+      "post": {
+        "operationId": "FlatScenesController_createSnapshot",
+        "summary": "Create a scene snapshot",
+        "description": "Flat route - creates a manual save snapshot with the current scene state",
+        "parameters": [
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSnapshotDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Snapshot created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateSnapshotResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions"
+          },
+          "404": {
+            "description": "Scene not found"
+          }
+        },
+        "tags": [
+          "Flat Scenes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "FlatScenesController_listSnapshots",
+        "summary": "List scene snapshots",
+        "description": "Flat route - returns all snapshots for the scene",
+        "parameters": [
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Snapshots listed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListSnapshotsResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions"
+          },
+          "404": {
+            "description": "Scene not found"
+          }
+        },
+        "tags": [
+          "Flat Scenes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/scenes/{sceneId}/restore": {
+      "post": {
+        "operationId": "FlatScenesController_restoreFromSnapshot",
+        "summary": "Restore scene from snapshot",
+        "description": "Flat route - restores the scene to a previous snapshot state",
+        "parameters": [
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreSnapshotDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Scene restored successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestoreSnapshotResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions"
+          },
+          "404": {
+            "description": "Scene or snapshot not found"
+          }
+        },
+        "tags": [
+          "Flat Scenes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/scenes/{sceneId}/events": {
+      "get": {
+        "operationId": "ScenesSSEController_streamSceneEvents",
+        "summary": "Connect to scene events via Server-Sent Events (SSE)",
+        "description": "Fallback for realtime scene updates when WebSockets are not available",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clientId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Scenes SSE"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/scenes/{sceneId}/events": {
+      "get": {
+        "operationId": "SseController_events",
+        "parameters": [
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/scenes/{sceneId}/download/manifest": {
+      "get": {
+        "operationId": "DownloadController_downloadManifest",
+        "summary": "Download all assets in scene manifest",
+        "description": "Generates presigned download URLs for all assets referenced in the scene",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "variant",
+            "required": false,
+            "in": "query",
+            "description": "Asset variant to download",
+            "schema": {
+              "enum": [
+                "original",
+                "meshopt",
+                "draco",
+                "navmesh"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "cacheDuration",
+            "required": false,
+            "in": "query",
+            "description": "Cache duration in seconds",
+            "schema": {
+              "minimum": 60,
+              "maximum": 86400,
+              "example": 3600,
+              "type": "number"
+            }
+          },
+          {
+            "name": "includeCdn",
+            "required": false,
+            "in": "query",
+            "description": "Include CDN URLs if available",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Manifest download URLs generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchDownloadResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Scene not found"
+          }
+        },
+        "tags": [
+          "Scene Downloads"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/scenes/{sceneId}/download/batch": {
+      "post": {
+        "operationId": "DownloadController_downloadBatch",
+        "summary": "Download specific scene assets",
+        "description": "Generates presigned download URLs for specified asset categories in the scene",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchDownloadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch download URLs generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchDownloadResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Scene not found"
+          }
+        },
+        "tags": [
+          "Scene Downloads"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/scenes/{sceneId}/download/assets/{assetId}": {
+      "get": {
+        "operationId": "DownloadController_downloadAsset",
+        "summary": "Download specific asset",
+        "description": "Generates presigned download URL for a specific asset with caching headers",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetId",
+            "required": true,
+            "in": "path",
+            "description": "Asset ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "variant",
+            "required": false,
+            "in": "query",
+            "description": "Asset variant to download",
+            "schema": {
+              "enum": [
+                "original",
+                "meshopt",
+                "draco",
+                "navmesh"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "cacheDuration",
+            "required": false,
+            "in": "query",
+            "description": "Cache duration in seconds",
+            "schema": {
+              "minimum": 60,
+              "maximum": 86400,
+              "example": 3600,
+              "type": "number"
+            }
+          },
+          {
+            "name": "includeCdn",
+            "required": false,
+            "in": "query",
+            "description": "Include CDN URLs if available",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Asset download URL generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetDownloadInfo"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Asset not found"
+          }
+        },
+        "tags": [
+          "Scene Downloads"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/scenes/{sceneId}/download/assets/{assetId}/redirect": {
+      "get": {
+        "operationId": "DownloadController_redirectToAsset",
+        "summary": "Direct asset download with redirect",
+        "description": "Redirects to the presigned URL for immediate download with proper cache headers",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetId",
+            "required": true,
+            "in": "path",
+            "description": "Asset ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "variant",
+            "required": false,
+            "in": "query",
+            "description": "Asset variant to download",
+            "schema": {
+              "enum": [
+                "original",
+                "meshopt",
+                "draco",
+                "navmesh"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "cacheDuration",
+            "required": false,
+            "in": "query",
+            "description": "Cache duration in seconds",
+            "schema": {
+              "minimum": 60,
+              "maximum": 86400,
+              "example": 3600,
+              "type": "number"
+            }
+          },
+          {
+            "name": "includeCdn",
+            "required": false,
+            "in": "query",
+            "description": "Include CDN URLs if available",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to asset download URL"
+          },
+          "404": {
+            "description": "Asset not found"
+          }
+        },
+        "tags": [
+          "Scene Downloads"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/scenes/{sceneId}/download/assets/{assetId}/metadata": {
+      "get": {
+        "operationId": "DownloadController_getAssetMetadata",
+        "summary": "Get asset metadata for caching",
+        "description": "Returns asset metadata including ETag and Last-Modified for client-side caching",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "in": "path",
+            "description": "Scene ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetId",
+            "required": true,
+            "in": "path",
+            "description": "Asset ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Asset metadata retrieved successfully"
+          },
+          "404": {
+            "description": "Asset not found"
+          }
+        },
+        "tags": [
+          "Scene Downloads"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects": {
+      "post": {
+        "operationId": "ProjectsController_create",
+        "summary": "Create a new project",
+        "description": "Creates a new project with auto-membership (ADMIN role) and optional initial scene configuration",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Project created successfully with auto-membership and initial scene",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateProjectResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "tags": [
+          "Projects"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "ProjectsController_findAll",
+        "summary": "Get user projects",
+        "description": "Retrieves all projects where the user is a member",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of user projects with scene summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "userId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "scenes3D": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "number"
+                            },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "updatedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      },
+                      "_count": {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "tags": [
+          "Projects"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{id}": {
+      "get": {
+        "operationId": "ProjectsController_findOne",
+        "summary": "Get project details",
+        "description": "Retrieves detailed information about a specific project (only if user is a member)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Project UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project details with scenes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "scenes3D": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "number"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "_count": {
+                      "type": "object",
+                      "properties": {
+                        "members": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Project not found or access denied"
+          }
+        },
+        "tags": [
+          "Projects"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "ProjectsController_update",
+        "summary": "Update project",
+        "description": "Updates project information including name and thumbnails",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Project UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Project updated successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Project not found or access denied"
+          }
+        },
+        "tags": [
+          "Projects"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "ProjectsController_deleteProject",
+        "summary": "Delete project",
+        "description": "Permanently delete a project and all its associated data (scenes, thumbnails, etc.)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Project UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Project deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Project not found or access denied"
+          }
+        },
+        "tags": [
+          "Projects"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{id}/thumbnail": {
+      "post": {
+        "operationId": "ProjectsController_uploadThumbnail",
+        "summary": "Upload project thumbnail",
+        "description": "Upload a custom thumbnail or save canvas screenshot for a project",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Project UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThumbnailUploadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Thumbnail uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThumbnailUploadResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid image data or project not found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "tags": [
+          "Projects"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/projects/{id}/thumbnail/{type}": {
+      "delete": {
+        "operationId": "ProjectsController_deleteThumbnail",
+        "summary": "Delete project thumbnail",
+        "description": "Delete auto-generated or custom thumbnail for a project",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Project UUID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "description": "Thumbnail type to delete",
+            "schema": {
+              "enum": [
+                "auto",
+                "custom",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Thumbnail deleted successfully"
+          },
+          "400": {
+            "description": "Invalid thumbnail type or project not found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "tags": [
+          "Projects"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Lumea API",
+    "description": "# Lumea Interior Layout Generator API\n\nAdvanced AI-powered interior layout generator with explainable spatial reasoning.\n\n## Features\n- **3D Scene Management**: Create and manage complex 3D interior layouts\n- **Asset Processing Pipeline**: Automatic optimization with KTX2, Draco, and Meshopt variants\n- **Real-time Collaboration**: Server-Sent Events for live scene updates\n- **Optimistic Locking**: If-Match headers for safe concurrent editing\n- **Category-based Organization**: Enhanced scene manifests with filtering capabilities\n- **Processing Queue**: Background asset processing with status tracking\n\n## Authentication\nAll endpoints require Bearer token authentication unless explicitly marked as public.\n\n## Rate Limiting\n- General API: 100 requests per 15 minutes per IP\n- Authentication: 5 attempts per 15 minutes per IP\n\n## Versioning\nScene operations support optimistic locking via If-Match headers for safe concurrent editing.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Lumea Development Team",
+      "url": "https://lumea.dev",
+      "email": "support@lumea.dev"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "User authentication and authorization"
+    },
+    {
+      "name": "Users",
+      "description": "User profile and management"
+    },
+    {
+      "name": "Projects",
+      "description": "Project creation and management"
+    },
+    {
+      "name": "Scenes",
+      "description": "Scene CRUD operations and management"
+    },
+    {
+      "name": "Flat Scenes",
+      "description": "Simplified scene endpoints with project context"
+    },
+    {
+      "name": "Assets",
+      "description": "Asset upload, processing, and management"
+    },
+    {
+      "name": "Processing",
+      "description": "Background processing and queue management"
+    },
+    {
+      "name": "Real-time",
+      "description": "Server-Sent Events and live updates"
+    },
+    {
+      "name": "Storage",
+      "description": "File storage and download endpoints"
+    }
+  ],
+  "servers": [
+    {
+      "url": "http://192.168.1.10:3000",
+      "description": "Network Access Server"
+    },
+    {
+      "url": "http://192.168.1.10:3000",
+      "description": "Local Development Server"
+    },
+    {
+      "url": "https://api.lumea.dev",
+      "description": "Production Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "JWT-auth": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "name": "JWT",
+        "description": "Enter JWT token",
+        "in": "header"
+      }
+    },
+    "schemas": {
+      "AssetUploadUrlDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateAssetDto": {
+        "type": "object",
+        "properties": {
+          "originalName": {
+            "type": "string",
+            "description": "Original filename of the uploaded asset",
+            "example": "office_chair.glb"
+          },
+          "mimeType": {
+            "type": "string",
+            "description": "MIME type of the asset file",
+            "example": "model/gltf-binary"
+          },
+          "fileSize": {
+            "type": "number",
+            "description": "File size in bytes",
+            "example": 2048576,
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "description": "Current processing status of the asset",
+            "enum": [
+              "UPLOADED",
+              "PROCESSING",
+              "READY",
+              "FAILED"
+            ]
+          },
+          "originalUrl": {
+            "type": "string",
+            "description": "URL to the original uploaded file",
+            "example": "https://storage.example.com/assets/original/123.glb"
+          },
+          "meshoptUrl": {
+            "type": "string",
+            "description": "URL to the meshopt-compressed version",
+            "example": "https://storage.example.com/assets/meshopt/123.glb"
+          },
+          "dracoUrl": {
+            "type": "string",
+            "description": "URL to the Draco-compressed version",
+            "example": "https://storage.example.com/assets/draco/123.glb"
+          },
+          "navmeshUrl": {
+            "type": "string",
+            "description": "URL to the generated navigation mesh",
+            "example": "https://storage.example.com/assets/navmesh/123.glb"
+          },
+          "license": {
+            "type": "string",
+            "description": "Asset license type",
+            "enum": [
+              "CC0",
+              "ROYALTY_FREE",
+              "PROPRIETARY"
+            ]
+          },
+          "reportJson": {
+            "type": "object",
+            "description": "Processing report in JSON format",
+            "example": {
+              "vertices": 1024,
+              "triangles": 2048,
+              "materials": 3
+            }
+          },
+          "errorMessage": {
+            "type": "string",
+            "description": "Error message if processing failed",
+            "example": "Invalid GLTF structure"
+          },
+          "processedAt": {
+            "type": "string",
+            "description": "Timestamp when processing completed",
+            "example": "2023-09-02T12:00:00Z"
+          }
+        },
+        "required": [
+          "originalName",
+          "mimeType",
+          "fileSize"
+        ]
+      },
+      "UpdateAssetDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "GenerateDownloadUrlDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateProjectCategory3DDto": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "description": "Asset ID to associate with the project category",
+            "example": "clabcd123..."
+          },
+          "categoryKey": {
+            "type": "string",
+            "description": "Category key for organizing assets within the project",
+            "example": "office_chairs"
+          },
+          "instancing": {
+            "type": "boolean",
+            "description": "Enable GPU instancing for this asset category",
+            "example": false,
+            "default": false
+          },
+          "draco": {
+            "type": "boolean",
+            "description": "Enable Draco compression for this asset category",
+            "example": true,
+            "default": true
+          },
+          "meshopt": {
+            "type": "boolean",
+            "description": "Enable MeshOpt compression for this asset category",
+            "example": true,
+            "default": true
+          },
+          "ktx2": {
+            "type": "boolean",
+            "description": "Enable KTX2 texture compression for this asset category",
+            "example": true,
+            "default": true
+          }
+        },
+        "required": [
+          "assetId",
+          "categoryKey"
+        ]
+      },
+      "UpdateProjectCategory3DDto": {
+        "type": "object",
+        "properties": {
+          "categoryKey": {
+            "type": "string",
+            "description": "Category key for organizing assets within the project",
+            "example": "office_chairs"
+          },
+          "instancing": {
+            "type": "boolean",
+            "description": "Enable GPU instancing for this asset category",
+            "example": false
+          },
+          "draco": {
+            "type": "boolean",
+            "description": "Enable Draco compression for this asset category",
+            "example": true
+          },
+          "meshopt": {
+            "type": "boolean",
+            "description": "Enable MeshOpt compression for this asset category",
+            "example": true
+          },
+          "ktx2": {
+            "type": "boolean",
+            "description": "Enable KTX2 texture compression for this asset category",
+            "example": true
+          }
+        }
+      },
+      "CreateSceneDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the 3D scene",
+            "example": "Living Room Layout",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "scale": {
+            "type": "number",
+            "description": "Scene scale factor",
+            "example": 1,
+            "minimum": 0.1,
+            "maximum": 10
+          },
+          "exposure": {
+            "type": "number",
+            "description": "Scene exposure level",
+            "example": 1,
+            "minimum": -10,
+            "maximum": 10
+          },
+          "envHdriUrl": {
+            "type": "string",
+            "description": "Environment HDRI texture URL",
+            "example": "https://example.com/hdri/studio.hdr"
+          },
+          "envIntensity": {
+            "type": "number",
+            "description": "Environment light intensity",
+            "example": 1,
+            "minimum": 0,
+            "maximum": 10
+          },
+          "spawnPositionX": {
+            "type": "number",
+            "description": "Spawn position X coordinate",
+            "example": 0
+          },
+          "spawnPositionY": {
+            "type": "number",
+            "description": "Spawn position Y coordinate (height)",
+            "example": 1.7
+          },
+          "spawnPositionZ": {
+            "type": "number",
+            "description": "Spawn position Z coordinate",
+            "example": 5
+          },
+          "spawnYawDeg": {
+            "type": "number",
+            "description": "Spawn rotation yaw in degrees",
+            "example": 0,
+            "minimum": -180,
+            "maximum": 180
+          },
+          "navmeshAssetId": {
+            "type": "string",
+            "description": "Navmesh asset ID for pathfinding",
+            "example": "clabcd123..."
+          },
+          "shellAssetId": {
+            "type": "string",
+            "description": "Shell asset ID for scene container/environment",
+            "example": "clabcd456..."
+          },
+          "shellCastShadow": {
+            "type": "boolean",
+            "description": "Whether the shell should cast shadows",
+            "example": true,
+            "default": true
+          },
+          "shellReceiveShadow": {
+            "type": "boolean",
+            "description": "Whether the shell should receive shadows",
+            "example": true,
+            "default": true
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateSceneDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the 3D scene",
+            "example": "Living Room Layout",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "scale": {
+            "type": "number",
+            "description": "Scene scale factor",
+            "example": 1,
+            "minimum": 0.1,
+            "maximum": 10
+          },
+          "exposure": {
+            "type": "number",
+            "description": "Scene exposure level",
+            "example": 1,
+            "minimum": -10,
+            "maximum": 10
+          },
+          "envHdriUrl": {
+            "type": "string",
+            "description": "Environment HDRI texture URL",
+            "example": "https://example.com/hdri/studio.hdr"
+          },
+          "envIntensity": {
+            "type": "number",
+            "description": "Environment light intensity",
+            "example": 1,
+            "minimum": 0,
+            "maximum": 10
+          },
+          "spawnPositionX": {
+            "type": "number",
+            "description": "Spawn position X coordinate",
+            "example": 0
+          },
+          "spawnPositionY": {
+            "type": "number",
+            "description": "Spawn position Y coordinate (height)",
+            "example": 1.7
+          },
+          "spawnPositionZ": {
+            "type": "number",
+            "description": "Spawn position Z coordinate",
+            "example": 5
+          },
+          "spawnYawDeg": {
+            "type": "number",
+            "description": "Spawn rotation yaw in degrees",
+            "example": 0,
+            "minimum": -180,
+            "maximum": 180
+          },
+          "navmeshAssetId": {
+            "type": "string",
+            "description": "Navmesh asset ID for pathfinding",
+            "example": "clabcd123..."
+          },
+          "shellAssetId": {
+            "type": "string",
+            "description": "Shell asset ID for scene container/environment",
+            "example": "clabcd456..."
+          },
+          "shellCastShadow": {
+            "type": "boolean",
+            "description": "Whether the shell should cast shadows",
+            "example": true,
+            "default": true
+          },
+          "shellReceiveShadow": {
+            "type": "boolean",
+            "description": "Whether the shell should receive shadows",
+            "example": true,
+            "default": true
+          }
+        }
+      },
+      "CreateSceneItemDto": {
+        "type": "object",
+        "properties": {
+          "categoryKey": {
+            "type": "string",
+            "description": "Category key referencing project assets",
+            "example": "chairs"
+          },
+          "model": {
+            "type": "string",
+            "description": "Optional model identifier within category",
+            "example": "office_chair_01"
+          },
+          "positionX": {
+            "type": "number",
+            "description": "Position X coordinate",
+            "example": 0
+          },
+          "positionY": {
+            "type": "number",
+            "description": "Position Y coordinate",
+            "example": 0
+          },
+          "positionZ": {
+            "type": "number",
+            "description": "Position Z coordinate",
+            "example": 0
+          },
+          "rotationX": {
+            "type": "number",
+            "description": "Rotation X (pitch) in degrees",
+            "example": 0,
+            "minimum": -180,
+            "maximum": 180
+          },
+          "rotationY": {
+            "type": "number",
+            "description": "Rotation Y (yaw) in degrees",
+            "example": 0,
+            "minimum": -180,
+            "maximum": 180
+          },
+          "rotationZ": {
+            "type": "number",
+            "description": "Rotation Z (roll) in degrees",
+            "example": 0,
+            "minimum": -180,
+            "maximum": 180
+          },
+          "scaleX": {
+            "type": "number",
+            "description": "Scale X factor",
+            "example": 1,
+            "minimum": 0.01,
+            "maximum": 100
+          },
+          "scaleY": {
+            "type": "number",
+            "description": "Scale Y factor",
+            "example": 1,
+            "minimum": 0.01,
+            "maximum": 100
+          },
+          "scaleZ": {
+            "type": "number",
+            "description": "Scale Z factor",
+            "example": 1,
+            "minimum": 0.01,
+            "maximum": 100
+          },
+          "materialVariant": {
+            "type": "string",
+            "description": "Material variant identifier",
+            "example": "wood_oak"
+          },
+          "selectable": {
+            "type": "boolean",
+            "description": "Whether the item can be selected",
+            "example": true
+          },
+          "locked": {
+            "type": "boolean",
+            "description": "Whether the item is locked from editing",
+            "example": false
+          },
+          "meta": {
+            "type": "object",
+            "description": "Additional metadata as JSON",
+            "example": {
+              "tags": [
+                "furniture"
+              ],
+              "priority": 1
+            }
+          },
+          "materialOverrides": {
+            "type": "object",
+            "description": "Material property overrides as JSON",
+            "example": {
+              "baseColor": "#ff0000",
+              "metallic": 0.8
+            }
+          }
+        },
+        "required": [
+          "categoryKey"
+        ]
+      },
+      "UpdateSceneItemDto": {
+        "type": "object",
+        "properties": {
+          "categoryKey": {
+            "type": "string",
+            "description": "Category key referencing project assets",
+            "example": "chairs"
+          },
+          "model": {
+            "type": "string",
+            "description": "Optional model identifier within category",
+            "example": "office_chair_01"
+          },
+          "positionX": {
+            "type": "number",
+            "description": "Position X coordinate",
+            "example": 0
+          },
+          "positionY": {
+            "type": "number",
+            "description": "Position Y coordinate",
+            "example": 0
+          },
+          "positionZ": {
+            "type": "number",
+            "description": "Position Z coordinate",
+            "example": 0
+          },
+          "rotationX": {
+            "type": "number",
+            "description": "Rotation X (pitch) in degrees",
+            "example": 0,
+            "minimum": -180,
+            "maximum": 180
+          },
+          "rotationY": {
+            "type": "number",
+            "description": "Rotation Y (yaw) in degrees",
+            "example": 0,
+            "minimum": -180,
+            "maximum": 180
+          },
+          "rotationZ": {
+            "type": "number",
+            "description": "Rotation Z (roll) in degrees",
+            "example": 0,
+            "minimum": -180,
+            "maximum": 180
+          },
+          "scaleX": {
+            "type": "number",
+            "description": "Scale X factor",
+            "example": 1,
+            "minimum": 0.01,
+            "maximum": 100
+          },
+          "scaleY": {
+            "type": "number",
+            "description": "Scale Y factor",
+            "example": 1,
+            "minimum": 0.01,
+            "maximum": 100
+          },
+          "scaleZ": {
+            "type": "number",
+            "description": "Scale Z factor",
+            "example": 1,
+            "minimum": 0.01,
+            "maximum": 100
+          },
+          "materialVariant": {
+            "type": "string",
+            "description": "Material variant identifier",
+            "example": "wood_oak"
+          },
+          "selectable": {
+            "type": "boolean",
+            "description": "Whether the item can be selected",
+            "example": true
+          },
+          "locked": {
+            "type": "boolean",
+            "description": "Whether the item is locked from editing",
+            "example": false
+          },
+          "meta": {
+            "type": "object",
+            "description": "Additional metadata as JSON",
+            "example": {
+              "tags": [
+                "furniture"
+              ],
+              "priority": 1
+            }
+          },
+          "materialOverrides": {
+            "type": "object",
+            "description": "Material property overrides as JSON",
+            "example": {
+              "baseColor": "#ff0000",
+              "metallic": 0.8
+            }
+          }
+        }
+      },
+      "SceneManifestV2": {
+        "type": "object",
+        "properties": {
+          "scene": {
+            "type": "object",
+            "description": "Scene metadata"
+          },
+          "items": {
+            "description": "Scene items with transforms and materials",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "categories": {
+            "type": "object",
+            "description": "Asset categories referenced in the scene with enhanced metadata support"
+          },
+          "generatedAt": {
+            "type": "string",
+            "description": "Generation timestamp"
+          }
+        },
+        "required": [
+          "scene",
+          "items",
+          "categories",
+          "generatedAt"
+        ]
+      },
+      "SceneDelta": {
+        "type": "object",
+        "properties": {
+          "fromVersion": {
+            "type": "number",
+            "description": "Scene version this delta applies to"
+          },
+          "toVersion": {
+            "type": "number",
+            "description": "Target scene version after applying delta"
+          },
+          "operations": {
+            "description": "Operations to apply",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "Delta generation timestamp"
+          }
+        },
+        "required": [
+          "fromVersion",
+          "toVersion",
+          "operations",
+          "timestamp"
+        ]
+      },
+      "BatchDeltaDto": {
+        "type": "object",
+        "properties": {
+          "operations": {
+            "type": "array",
+            "description": "Array of delta operations to apply"
+          }
+        },
+        "required": [
+          "operations"
+        ]
+      },
+      "BatchDeltaResponseDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "number",
+            "description": "New scene version after applying operations"
+          },
+          "etag": {
+            "type": "string",
+            "description": "ETag for the new version"
+          }
+        },
+        "required": [
+          "version",
+          "etag"
+        ]
+      },
+      "SceneManifestFrontend": {
+        "type": "object",
+        "properties": {
+          "scene": {
+            "type": "object",
+            "description": "Scene metadata"
+          },
+          "items": {
+            "description": "Scene items with transforms and materials",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "categories": {
+            "type": "object",
+            "description": "Asset categories referenced in the scene"
+          },
+          "generatedAt": {
+            "type": "string",
+            "description": "Generation timestamp"
+          },
+          "spawn": {
+            "type": "object",
+            "description": "Spawn point configuration"
+          },
+          "env": {
+            "type": "object",
+            "description": "Environment configuration"
+          },
+          "navmesh_url": {
+            "type": "string",
+            "description": "Navmesh URL"
+          }
+        },
+        "required": [
+          "scene",
+          "items",
+          "categories",
+          "generatedAt"
+        ]
+      },
+      "CreateSnapshotDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Label for the snapshot (e.g., \"Manual Save\")",
+            "example": "Manual Save"
+          }
+        },
+        "required": [
+          "label"
+        ]
+      },
+      "CreateSnapshotResponseDto": {
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string",
+            "description": "ID of the created snapshot"
+          },
+          "label": {
+            "type": "string",
+            "description": "Label of the created snapshot"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Timestamp when snapshot was created"
+          }
+        },
+        "required": [
+          "snapshotId",
+          "label",
+          "createdAt"
+        ]
+      },
+      "ListSnapshotsResponseDto": {
+        "type": "object",
+        "properties": {
+          "snapshots": {
+            "type": "array",
+            "description": "List of available snapshots",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "snapshots"
+        ]
+      },
+      "RestoreSnapshotDto": {
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string",
+            "description": "ID of the snapshot to restore"
+          }
+        },
+        "required": [
+          "snapshotId"
+        ]
+      },
+      "RestoreSnapshotResponseDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "number",
+            "description": "New scene version after restoration"
+          },
+          "etag": {
+            "type": "string",
+            "description": "ETag for the new version"
+          },
+          "restoredLabel": {
+            "type": "string",
+            "description": "Label of the restored snapshot"
+          }
+        },
+        "required": [
+          "version",
+          "etag",
+          "restoredLabel"
+        ]
+      },
+      "AssetDownloadInfo": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "description": "Asset ID",
+            "example": "clabcd123..."
+          },
+          "categoryKey": {
+            "type": "string",
+            "description": "Category key",
+            "example": "chairs"
+          },
+          "filename": {
+            "type": "string",
+            "description": "Original filename",
+            "example": "office_chair.glb"
+          },
+          "downloadUrl": {
+            "type": "string",
+            "description": "Presigned download URL",
+            "example": "https://minio.example.com/lumea-assets/optimized/chair_meshopt.glb?X-Amz-Signature=..."
+          },
+          "cdnUrl": {
+            "type": "string",
+            "description": "CDN URL if available",
+            "example": "https://cdn.example.com/assets/chair_meshopt.glb"
+          },
+          "variant": {
+            "type": "string",
+            "description": "Asset variant",
+            "enum": [
+              "original",
+              "meshopt",
+              "draco",
+              "navmesh"
+            ],
+            "example": "meshopt"
+          },
+          "fileSize": {
+            "type": "number",
+            "description": "File size in bytes",
+            "example": 2048576
+          },
+          "contentType": {
+            "type": "string",
+            "description": "Content type",
+            "example": "model/gltf-binary"
+          },
+          "cacheHeaders": {
+            "type": "object",
+            "description": "Cache headers"
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "URL expiration timestamp",
+            "example": "2025-08-31T12:00:00.000Z"
+          }
+        },
+        "required": [
+          "assetId",
+          "categoryKey",
+          "filename",
+          "downloadUrl",
+          "variant",
+          "fileSize",
+          "contentType",
+          "cacheHeaders",
+          "expiresAt"
+        ]
+      },
+      "BatchDownloadResponse": {
+        "type": "object",
+        "properties": {
+          "sceneId": {
+            "type": "string",
+            "description": "Scene ID",
+            "example": "clabcd123..."
+          },
+          "sceneName": {
+            "type": "string",
+            "description": "Scene name",
+            "example": "Living Room Layout"
+          },
+          "assets": {
+            "description": "Assets available for download",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssetDownloadInfo"
+            }
+          },
+          "totalSize": {
+            "type": "number",
+            "description": "Total file size in bytes",
+            "example": 10485760
+          },
+          "assetCount": {
+            "type": "number",
+            "description": "Number of assets",
+            "example": 5
+          },
+          "generatedAt": {
+            "type": "string",
+            "description": "Batch generation timestamp",
+            "example": "2025-08-31T12:00:00.000Z"
+          }
+        },
+        "required": [
+          "sceneId",
+          "sceneName",
+          "assets",
+          "totalSize",
+          "assetCount",
+          "generatedAt"
+        ]
+      },
+      "BatchDownloadDto": {
+        "type": "object",
+        "properties": {
+          "categoryKeys": {
+            "description": "Category keys to include in batch download",
+            "example": [
+              "chairs",
+              "tables",
+              "lamps"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "variant": {
+            "type": "string",
+            "description": "Asset variant to download for all items",
+            "enum": [
+              "original",
+              "meshopt",
+              "draco",
+              "navmesh"
+            ],
+            "example": "meshopt"
+          },
+          "cacheDuration": {
+            "type": "number",
+            "description": "Cache duration in seconds",
+            "example": 3600,
+            "minimum": 60,
+            "maximum": 86400
+          },
+          "includeCdn": {
+            "type": "boolean",
+            "description": "Include CDN URLs if available",
+            "example": true
+          }
+        },
+        "required": [
+          "categoryKeys"
+        ]
+      },
+      "CreateProjectSpawnDto": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "description": "Spawn position [x, y, z] in world coordinates",
+            "example": [
+              0,
+              1.7,
+              5
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "yaw_deg": {
+            "type": "number",
+            "description": "Spawn yaw rotation in degrees",
+            "example": 0
+          }
+        }
+      },
+      "CreateProjectSceneDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Initial scene name",
+            "example": "Main Scene"
+          },
+          "spawn": {
+            "description": "Spawn configuration for the initial scene",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CreateProjectSpawnDto"
+              }
+            ]
+          },
+          "navmesh_asset_id": {
+            "type": "string",
+            "description": "Navmesh asset ID",
+            "example": "clk123456789"
+          },
+          "shell_asset_id": {
+            "type": "string",
+            "description": "Shell asset ID",
+            "example": "clk987654321"
+          },
+          "exposure": {
+            "type": "number",
+            "description": "Environment exposure setting",
+            "example": 1
+          }
+        }
+      },
+      "CreateProjectDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Project name",
+            "example": "My Awesome Project"
+          },
+          "scene": {
+            "description": "Initial scene configuration",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CreateProjectSceneDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "CreateProjectResponseDto": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sceneId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "project": {
+            "type": "object"
+          },
+          "scene": {
+            "type": "object"
+          },
+          "membership": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "projectId",
+          "sceneId"
+        ]
+      },
+      "UpdateProjectDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Project name",
+            "example": "Updated Project Name"
+          },
+          "thumbnailUrl": {
+            "type": "string",
+            "description": "Auto-generated thumbnail URL from canvas screenshot",
+            "example": "https://storage.example.com/thumbnails/project-123-auto.jpg"
+          },
+          "customThumbnailUrl": {
+            "type": "string",
+            "description": "Custom user-uploaded thumbnail URL",
+            "example": "https://storage.example.com/thumbnails/project-123-custom.jpg"
+          }
+        }
+      },
+      "ThumbnailUploadDto": {
+        "type": "object",
+        "properties": {
+          "imageData": {
+            "type": "string",
+            "description": "Base64 encoded image data or screenshot data from canvas",
+            "example": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of thumbnail: auto (from canvas) or custom (user upload)",
+            "example": "auto",
+            "enum": [
+              "auto",
+              "custom"
+            ]
+          },
+          "originalFilename": {
+            "type": "string",
+            "description": "Original filename (for custom uploads)",
+            "example": "my-thumbnail.jpg"
+          }
+        },
+        "required": [
+          "imageData"
+        ]
+      },
+      "ThumbnailUploadResponseDto": {
+        "type": "object",
+        "properties": {
+          "thumbnailUrl": {
+            "type": "string",
+            "description": "URL of the uploaded thumbnail",
+            "example": "https://storage.example.com/thumbnails/project-123-custom-1634567890.jpg"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of thumbnail that was uploaded",
+            "example": "custom"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Timestamp when the thumbnail was created",
+            "example": "2023-10-18T15:30:00Z"
+          }
+        },
+        "required": [
+          "thumbnailUrl",
+          "type",
+          "createdAt"
+        ]
+      }
+    }
+  }
+}

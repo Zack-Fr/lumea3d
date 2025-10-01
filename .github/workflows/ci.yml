@@ -1,0 +1,305 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '10'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # Job 1: Code Quality & Testing
+  quality:
+    name: Code Quality & Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: lumea_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: pnpm --filter @lumea/shared build
+
+      - name: Generate Prisma client
+        working-directory: apps/api
+        run: pnpm prisma:generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lumea_test
+
+      - name: Validate database connection
+        run: |
+          echo "Testing database connection..."
+          timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U postgres; do 
+            echo "Waiting for PostgreSQL..."; 
+            sleep 2; 
+          done'
+          echo "Database connection established!"
+        env:
+          PGPASSWORD: postgres
+
+      - name: Run database migrations
+        working-directory: apps/api
+        run: pnpm prisma:deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lumea_test
+      - name: Build packages
+        run: pnpm build
+      - name: Run tests
+        run: pnpm test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lumea_test
+          NODE_ENV: test
+          JWT_SECRET: test-jwt-secret-for-ci-environment-only
+          JWT_REFRESH_SECRET: test-refresh-secret-for-ci-environment-only
+          JWT_EXPIRES_IN: 15m
+          GOOGLE_CLIENT_ID: test-google-client-id
+          GOOGLE_CLIENT_SECRET: test-google-client-secret
+
+      - name: Type checking
+        run: pnpm typecheck
+
+      - name: Linting
+        run: pnpm lint
+
+      - name: Validate OpenAPI generation (optional)
+        run: |
+          echo "Testing OpenAPI generation tools availability..."
+          npx openapi-generator-cli version || echo "OpenAPI generator not needed for CI"
+          npx openapi-typescript --version || echo "OpenAPI TypeScript not needed for CI"
+          echo "OpenAPI tools check completed"
+        continue-on-error: true
+
+
+
+
+  # Job 3: Docker Build Verification
+  docker-build:
+    name: Docker Build Verification
+    runs-on: ubuntu-latest
+    needs: [quality]  # Remove solver-tests dependency as it's not needed for Docker builds
+    
+    strategy:
+      matrix:
+        service: [api, web]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/${{ matrix.service }}/Dockerfile
+          push: false
+          tags: lumea-${{ matrix.service }}:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Job 4: Integration Tests (Optional - resource intensive)
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [docker-build]  # Run after Docker build to ensure images work
+    continue-on-error: true  # Don't fail the entire workflow if integration tests fail
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Compose
+        run: |
+          # Verify Docker and Docker Compose are available
+          docker --version
+          docker compose version
+          
+          # Check available disk space and memory
+          df -h
+          free -h
+          
+          echo "Docker setup complete"
+
+      - name: Create test environment file
+        run: |
+          # Ensure infra directory exists
+          if [ ! -d "infra" ]; then
+            echo "Error: infra directory not found"
+            exit 1
+          fi
+          
+          # Create test environment file with CI-friendly settings
+          cp infra/.env.example infra/.env.test
+          echo "NODE_ENV=test" >> infra/.env.test
+          echo "API_PORT=3000" >> infra/.env.test
+          echo "POSTGRES_USER=postgres" >> infra/.env.test
+          echo "POSTGRES_PASSWORD=postgres" >> infra/.env.test
+          echo "POSTGRES_DB=lumea_test" >> infra/.env.test
+          echo "JWT_SECRET=test-jwt-secret-for-integration-tests" >> infra/.env.test
+          echo "JWT_REFRESH_SECRET=test-refresh-secret-for-integration-tests" >> infra/.env.test
+          
+          echo "Test environment file created:"
+          cat infra/.env.test
+
+      - name: Start services
+        working-directory: infra
+        run: |
+          echo "Starting Docker Compose services..."
+          timeout 300 docker compose -f docker-compose.yml --env-file .env.test up -d --build || {
+            echo "Docker Compose startup failed or timed out"
+            docker compose logs || true
+            echo "Attempting to continue with available services"
+          }
+          
+          echo "Services started. Checking status:"
+          docker compose ps || true
+
+      - name: Wait for services with timeout
+        run: |
+          echo "Waiting for API service (with 180s timeout)..."
+          
+          # Wait for API to be ready with extended timeout and better error handling
+          timeout 180 bash -c 'while true; do 
+            if curl -f -s http://localhost:3000/monitoring/health > /dev/null 2>&1; then
+              echo "API is ready!"
+              break
+            else
+              echo "API not ready yet, waiting..."
+              docker compose -f infra/docker-compose.yml ps || true
+              docker compose -f infra/docker-compose.yml logs --tail=10 api || true
+              sleep 10
+            fi
+          done' || {
+            echo "API failed to start within timeout. Checking logs..."
+            docker compose -f infra/docker-compose.yml logs api || true
+            docker compose -f infra/docker-compose.yml ps || true
+            echo "Integration tests will be skipped due to service startup failure"
+            exit 1
+          }
+
+      - name: Run integration tests
+        run: |
+          set -e
+          echo "Running integration tests..."
+          
+          echo "Testing API health endpoint..."
+          curl -f -v http://localhost:3000/monitoring/health || {
+            echo "API health check failed"
+            docker compose -f infra/docker-compose.yml logs --tail=20 api || true
+            exit 1
+          }
+          
+          echo "Testing API documentation endpoint..."
+          curl -f -v http://localhost:3000/docs || {
+            echo "API docs check failed"
+            docker compose -f infra/docker-compose.yml logs --tail=20 api || true
+            exit 1
+          }
+          
+          echo "All integration tests passed successfully!"
+
+      - name: Show service logs on failure
+        if: failure()
+        working-directory: infra
+        run: |
+          echo "=== Docker Compose Service Status ==="
+          docker compose ps || true
+          echo "=== API Service Logs ==="
+          docker compose logs api || true
+          echo "=== Database Service Logs ==="
+          docker compose logs db || true
+          echo "=== Redis Service Logs ==="
+          docker compose logs redis || true
+          echo "=== MinIO Service Logs ==="
+          docker compose logs minio || true
+
+      - name: Stop services
+        working-directory: infra
+        if: always()
+        run: |
+          echo "Stopping Docker Compose services..."
+          docker compose down -v || true
+          echo "Cleanup completed"
+
+  # Job 5: Security Scanning
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    # Run in parallel with other jobs as it doesn't depend on build/test results
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run npm audit
+        run: |
+          pnpm audit --audit-level high || echo "Audit found vulnerabilities - review required"
+          echo "Security audit completed"
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high

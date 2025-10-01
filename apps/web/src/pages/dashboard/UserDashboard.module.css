@@ -1,0 +1,1355 @@
+/* Dashboard Component Styles */
+
+/* Main Container */
+.dashboard {
+  min-height: 100vh;
+  background: var(--glass-black);
+  display: flex;
+  position: relative;
+}
+
+/* Background Effects */
+.backgroundEffects {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.backgroundEffects::before {
+  content: '';
+  position: absolute;
+  top: 5rem;
+  right: 25%;
+  width: 24rem;
+  height: 24rem;
+  background: var(--glass-yellow);
+  border-radius: 50%;
+  opacity: 0.05;
+  filter: blur(3rem);
+  animation: pulse 4s ease-in-out infinite;
+}
+
+.backgroundEffects::after {
+  content: '';
+  position: absolute;
+  bottom: 5rem;
+  left: 25%;
+  width: 20rem;
+  height: 20rem;
+  background: purple-500;
+  border-radius: 50%;
+  opacity: 0.03;
+  filter: blur(3rem);
+  animation: pulse 6s ease-in-out infinite reverse;
+}
+
+/* Sidebar Styles */
+.sidebar {
+  position: relative;
+  z-index: 20;
+  width: 20rem;
+  padding: 1rem;
+  border-right: 1px solid var(--glass-border-dim);
+}
+
+.sidebarScroll {
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Main Content */
+.mainContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 10;
+}
+
+/* Header */
+.header {
+  position: relative;
+  z-index: 50;
+  padding: 1.5rem 1.5rem;
+  border-bottom: 1px solid var(--glass-border-dim);
+}
+
+.headerContainer {
+  background: var(--glass-black);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--glass-border-dim);
+}
+
+.logoButton {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.logoGlow {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: linear-gradient(135deg, var(--glass-yellow), var(--glass-yellow-dark));
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px var(--glass-yellow);
+  transition: all 0.3s ease;
+}
+
+.logoGlow:hover {
+  box-shadow: 0 0 30px var(--glass-yellow);
+}
+
+.logoIcon {
+  width: 6rem;
+  height: 6rem;
+  background-image: url('/brand/lumeaLogo_noText.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  filter: brightness(-.1) invert(0);
+}
+
+.logoText {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  transition: color 0.3s ease;
+}
+
+.logoGlow:hover + .logoText,
+.logoText:hover {
+  color: var(--glass-yellow);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Content Area */
+.contentArea {
+  flex: 1;
+  display: flex;
+  padding: 1.5rem;
+  position: relative;
+  z-index: 10;
+}
+
+.centerContent {
+  flex: 1;
+  padding: 1.5rem;
+}
+
+/* Welcome Section */
+.welcomeSection {
+  margin-bottom: 2rem;
+}
+
+.welcomeCard {
+  background: var(--glass-black);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 0 40px var(--glass-yellow);
+  border: 1px solid var(--glass-border-dim);
+}
+
+.welcomeTitle {
+  font-size: 2.25rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.welcomeText {
+  color: var(--glass-gray);
+  font-size: 1.125rem;
+}
+
+/* Pipeline Section */
+.pipelineSection {
+  margin-bottom: 2rem;
+}
+
+.pipelineCard {
+  background: var(--glass-black);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 0 40px var(--glass-yellow);
+  border: 1px solid var(--glass-border-dim);
+}
+
+.pipelineHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.pipelineIcon {
+  width: 2rem;
+  height: 2rem;
+  background: var(--glass-yellow);
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pipelineTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: white;
+}
+
+.pipelineDescription {
+  color: var(--glass-gray);
+  margin-top: 0.25rem;
+}
+
+.pipelineGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.pipelineStage {
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.pipelineStage:hover {
+  transform: translateY(-2px);
+}
+
+.pipelineStageCard {
+  background: var(--glass-black);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid var(--glass-border-dim);
+  transition: all 0.3s ease;
+}
+
+.pipelineStage:hover .pipelineStageCard {
+  box-shadow: 0 0 30px var(--glass-yellow);
+  border-color: var(--glass-yellow);
+}
+
+.pipelineStageIcon {
+  width: 3rem;
+  height: 3rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.75rem;
+}
+
+.pipelineStageCount {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 0.25rem;
+}
+
+.pipelineStageLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--glass-gray);
+}
+
+.pipelineConnection {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.pipelineLine {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    var(--glass-yellow) 50%,
+    rgba(255, 255, 255, 0.1) 100%);
+  transform: translateY(-50%);
+}
+
+/* Projects Section */
+.projectsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.projectsTitle {
+  font-size: 1.875rem;
+  font-weight: bold;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.newProjectButton {
+  background: var(--glass-yellow);
+  color: var(--glass-black);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 20px var(--glass-yellow);
+}
+
+.newProjectButton:hover {
+  background: var(--glass-yellow-dark);
+  box-shadow: 0 0 30px var(--glass-yellow);
+}
+
+.projectsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.projectCard {
+  background: var(--glass-black);
+  border-radius: 1rem;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid var(--glass-border-dim);
+}
+
+.projectCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0 40px var(--glass-yellow);
+  border-color: var(--glass-yellow);
+}
+
+.projectImage {
+  position: relative;
+  width: 100%;
+  height: 12rem;
+  overflow: hidden;
+}
+
+.projectImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.projectCard:hover .projectImage img {
+  transform: scale(1.05);
+}
+
+.projectOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
+}
+
+.projectHeader {
+  padding: 0.75rem 1rem 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.projectTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: white;
+}
+
+.projectMenu {
+  color: var(--glass-gray);
+  transition: color 0.2s ease;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  min-width: 2rem;
+  min-height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.projectMenu:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.projectDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--glass-black);
+  border: 1px solid var(--glass-border-dim);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  min-width: 160px;
+  padding: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.dropdownItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--glass-gray);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 0.375rem;
+  text-align: left;
+}
+
+.dropdownItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.dropdownItem:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.deleteItem {
+  color: #ef4444;
+}
+
+.deleteItem:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+}
+
+.projectDescription {
+  padding: 0 1rem;
+  color: var(--glass-gray);
+  font-size: 0.875rem;
+}
+
+.projectContent {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.projectStatus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.projectBadge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid;
+}
+
+.projectBadge.delivery {
+  background: rgba(34, 197, 94, 0.2);
+  color: rgb(34, 197, 94);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.projectBadge.design {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--glass-yellow);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.projectBadge.feedback {
+  background: rgba(59, 130, 246, 0.2);
+  color: rgb(59, 130, 246);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.projectProgress {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+}
+
+.projectProgressBar {
+  width: 100%;
+  height: 0.5rem;
+  background: var(--glass-border-dim);
+  border-radius: 0.25rem;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.projectProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--glass-yellow), var(--glass-yellow-dark));
+  border-radius: 0.25rem;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 10px var(--glass-yellow);
+}
+
+.projectDueDate {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--glass-gray);
+}
+
+/* Stats Section */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.statCard {
+  background: var(--glass-black);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid var(--glass-border-dim);
+  transition: all 0.3s ease;
+}
+
+.statCard:hover {
+  box-shadow: 0 0 30px var(--glass-yellow);
+  border-color: var(--glass-yellow);
+}
+
+.statContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.statInfo {
+  flex: 1;
+}
+
+.statLabel {
+  font-size: 0.875rem;
+  color: var(--glass-gray);
+  margin-bottom: 0.25rem;
+}
+
+.statValue {
+  font-size: 1.875rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.statTrend {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: rgb(34, 197, 94);
+}
+
+.statIcon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.statIcon.blue {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.statIcon.orange {
+  background: rgba(249, 115, 22, 0.2);
+}
+
+.statIcon.green {
+  background: rgba(34, 197, 94, 0.2);
+}
+
+/* Right Sidebar */
+.rightSidebar {
+  width: 20rem;
+  padding: 1rem;
+  border-left: 1px solid var(--glass-border-dim);
+}
+
+.rightSidebarScroll {
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Activity Section */
+.activityCard {
+  background: var(--glass-black);
+  border-radius: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--glass-border-dim);
+  margin-bottom: 1.5rem;
+}
+
+.activityHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.activityTitle {
+  font-size: 1rem;
+  font-weight: 500;
+  color: white;
+}
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.activityItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.activityItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.activityIcon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.activityIcon.green {
+  background: rgba(34, 197, 94, 0.2);
+}
+
+.activityIcon.yellow {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.activityIcon.blue {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.activityIcon.purple {
+  background: rgba(147, 51, 234, 0.2);
+}
+
+.activityIcon.gold {
+  background: rgba(255, 215, 0, 0.2);
+}
+
+.activityMessage {
+  font-size: 0.875rem;
+  color: white;
+  line-height: 1.4;
+  flex: 1;
+  min-width: 0;
+}
+
+.activityTime {
+  font-size: 0.75rem;
+  color: var(--glass-gray);
+  margin-top: 0.25rem;
+}
+
+.viewAllButton {
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  color: var(--glass-yellow);
+  background: transparent;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.viewAllButton:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Deadlines Section */
+.deadlinesCard {
+  background: var(--glass-black);
+  border-radius: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--glass-border-dim);
+  margin-bottom: 1.5rem;
+}
+
+.deadlinesHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.deadlinesTitle {
+  font-size: 1rem;
+  font-weight: 500;
+  color: white;
+}
+
+.deadlinesList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.deadlineItem {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border-dim);
+}
+
+.deadlineHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.deadlineTitle {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+}
+
+.deadlineBadge {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid;
+}
+
+.deadlineBadge.high {
+  background: rgba(239, 68, 68, 0.2);
+  color: rgb(239, 68, 68);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.deadlineBadge.medium {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--glass-yellow);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.deadlineBadge.low {
+  background: rgba(34, 197, 94, 0.2);
+  color: rgb(34, 197, 94);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.deadlineClient {
+  font-size: 0.75rem;
+  color: var(--glass-gray);
+  margin-bottom: 0.5rem;
+}
+
+.deadlineFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.deadlineDate {
+  font-size: 0.75rem;
+  color: var(--glass-gray);
+}
+
+.deadlineDays {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.deadlineDays.urgent {
+  color: rgb(239, 68, 68);
+}
+
+.deadlineDays.soon {
+  color: var(--glass-yellow);
+}
+
+.deadlineDays.normal {
+  color: rgb(34, 197, 94);
+}
+
+/* Performance Section */
+.performanceCard {
+  background: var(--glass-black);
+  border-radius: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--glass-border-dim);
+}
+
+.performanceHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.performanceTitle {
+  font-size: 1rem;
+  font-weight: 500;
+  color: white;
+}
+
+.performanceStats {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.performanceStat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.performanceLabel {
+  font-size: 0.875rem;
+  color: var(--glass-gray);
+}
+
+.performanceValue {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+}
+
+.performanceValue.highlight {
+  color: var(--glass-yellow);
+}
+
+.performanceSeparator {
+  height: 1px;
+  background: var(--glass-border-dim);
+  margin: 1rem 0;
+}
+
+.performanceScore {
+  text-align: center;
+}
+
+.performanceScoreLabel {
+  font-size: 0.75rem;
+  color: var(--glass-gray);
+  margin-bottom: 0.5rem;
+}
+
+.performanceScoreContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.performanceScoreBadge {
+  width: 3rem;
+  height: 3rem;
+  background: linear-gradient(135deg, var(--glass-yellow), var(--glass-yellow-dark));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px var(--glass-yellow);
+}
+
+.performanceScoreText {
+  color: var(--glass-black);
+  font-weight: bold;
+  font-size: 0.875rem;
+}
+
+.performanceScoreInfo {
+  text-align: left;
+}
+
+.performanceScoreGrade {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+  margin-bottom: 0.125rem;
+}
+
+.performanceScoreDesc {
+  font-size: 0.75rem;
+  color: var(--glass-gray);
+}
+
+/* User Profile Card */
+.userProfileCard {
+  background: var(--glass-black);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid var(--glass-border-dim);
+  margin-bottom: 1.5rem;
+}
+
+.userProfileHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.userAvatar {
+  position: relative;
+}
+
+.userAvatarImage {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  border: 2px solid var(--glass-yellow);
+}
+
+.userOnlineIndicator {
+  position: absolute;
+  bottom: -0.125rem;
+  right: -0.125rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: rgb(34, 197, 94);
+  border-radius: 50%;
+  border: 2px solid var(--glass-black);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.userOnlineDot {
+  width: 0.375rem;
+  height: 0.375rem;
+  background: white;
+  border-radius: 50%;
+}
+
+.userInfo {
+  flex: 1;
+}
+
+.userName {
+  font-size: 1.125rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 0.25rem;
+}
+
+.userRole {
+  font-size: 0.875rem;
+  color: var(--glass-gray);
+  margin-bottom: 0.5rem;
+}
+
+.userRating {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.userRatingStars {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.userRatingStar {
+  width: 0.75rem;
+  height: 0.75rem;
+  color: var(--glass-yellow);
+  fill: currentColor;
+}
+
+.userRatingValue {
+  font-size: 0.75rem;
+  color: var(--glass-yellow);
+}
+
+.userRatingCount {
+  font-size: 0.75rem;
+  color: var(--glass-gray);
+}
+
+.userStats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.userLevel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+
+.userLevelLabel {
+  color: var(--glass-gray);
+}
+
+.userLevelValue {
+  color: var(--glass-yellow);
+}
+
+.userProgressBar {
+  width: 100%;
+  height: 0.5rem;
+  background: var(--glass-border-dim);
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.userProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--glass-yellow), var(--glass-yellow-dark));
+  border-radius: 0.25rem;
+  transition: width 0.3s ease;
+}
+
+.userProgressText {
+  font-size: 0.75rem;
+  color: var(--glass-gray);
+  margin-top: 0.25rem;
+}
+
+.userStatsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.userStatItem {
+  padding: 0.5rem;
+}
+
+.userStatValue {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 0.25rem;
+}
+
+.userStatLabel {
+  font-size: 0.75rem;
+  color: var(--glass-gray);
+}
+
+/* Achievements Card */
+.achievementsCard {
+  background: var(--glass-black);
+  border-radius: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--glass-border-dim);
+  margin-bottom: 1.5rem;
+}
+
+.achievementsHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.achievementsTitle {
+  font-size: 1rem;
+  font-weight: 500;
+  color: white;
+}
+
+.achievementsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.achievementItem {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.achievementItem.unlocked {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--glass-border-light);
+}
+
+.achievementItem.unlocked:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.achievementItem.locked {
+  background: rgba(100, 116, 139, 0.1);
+  border-color: rgba(100, 116, 139, 0.2);
+  opacity: 0.5;
+}
+
+.achievementIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.achievementIcon.yellow {
+  color: var(--glass-yellow);
+}
+
+.achievementIcon.blue {
+  color: rgb(59, 130, 246);
+}
+
+.achievementIcon.red {
+  color: rgb(239, 68, 68);
+}
+
+.achievementIcon.green {
+  color: rgb(34, 197, 94);
+}
+
+.achievementName {
+  font-size: 0.75rem;
+  color: white;
+  font-weight: 500;
+}
+
+/* Quick Actions Card */
+.quickActionsCard {
+  background: var(--glass-black);
+  border-radius: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--glass-border-dim);
+}
+
+.quickActionsHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.quickActionsTitle {
+  font-size: 1rem;
+  font-weight: 500;
+  color: white;
+}
+
+.quickActionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.quickActionButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--glass-black);
+  border: 1px solid var(--glass-border-dim);
+  border-radius: 0.5rem;
+  color: white;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quickActionButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--glass-border-light);
+}
+
+.quickActionIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.quickActionIcon.yellow {
+  color: var(--glass-yellow);
+}
+
+.quickActionIcon.blue {
+  color: rgb(59, 130, 246);
+}
+
+.quickActionIcon.green {
+  color: rgb(34, 197, 94);
+}
+
+.quickActionIcon.gray {
+  color: var(--glass-gray);
+}
+
+.quickActionText {
+  flex: 1;
+  font-size: 0.875rem;
+}
+
+.quickActionArrow {
+  width: 1rem;
+  height: 1rem;
+  color: var(--glass-gray);
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.05;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.1;
+    transform: scale(1.05);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 16rem;
+  }
+
+  .rightSidebar {
+    width: 16rem;
+  }
+
+  .pipelineGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .projectsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    order: 2;
+  }
+
+  .rightSidebar {
+    width: 100%;
+    order: 3;
+    border-left: none;
+    border-top: 1px solid var(--glass-border-dim);
+  }
+
+  .contentArea {
+    flex-direction: column;
+  }
+
+  .centerContent {
+    order: 1;
+  }
+
+  .headerContainer {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .projectsHeader {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .newProjectButton {
+    align-self: center;
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 640px) {
+  .userProfileHeader {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+  }
+
+  .userStatsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .achievementsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .pipelineGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .projectsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .welcomeTitle {
+    font-size: 1.875rem;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

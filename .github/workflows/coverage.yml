@@ -1,0 +1,98 @@
+name: Code Coverage
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  coverage:
+    name: Code Coverage Report
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: lumea_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: '10'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: pnpm --filter @lumea/shared build
+
+      - name: Generate Prisma client
+        working-directory: apps/api
+        run: pnpm prisma:generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lumea_test
+
+      - name: Validate database connection
+        run: |
+          echo "Testing database connection..."
+          timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U postgres; do 
+            echo "Waiting for PostgreSQL..."; 
+            sleep 2; 
+          done'
+          echo "Database connection established!"
+        env:
+          PGPASSWORD: postgres
+
+      - name: Run database migrations
+        working-directory: apps/api
+        run: pnpm prisma:deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lumea_test
+
+      - name: Run tests with coverage
+        run: pnpm test:cov
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lumea_test
+          NODE_ENV: test
+          JWT_SECRET: test-jwt-secret-for-ci-environment-only
+          JWT_REFRESH_SECRET: test-refresh-secret-for-ci-environment-only
+          JWT_EXPIRES_IN: 15m
+          GOOGLE_CLIENT_ID: test-google-client-id
+          GOOGLE_CLIENT_SECRET: test-google-client-secret
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./coverage
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Coverage Summary
+        run: |
+          echo "## Code Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "Generated coverage report and uploaded to Codecov" >> $GITHUB_STEP_SUMMARY
+          
+          # Find coverage summary files and display
+          find . -name "coverage-summary.json" -exec echo "Coverage file found: {}" \;

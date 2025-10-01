@@ -1,0 +1,478 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ──────────────────────────────────────────────────────
+// Enums
+// ──────────────────────────────────────────────────────
+
+enum Role {
+  GUEST
+  CLIENT
+  DESIGNER
+  ADMIN
+}
+
+enum StyleKey {
+  MODERN
+  CLASSIC
+}
+
+enum AssetKey {
+  SOFA
+  COFFEE_TABLE
+  SIDE_TABLE
+}
+
+enum GenerationStatus {
+  OK
+  FALLBACK
+  ERROR
+}
+
+enum AssetStatus {
+  UPLOADED
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum AssetLicense {
+  CC0
+  ROYALTY_FREE
+  PROPRIETARY
+}
+
+enum ProjectRole {
+  CLIENT
+  DESIGNER
+  ADMIN
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum SessionStatus {
+  ACTIVE
+  ENDED
+}
+
+// ──────────────────────────────────────────────────────
+// Models
+// ──────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String?
+  role         Role     @default(DESIGNER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  projects              Project[]
+  feedback              Feedback[]
+  sessions              Session[]             // Legacy sessions
+  invites               Invite[]              // Legacy invites
+  assets                Asset[]
+  projectMembers        ProjectMember[]
+  
+  // Collaboration relations
+  ownedSessions         CollabSession[]       @relation("SessionOwner")
+  sessionParticipations CollabParticipant[]
+  sentInvites           CollabInvite[]        @relation("SentInvites")
+}
+
+model ProjectMember {
+  userId    String
+  projectId String
+  role      ProjectRole @default(CLIENT)
+
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([userId, projectId])
+  @@index([projectId])
+}
+
+model Project {
+  id                    String               @id @default(cuid())
+  name                  String
+  userId                String
+  thumbnailUrl          String?
+  customThumbnailUrl    String?
+  thumbnailUpdatedAt    DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  // Relations
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scenes          Scene[]
+  categories3D    ProjectCategory3D[]
+  scenes3D        Scene3D[]
+  members         ProjectMember[]
+  
+  // Collaboration relations
+  collabSessions  CollabSession[]
+  collabInvites   CollabInvite[]
+
+  @@index([userId])
+}
+
+model Scene {
+  id                    String              @id @default(cuid())
+  projectId             String
+  version               Int                 @default(1)
+  roomWCm               Int                 @default(500)
+  roomHCm               Int                 @default(400)
+  style                 StyleKey            @default(MODERN)
+  seed                  Int?
+  solverMs              Int?
+  status                GenerationStatus    @default(OK)
+  createdAt             DateTime            @default(now())
+  rationale             Json?
+
+  // Relations
+  project               Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  placements            Placement[]
+  complianceChecks      ComplianceCheck[]
+  feedback              Feedback[]
+  placementAdjustments  PlacementAdjustment[]
+
+  @@index([projectId])
+  @@index([createdAt])
+}
+
+model Placement {
+  id           String              @id @default(cuid())
+  sceneId      String
+  assetKey     AssetKey
+  xCm          Int
+  yCm          Int
+  rotationDeg  Int                 @default(0)
+  createdAt    DateTime            @default(now())
+
+  // Relations
+  scene                 Scene                 @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  placementAdjustments  PlacementAdjustment[]
+
+  @@index([sceneId])
+}
+
+model ComplianceCheck {
+  id        String   @id @default(cuid())
+  sceneId   String
+  ruleKey   String
+  passed    Boolean
+  message   String
+
+  // Relations
+  scene     Scene   @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+
+  @@index([sceneId])
+  @@index([ruleKey])
+}
+
+model Feedback {
+  id         String    @id @default(cuid())
+  sceneId    String
+  userId     String
+  rating     Int       // 1-5 scale
+  tags       String[]  // Array of string tags
+  comment    String?
+  isPrivate  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  // Relations
+  scene      Scene     @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sceneId])
+  @@index([userId])
+  @@index([rating])
+}
+
+// Collaboration Sessions - Live collaborative editing sessions
+model CollabSession {
+  id            String        @id @default(cuid())
+  projectId     String
+  ownerId       String        // Session creator
+  name          String?
+  status        SessionStatus @default(ACTIVE)
+  createdAt     DateTime      @default(now())
+  endedAt       DateTime?
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  project       Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner         User                @relation("SessionOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  participants  CollabParticipant[]
+  invites       CollabInvite[]
+
+  @@index([projectId])
+  @@index([ownerId])
+  @@index([status])
+}
+
+// Collaboration Session Participants
+model CollabParticipant {
+  id            String        @id @default(cuid())
+  sessionId     String
+  userId        String
+  joinedAt      DateTime      @default(now())
+  leftAt        DateTime?
+  isActive      Boolean       @default(true)
+
+  // Relations
+  session       CollabSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+  @@index([sessionId])
+  @@index([userId])
+}
+
+// Project Collaboration Invites
+model CollabInvite {
+  id              String       @id @default(cuid())
+  projectId       String
+  fromUserId      String       // Who sent the invite
+  toUserEmail     String       // Email of recipient
+  sessionId       String?      // Associated session (if any)
+  token           String       @unique
+  message         String?      // Optional personal message
+  status          InviteStatus @default(PENDING)
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  declinedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations
+  project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fromUser        User          @relation("SentInvites", fields: [fromUserId], references: [id], onDelete: Cascade)
+  session         CollabSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([fromUserId])
+  @@index([toUserEmail])
+  @@index([token])
+  @@index([status])
+}
+
+// Legacy models - keep for backwards compatibility
+model Session {
+  id         String    @id @default(cuid())
+  projectId  String
+  userId     String
+  token      String    @unique
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  // Relations
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invites    Invite[]
+
+  @@index([token])
+  @@index([userId])
+}
+
+model Invite {
+  id         String    @id @default(cuid())
+  sessionId  String
+  userId     String
+  token      String    @unique
+  expiresAt  DateTime?
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  // Relations
+  session    Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([sessionId])
+}
+
+model PlacementAdjustment {
+  id           String    @id @default(cuid())
+  sceneId      String
+  placementId  String
+  oldXCm       Int
+  oldYCm       Int
+  newXCm       Int
+  newYCm       Int
+  oldRotation  Int
+  newRotation  Int
+  createdAt    DateTime  @default(now())
+
+  // Relations
+  scene        Scene     @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  placement    Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+
+  @@index([sceneId])
+  @@index([placementId])
+}
+
+model Asset {
+  id            String        @id @default(cuid())
+  uploaderId    String
+  originalName  String
+  mimeType      String
+  fileSize      Int
+  status        AssetStatus   @default(UPLOADED)
+
+  // Processing results
+  originalUrl   String?
+  meshoptUrl    String?
+  dracoUrl      String?
+  ktx2Url       String?       // KTX2 compressed textures
+  navmeshUrl    String?
+  reportJson    Json?
+  errorMessage  String?
+
+  // Metadata
+  license       AssetLicense? @default(PROPRIETARY)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  processedAt   DateTime?
+
+  // Relations
+  uploader      User                @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  categories    ProjectCategory3D[]
+  navmeshScenes Scene3D[]
+  shellScenes   Scene3D[]           @relation("SceneShell")
+
+  @@index([uploaderId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ProjectCategory3D {
+  id           String   @id @default(cuid())
+  projectId    String
+  assetId      String
+  categoryKey  String
+
+  // Config flags
+  instancing   Boolean  @default(false)
+  draco        Boolean  @default(true)
+  meshopt      Boolean  @default(true)
+  ktx2         Boolean  @default(true)
+
+  createdAt    DateTime @default(now())
+
+  // Relations
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  asset        Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, assetId, categoryKey])
+  @@index([projectId])
+  @@index([categoryKey])
+}
+
+model Scene3D {
+  id              String    @id @default(cuid())
+  projectId       String
+  name            String
+  version         Int       @default(1)
+  props           Json?
+
+  scale           Float?    @default(1.0)
+  exposure        Float?    @default(1.0)
+  envHdriUrl      String?
+  envIntensity    Float?    @default(1.0)
+
+  spawnPositionX  Float     @default(0.0)
+  spawnPositionY  Float     @default(1.7)
+  spawnPositionZ  Float     @default(5.0)
+  spawnYawDeg     Float     @default(0.0)
+
+  navmeshAssetId  String?
+
+  // Shell properties
+  shellAssetId    String?
+  shellCastShadow Boolean   @default(true)
+  shellReceiveShadow Boolean @default(true)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  navmeshAsset    Asset?    @relation(fields: [navmeshAssetId], references: [id], onDelete: SetNull)
+  shellAsset      Asset?    @relation("SceneShell", fields: [shellAssetId], references: [id], onDelete: SetNull)
+  items           SceneItem3D[]
+  snapshots       SceneSnapshot[]
+
+  @@index([projectId])
+  @@index([createdAt])
+  @@index([version])
+}
+
+model SceneItem3D {
+  id                String   @id @default(cuid())
+  sceneId           String
+  categoryKey       String
+  model             String?
+
+  // Transform
+  positionX         Float @default(0.0)
+  positionY         Float @default(0.0)
+  positionZ         Float @default(0.0)
+  rotationX         Float @default(0.0)
+  rotationY         Float @default(0.0)
+  rotationZ         Float @default(0.0)
+  scaleX            Float @default(1.0)
+  scaleY            Float @default(1.0)
+  scaleZ            Float @default(1.0)
+
+  // Material
+  materialVariant   String?
+  materialOverrides Json?
+
+  selectable        Boolean @default(true)
+  locked            Boolean @default(false)
+
+  meta              Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  scene             Scene3D @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+
+  @@index([sceneId])
+  @@index([categoryKey])
+}
+
+model SceneSnapshot {
+  id        String   @id @default(cuid())
+  sceneId   String   
+  label     String   // e.g., "Manual Save" or auto timestamp
+  manifest  Json     // entire scene manifest v2 for restore
+  createdAt DateTime @default(now())
+
+  // Relations
+  scene     Scene3D  @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+
+  @@index([sceneId])
+  @@index([createdAt])
+}
+
+// generator erd {
+//   provider  = "prisma-erd-generator"
+//   output = "./generated/erd/ERD.png"
+//   mmdcPath  = "./node_modules/.bin/"
+//   puppeteerConfig = "./puppeteer-config.json"
+// }

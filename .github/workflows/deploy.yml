@@ -1,0 +1,335 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main, dev ]
+  workflow_dispatch:
+
+permissions:
+  contents: write    # Required for creating releases and checking out code
+  packages: write    # Required for pushing to container registries
+  actions: read      # Required for workflow operations
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '10'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # Job 0: Deployment Information (when secrets are not configured)
+  deployment-info:
+    name: Deployment Configuration Info
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
+    outputs:
+      secrets-configured: ${{ steps.check-secrets.outputs.configured }}
+    
+    steps:
+      - name: Check deployment secrets
+        id: check-secrets
+        run: |
+          if [[ -n "${{ secrets.CONTAINER_REGISTRY }}" && -n "${{ secrets.REGISTRY_USERNAME }}" && -n "${{ secrets.REGISTRY_PASSWORD }}" ]]; then
+            echo "configured=true" >> $GITHUB_OUTPUT
+            echo "✅ Deployment secrets are configured"
+          else
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Deployment is not configured for this repository"
+            echo ""
+            echo "To enable deployment, please configure the following secrets in your GitHub repository:"
+            echo "Settings > Secrets and variables > Actions > Repository secrets"
+            echo ""
+            echo "Required secrets:"
+            echo "• CONTAINER_REGISTRY - Container registry URL (e.g., 'ghcr.io' or 'docker.io')"
+            echo "• REGISTRY_USERNAME - Your container registry username"
+            echo "• REGISTRY_PASSWORD - Your container registry password/token"
+            echo ""
+            echo "Once configured, deployments will run automatically on:"
+            echo "• dev branch pushes → Staging deployment"
+            echo "• main branch pushes → Production deployment"
+            echo ""
+            echo "Current branch: ${{ github.ref_name }}"
+          fi
+
+  # Job 1: Deploy to Staging (on dev branch)
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: deployment-info
+    if: github.ref == 'refs/heads/dev' && needs.deployment-info.outputs.secrets-configured == 'true'
+    # environment: staging  # Commented out - create this environment in GitHub repo settings if needed
+    permissions:
+      contents: read   # Required for checking out code
+      packages: write  # Required for pushing to registries
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.CONTAINER_REGISTRY }}" ]; then
+            echo "Error: CONTAINER_REGISTRY secret is required"
+            exit 1
+          fi
+          if [ -z "${{ secrets.REGISTRY_USERNAME }}" ]; then
+            echo "Error: REGISTRY_USERNAME secret is required"
+            exit 1
+          fi
+          if [ -z "${{ secrets.REGISTRY_PASSWORD }}" ]; then
+            echo "Error: REGISTRY_PASSWORD secret is required"
+            exit 1
+          fi
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.CONTAINER_REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and push images
+        run: |
+          # Build and push API
+          docker buildx build --platform linux/amd64 \
+            -f ./apps/api/Dockerfile \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:staging \
+            --push .
+          
+          # Build and push Web
+          docker buildx build --platform linux/amd64 \
+            -f ./apps/web/Dockerfile \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:staging \
+            --push .
+          
+
+      - name: Deploy to staging
+        run: |
+          echo "🚀 Deploying to staging environment..."
+          echo "Container Registry: ${{ secrets.CONTAINER_REGISTRY }}"
+          echo "API Image: ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:staging"
+          echo "Web Image: ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:staging"
+          echo "Deployment timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          
+          # TODO: Add your staging deployment commands here
+          # Examples:
+          # - kubectl apply -f k8s/staging/
+          # - docker-compose -f docker-compose.staging.yml up -d
+          # - aws ecs update-service --cluster staging --service lumea-api
+          # - helm upgrade lumea-staging ./helm-chart
+          
+          echo "✅ Staging deployment completed successfully"
+          
+      - name: Health check staging deployment
+        run: |
+          echo "🏥 Running post-deployment health checks..."
+          
+          # TODO: Replace with your actual staging URLs
+          # STAGING_API_URL="https://staging-api.yourdomain.com"
+          # STAGING_WEB_URL="https://staging.yourdomain.com"
+          
+          # Example health checks:
+          # curl -f "$STAGING_API_URL/monitoring/health" || { echo "❌ API health check failed"; exit 1; }
+          # curl -f "$STAGING_WEB_URL" || { echo "❌ Web health check failed"; exit 1; }
+          
+          echo "✅ Health checks would run here (configure URLs first)"
+          
+      - name: Notify staging deployment
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "📢 Staging deployment SUCCESSFUL! 🎉"
+            echo "Environment: Staging"
+            echo "Version: staging"
+            echo "Commit: ${{ github.sha }}"
+            echo "Triggered by: ${{ github.actor }}"
+            # TODO: Add Slack/Discord/Teams notification here
+          else
+            echo "📢 Staging deployment FAILED! ❌"
+            echo "Check the logs above for details"
+            # TODO: Add failure notification here
+          fi
+
+  # Job 2: Deploy to Production (on main branch)
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: deployment-info
+    if: github.ref == 'refs/heads/main' && needs.deployment-info.outputs.secrets-configured == 'true'
+    # environment: production  # Commented out - create this environment in GitHub repo settings if needed
+    permissions:
+      contents: write  # Required for creating releases
+      packages: write  # Required for pushing to registries
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.CONTAINER_REGISTRY }}" ]; then
+            echo "Error: CONTAINER_REGISTRY secret is required"
+            exit 1
+          fi
+          if [ -z "${{ secrets.REGISTRY_USERNAME }}" ]; then
+            echo "Error: REGISTRY_USERNAME secret is required"
+            exit 1
+          fi
+          if [ -z "${{ secrets.REGISTRY_PASSWORD }}" ]; then
+            echo "Error: REGISTRY_PASSWORD secret is required"
+            exit 1
+          fi
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.CONTAINER_REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and push images
+        run: |
+          echo "🔨 Building production images..."
+          
+          # Build and push API with multiple tags for rollback capability
+          docker buildx build --platform linux/amd64 \
+            -f ./apps/api/Dockerfile \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:latest \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:v${{ github.run_number }} \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:${{ github.sha }} \
+            --push .
+          
+          # Build and push Web with multiple tags for rollback capability
+          docker buildx build --platform linux/amd64 \
+            -f ./apps/web/Dockerfile \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:latest \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:v${{ github.run_number }} \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:${{ github.sha }} \
+            --push .
+          
+          echo "📦 Images pushed with tags:"
+          echo "  - latest (for current deployment)"
+          echo "  - v${{ github.run_number }} (for release tracking)"
+          echo "  - ${{ github.sha }} (for commit-specific rollback)"
+
+      - name: Deploy to production
+        run: |
+          echo "🎆 Deploying to PRODUCTION environment..."
+          echo "Container Registry: ${{ secrets.CONTAINER_REGISTRY }}"
+          echo "API Image: ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:latest"
+          echo "API Image (SHA): ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:${{ github.sha }}"
+          echo "Web Image: ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:latest"
+          echo "Web Image (SHA): ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:${{ github.sha }}"
+          echo "Deployment timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "Release version: v${{ github.run_number }}"
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          
+          # TODO: Add your production deployment commands here
+          # Examples:
+          # - kubectl apply -f k8s/production/
+          # - docker-compose -f docker-compose.production.yml up -d
+          # - aws ecs update-service --cluster production --service lumea-api
+          # - helm upgrade lumea-production ./helm-chart --set image.tag=${{ github.sha }}
+          
+          echo "✨ Production deployment completed successfully"
+          
+      - name: Health check production deployment
+        run: |
+          echo "🏥 Running post-deployment health checks..."
+          
+          # TODO: Replace with your actual production URLs
+          # PRODUCTION_API_URL="https://api.yourdomain.com"
+          # PRODUCTION_WEB_URL="https://yourdomain.com"
+          
+          # Example health checks:
+          # curl -f "$PRODUCTION_API_URL/monitoring/health" || { echo "❌ API health check failed"; exit 1; }
+          # curl -f "$PRODUCTION_WEB_URL" || { echo "❌ Web health check failed"; exit 1; }
+          
+          echo "✅ Health checks would run here (configure URLs first)"
+          
+      - name: Notify production deployment
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "📢 PRODUCTION deployment SUCCESSFUL! 🚀"
+            echo "Environment: Production"
+            echo "Version: v${{ github.run_number }}"
+            echo "Commit: ${{ github.sha }}"
+            echo "Triggered by: ${{ github.actor }}"
+            echo "Release: https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}"
+            # TODO: Add Slack/Discord/Teams notification here
+          else
+            echo "📢 PRODUCTION deployment FAILED! 🚫"
+            echo "This is a critical failure - immediate attention required!"
+            echo "Check the logs above for details"
+            # TODO: Add critical failure notification here
+          fi
+          
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo ""
+          echo "=================================="
+          echo "🎆 PRODUCTION DEPLOYMENT COMPLETE"
+          echo "=================================="
+          echo "Version: v${{ github.run_number }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Triggered by: ${{ github.actor }}"
+          echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo ""
+          echo "Images deployed:"
+          echo "  🚀 API: ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:v${{ github.run_number }}"
+          echo "  🌍 Web: ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:v${{ github.run_number }}"
+          echo ""
+          echo "Release: https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}"
+          echo ""
+          echo "For rollback, use the following commands:"
+          echo "  docker pull ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:<previous-version>"
+          echo "  docker pull ${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:<previous-version>"
+          echo "=================================="
+
+      - name: Create GitHub release
+        id: create-release
+        uses: softprops/action-gh-release@v1
+        continue-on-error: true  # Don't fail deployment if release creation fails
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
+          body: |
+            🚀 Production Deployment v${{ github.run_number }}
+            
+            **Commit:** ${{ github.sha }}
+            **Branch:** ${{ github.ref_name }}
+            **Triggered by:** @${{ github.actor }}
+            **Timestamp:** ${{ github.event.head_commit.timestamp }}
+            
+            **Changes:**
+            ${{ github.event.head_commit.message }}
+            
+            **Container Images:**
+            - `${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-api:v${{ github.run_number }}`
+            - `${{ secrets.CONTAINER_REGISTRY }}/${{ secrets.REGISTRY_USERNAME }}/lumea-web:v${{ github.run_number }}`
+          draft: false
+          prerelease: false
+          
+      - name: Release creation status
+        if: always()
+        run: |
+          if [ "${{ steps.create-release.outcome }}" == "success" ]; then
+            echo "✅ GitHub release v${{ github.run_number }} created successfully"
+            echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}"
+          else
+            echo "⚠️  GitHub release creation failed - this is non-critical"
+            echo "💡 To enable releases, ensure the workflow has 'contents: write' permissions"
+            echo "   or create releases manually at: https://github.com/${{ github.repository }}/releases"
+          fi

@@ -1,0 +1,327 @@
+entity-relationship-diagram
+
+Users [icon: user, color: blue] {
+  id string pk
+  email string unique
+  passwordHash string
+  displayName string
+  role         Role
+  isActive     Boolean
+  createdA  spawnPositionZ  Float     @default(5.0)    DateTime
+  updatedAt    DateTime
+}
+Users.projects <> Projects.id
+Users.feedback <> Feedback.id
+Users.sessions <> Sessions.id
+Users.invites <> Invites.id
+Users.assets <> Assets.id
+Users.projectMembers <> ProjectMember.id
+Users.ownedSessions <> CollabSession.id
+Users.sessionParticipations <> CollabParticipant.id
+Users.sentInvites <> CollabInvite.id
+
+Projects [icon: project, color: orange] {
+  id              String               @id @default(cuid())
+  name            String
+  userId          String
+  thumbnailUrl    String?
+  customThumbnailUrl String?
+  thumbnailUpdatedAt DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+}
+
+  // Relations
+  Projects.user <>  Users.id                
+  Projects.scenes <>  Scenes.id
+  Projects.scenes3D <> scene3D.id
+  Projects.categories3D  <>  projectCategory3D.id
+  Projects.members <> ProjectMember.id
+  Projects.collabSessions <> CollabSession.id
+  Projects.collabInvites <> CollabInvite.id
+
+Scenes [icon: project, color: teal] {
+  id                    String              @id @default(cuid())
+  projectId             String
+  version               Int                 @default(1)
+  roomWCm               Int                 @default(500)
+  roomHCm               Int                 @default(400)
+  style                 StyleKey            @default(MODERN)
+  seed                  Int?
+  solverMs              Int?
+  status                GenerationStatus    @default(OK)
+  createdAt             DateTime            @default(now())
+  rationale             Json?
+}
+  // // Relations
+  Scenes.project <> Projects.id      
+  Scenes.placements <> Placements.id
+  Scenes.complianceChecks <>ComplianceChecks.id
+  Scenes.feedback <>Feedback.id
+  Scenes.placementAdjustments <> placementAdjustments.id
+
+Placements [icon: project, color: white] {
+  id           String              @id @default(cuid())
+  sceneId      String
+  assetKey     AssetKey
+  xCm          Int
+  yCm          Int
+  rotationDeg  Int                 @default(0)
+  createdAt    DateTime            @default(now())
+
+}
+  // Relations
+  Placements.scene<>Scenes.id 
+  Placements.placementAdjustments <> placementAdjustments.id
+
+ComplianceChecks [icon: project, color: white] {
+  id        String   @id @default(cuid())
+  sceneId   String
+  ruleKey   String
+  passed    Boolean
+  message   String
+}
+// Relations
+  ComplianceChecks.scene <> Scenes.id
+
+  Feedback [icon: project, color: red] {
+  id         String    @id @default(cuid())
+  sceneId    String
+  userId     String
+  rating     Int       // 1-5 scale
+  tags       String[]  // Array of string tags
+  comment    String?
+  isPrivate  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  
+}
+// Relations
+  Feedback.scene <>Scenes.id    
+  Feedback.user  <> Users.id      
+
+  Sessions [icon: project, color: red]{
+  id         String    @id @default(cuid())
+  projectId  String
+  userId     String
+  token      String    @unique
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+}
+  // Relations
+  Sessions.user<> Users.id   
+  Sessions.invites<> Invites.id
+
+  Invites [icon: project, color: red] {
+  id         String    @id @default(cuid())
+  sessionId  String
+  userId     String
+  token      String    @unique
+  expiresAt  DateTime?
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+}
+  // Relations
+  Invites.session<>Sessions.id   
+  Invites.user<>Users.id   
+
+  placementAdjustments [icon: project, color: white]{
+  id           String    @id @default(cuid())
+  sceneId      String
+  placementId  String
+  oldXCm       Int
+  oldYCm       Int
+  newXCm       Int
+  newYCm       Int
+  oldRotation  Int
+  newRotation  Int
+  createdAt    DateTime  @default(now())
+
+}
+  // Relations
+  placementAdjustments.scene<>Scenes.id    
+  placementAdjustments.placement<>Placements.id
+
+Assets [icon: project, color: purple]{
+  id            String        @id @default(cuid())
+  uploaderId    String
+  originalName  String
+  mimeType      String
+  fileSize      Int
+  status        AssetStatus   @default(UPLOADED)
+
+  // Processing results
+  originalUrl   String?
+  meshoptUrl    String?
+  dracoUrl      String?
+  ktx2Url       String?       // KTX2 compressed textures
+  navmeshUrl    String?
+  reportJson    Json?
+  errorMessage  String?
+
+  // Metadata
+  license       AssetLicense? @default(PROPRIETARY)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  processedAt   DateTime?
+}
+
+  // Relations
+  Assets.uploader<>Users.id            
+  Assets.categories<>projectCategory3D.id
+  Assets.navmeshScenes<>scene3D.id
+  Assets.shellScenes<>scene3D.id
+
+  projectCategory3D [icon: project, color: purple] {
+
+  id           String   @id @default(cuid())
+  projectId    String
+  assetId      String
+  categoryKey  String
+
+  // Config flags
+  instancing   Boolean  @default(false)
+  draco        Boolean  @default(true)
+  meshopt      Boolean  @default(true)
+  ktx2         Boolean  @default(true)
+
+  createdAt    DateTime @default(now())
+}
+  // Relations
+  projectCategory3D.project <>Projects.id  
+  projectCategory3D.asset  <>Assets.id 
+
+  scene3D [icon: project, color: purple] {
+  id              String    @id @default(cuid())
+  projectId       String
+  name            String
+  version         Int       @default(1)
+  props           Json?
+
+  scale           Float?    @default(1.0)
+  exposure        Float?    @default(1.0)
+  envHdriUrl      String?
+  envIntensity    Float?    @default(1.0)
+
+  spawnPositionX  Float     @default(0.0)
+  spawnPositionY  Float     @default(1.7)
+  spawnPositionZ  Float     @default(5.0)
+  spawnYawDeg     Float     @default(0.0)
+
+  navmeshAssetId  String?
+
+  // Shell properties
+  shellAssetId    String?
+  shellCastShadow Boolean   @default(true)
+  shellReceiveShadow Boolean @default(true)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+// Relations
+  scene3D.project<>Projects.id   
+  scene3D.navmeshAsset<>Assets.id 
+  scene3D.shellAsset<>Assets.id
+  scene3D.items<>sceneItem3D.id
+  scene3D.snapshots<>SceneSnapshot.id
+  
+
+
+  sceneItem3D [icon: project, color: purple] {
+  id                String   @id @default(cuid())
+  sceneId           String
+  categoryKey       String
+  model             String?
+
+  // Transform
+  positionX         Float @default(0.0)
+  positionY         Float @default(0.0)
+  positionZ         Float @default(0.0)
+  rotationX         Float @default(0.0)
+  rotationY         Float @default(0.0)
+  rotationZ         Float @default(0.0)
+  scaleX            Float @default(1.0)
+  scaleY            Float @default(1.0)
+  scaleZ            Float @default(1.0)
+
+  // Material
+  materialVariant   String?
+  materialOverrides Json?
+
+  selectable        Boolean @default(true)
+  locked            Boolean @default(false)
+
+  meta              Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+// Relations
+  sceneItem3D.scene<>scene3D.id
+
+ProjectMember [icon: project, color: green] {
+  userId    String
+  projectId String
+  role      ProjectRole @default(CLIENT)
+}
+// Relations
+ProjectMember.user <> Users.id
+ProjectMember.project <> Projects.id
+
+CollabSession [icon: project, color: yellow] {
+  id            String        @id @default(cuid())
+  projectId     String
+  ownerId       String        // Session creator
+  name          String?
+  status        SessionStatus @default(ACTIVE)
+  createdAt     DateTime      @default(now())
+  endedAt       DateTime?
+  updatedAt     DateTime      @updatedAt
+}
+// Relations
+CollabSession.project <> Projects.id
+CollabSession.owner <> Users.id
+CollabSession.participants <> CollabParticipant.id
+CollabSession.invites <> CollabInvite.id
+
+CollabParticipant [icon: project, color: yellow] {
+  id            String        @id @default(cuid())
+  sessionId     String
+  userId        String
+  joinedAt      DateTime      @default(now())
+  leftAt        DateTime?
+  isActive      Boolean       @default(true)
+}
+// Relations
+CollabParticipant.session <> CollabSession.id
+CollabParticipant.user <> Users.id
+
+CollabInvite [icon: project, color: yellow] {
+  id              String       @id @default(cuid())
+  projectId       String
+  fromUserId      String       // Who sent the invite
+  toUserEmail     String       // Email of recipient
+  sessionId       String?      // Associated session (if any)
+  token           String       @unique
+  message         String?      // Optional personal message
+  status          InviteStatus @default(PENDING)
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  declinedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+// Relations
+CollabInvite.project <> Projects.id
+CollabInvite.fromUser <> Users.id
+CollabInvite.session <> CollabSession.id
+
+SceneSnapshot [icon: project, color: purple] {
+  id        String   @id @default(cuid())
+  sceneId   String   
+  label     String   // e.g., "Manual Save" or auto timestamp
+  manifest  Json     // entire scene manifest v2 for restore
+  createdAt DateTime @default(now())
+}
+// Relations
+SceneSnapshot.scene <> scene3D.id
